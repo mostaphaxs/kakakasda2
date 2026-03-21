@@ -14,6 +14,11 @@ use App\Http\Controllers\AnnexUnitsController;
 use App\Http\Controllers\PaymentsController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\SuiviController;
+use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\PurchaseInvoiceController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\GeneralWorkController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -73,4 +78,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/biens/{bien}/suivi/finition', [SuiviController::class, 'updateFinition']);
     Route::post('/biens/{bien}/suivi/historique', [SuiviController::class, 'addHistorique']);
     Route::delete('/biens/{bien}/suivi/historique/{historique}', [SuiviController::class, 'deleteHistorique']);
+
+    // Articles
+    Route::apiResource('articles', ArticleController::class);
+
+    // Suppliers
+    Route::apiResource('suppliers', SupplierController::class);
+
+    // Purchase Invoices
+    Route::apiResource('purchase-invoices', PurchaseInvoiceController::class);
+
+    // Stock management
+    Route::get('/stock', [StockController::class, 'index']);
+    Route::get('/stock/low-stock', [StockController::class, 'lowStock']);
+    Route::post('/stock/exit', [StockController::class, 'exitStock']);
+
+    // General Works
+    Route::apiResource('general-works', GeneralWorkController::class);
 });
