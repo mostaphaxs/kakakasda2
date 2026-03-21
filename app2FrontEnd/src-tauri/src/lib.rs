@@ -42,17 +42,17 @@ pub fn run() {
             let resource_path = app.path().resource_dir().expect("Failed to get resource directory");
             
             // 1. Détection du chemin Artisan
-            let project_root = if !app.path().resource_dir().unwrap().join("app1BackEnd/artisan").exists() {
+            let project_root = if !app.path().resource_dir().unwrap().join("app2BackEnd/artisan").exists() {
                 // Mode DEV : on remonte depuis le dossier de travail
                 std::env::current_dir().unwrap()
-                    .parent().unwrap().to_path_buf() // app1FrontEnd
-                    .parent().unwrap().to_path_buf() // APP1
+                    .parent().unwrap().to_path_buf() // app2FrontEnd
+                    .parent().unwrap().to_path_buf() // APP2
             } else {
                 // Mode PROD : racine des ressources
                 resource_path.clone()
             };
 
-            let artisan_path = project_root.join("app1BackEnd/artisan");
+            let artisan_path = project_root.join("app2BackEnd/artisan");
 
             println!("🚀 Racine du projet : {:?}", project_root);
             println!("🚀 Chemin Artisan : {:?}", artisan_path);

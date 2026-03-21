@@ -36,7 +36,7 @@
     ],
     "resources": [
       "binaries/php/**/*",
-      "../../app1BackEnd/**/*"
+      "../../app2BackEnd/**/*"
     ]
   }
 }
