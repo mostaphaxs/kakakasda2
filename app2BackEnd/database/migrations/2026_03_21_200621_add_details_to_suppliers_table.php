@@ -12,18 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('suppliers', function (Blueprint $table) {
-            if (Schema::hasColumn('suppliers', 'name')) {
-                $table->renameColumn('name', 'nom_societe');
-            } else if (!Schema::hasColumn('suppliers', 'nom_societe')) {
-                $table->string('nom_societe')->after('id');
+            if (!Schema::hasColumn('suppliers', 'scan_contrat')) {
+                $table->string('scan_contrat')->nullable()->after('rc');
             }
-            
-            $table->string('nom_gerant')->nullable()->after('nom_societe');
-            $table->string('adresse')->nullable()->after('nom_gerant');
-            $table->string('tel')->nullable()->after('adresse');
-            $table->string('rc')->nullable()->after('if');
-            $table->string('scan_contrat')->nullable()->after('rc');
-            $table->text('description')->nullable()->after('scan_contrat');
         });
     }
 
@@ -33,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('suppliers', function (Blueprint $table) {
-            $table->dropColumn(['nom_societe', 'nom_gerant', 'adresse', 'tel', 'rc', 'scan_contrat', 'description']);
+            if (Schema::hasColumn('suppliers', 'scan_contrat')) {
+                $table->dropColumn('scan_contrat');
+            }
         });
     }
 };
