@@ -62,6 +62,7 @@ const AddGeneralWork: React.FC = () => {
                                 <option value="Atterrassement">Atterrassement</option>
                                 <option value="Débarquement">Débarquement</option>
                                 <option value="Déplacement terre/sable">Déplacement terre/sable</option>
+                                <option value="Solaire">Solaire</option>
                             </select>
                         </div>
                     </div>

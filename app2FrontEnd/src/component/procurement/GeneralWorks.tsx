@@ -29,7 +29,7 @@ const GeneralWorks: React.FC = () => {
 
     const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
 
-    const WORK_TYPES = ['Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable'];
+    const WORK_TYPES = ['Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable', 'Solaire'];
 
     useEffect(() => {
         fetchWorks();

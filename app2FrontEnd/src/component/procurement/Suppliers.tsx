@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
-import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink } from 'lucide-react';
+import { openExternal } from '../../lib/tauri';
+import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
@@ -77,7 +78,6 @@ const Suppliers: React.FC = () => {
         try {
             const formData = new FormData();
 
-            // Explicitly append fields to avoid any null/undefined issues
             formData.append('nom_societe', data.nom_societe || '');
             formData.append('nom_gerant', data.nom_gerant || '');
             formData.append('adresse', data.adresse || '');
@@ -104,6 +104,12 @@ const Suppliers: React.FC = () => {
         } catch (error: any) {
             toast.error(error.message || 'Erreur lors de la mise à jour.');
         }
+    };
+
+    const handleViewContract = (path: string) => {
+        if (!path) return;
+        const url = encodeURI(`${STORAGE_BASE}/${path}`);
+        openExternal(url);
     };
 
     const filtered = suppliers.filter(s =>
@@ -189,10 +195,15 @@ const Suppliers: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     {s.scan_contrat ? (
-                                        <a href={`${STORAGE_BASE}/${s.scan_contrat}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-black text-xs uppercase underline">
-                                            <FileText size={14} /> PDF
-                                        </a>
-                                    ) : <span className="text-gray-300 text-[10px] uppercase font-bold">Inexistant</span>}
+                                        <button
+                                            onClick={() => handleViewContract(s.scan_contrat!)}
+                                            className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all font-black text-[10px] uppercase tracking-widest shadow-sm"
+                                        >
+                                            <FileText size={14} /> Voir Contrat
+                                        </button>
+                                    ) : (
+                                        <span className="text-gray-300 text-[10px] uppercase font-bold tracking-widest">Aucun document</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -240,17 +251,47 @@ const Suppliers: React.FC = () => {
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><FileText size={12} className="mr-2" /> Scan du Contrat (PDF/Image)</label>
-                                        <div className="flex items-center gap-4">
-                                            <input
-                                                type="file"
-                                                onChange={(e) => setContractFile(e.target.files?.[0] || null)}
-                                                className="flex-1 h-11 py-2 px-4 rounded-xl border-dashed border-2 border-indigo-100 bg-indigo-50/30 focus:bg-white transition-all font-bold text-xs outline-none shadow-sm file:mr-4 file:py-0 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-indigo-200 file:text-indigo-700 hover:file:bg-indigo-300"
-                                            />
+                                        <div className="flex flex-col gap-4">
                                             {editingSupplier?.scan_contrat && (
-                                                <a href={`${STORAGE_BASE}/${editingSupplier.scan_contrat}`} target="_blank" rel="noreferrer" className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 shadow-sm border border-indigo-100">
-                                                    <ExternalLink size={18} />
-                                                </a>
+                                                <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex items-center justify-between group">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+                                                            <FileText size={24} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Document actuel</p>
+                                                            <p className="text-xs font-bold text-slate-700 truncate max-w-[200px]">{editingSupplier.scan_contrat.split('/').pop()}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleViewContract(editingSupplier.scan_contrat!)}
+                                                        className="p-3 bg-white text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest leading-none"
+                                                    >
+                                                        <ExternalLink size={16} /> VOIR LE CONTRAT
+                                                    </button>
+                                                </div>
                                             )}
+                                            <div className="relative group">
+                                                <input
+                                                    type="file"
+                                                    onChange={(e) => setContractFile(e.target.files?.[0] || null)}
+                                                    className="hidden"
+                                                    id="edit-contract-upload"
+                                                />
+                                                <label
+                                                    htmlFor="edit-contract-upload"
+                                                    className="w-full h-14 bg-white border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-between px-4 hover:border-indigo-400 hover:bg-slate-50 cursor-pointer transition-all group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <Upload className="text-gray-400 group-hover:text-indigo-500 transition-colors" size={20} />
+                                                        <span className="text-xs font-black text-gray-500 uppercase">
+                                                            {contractFile ? contractFile.name : 'Changer ou Remplacer le document...'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-[10px] font-black text-white bg-slate-800 px-3 py-1.5 rounded-lg uppercase tracking-widest">Parcourir</div>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="md:col-span-2">
