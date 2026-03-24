@@ -13,6 +13,7 @@ class Bien extends Model
     protected $appends = ['finition_pourcentage'];
     protected $fillable = [
         'terrain_id',
+        'nom',
         'type_bien',
         'groupe_habitation',
         'immeuble',

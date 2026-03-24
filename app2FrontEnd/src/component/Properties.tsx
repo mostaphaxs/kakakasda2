@@ -19,6 +19,7 @@ interface Bien {
     id: number;
     terrain_id: number;
     type_bien: string;
+    nom?: string;
     num_appartement: string;
     groupe_habitation?: string;
     immeuble?: string;
@@ -154,6 +155,7 @@ const Properties = () => {
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || (
             b.id.toString().includes(search) ||
+            b.nom?.toLowerCase().includes(search) ||
             b.type_bien?.toLowerCase().includes(search) ||
             b.num_appartement?.toLowerCase().includes(search) ||
             b.statut?.toLowerCase().includes(search) ||
@@ -353,13 +355,17 @@ const Properties = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="font-black text-gray-800 uppercase tracking-wide">
-                                                {b.type_bien}
+                                                {b.nom ? (
+                                                    <span className="text-indigo-600 mr-2">{b.nom}</span>
+                                                ) : (
+                                                    b.type_bien
+                                                )}
                                                 {b.groupe_habitation ? ` - ${b.groupe_habitation}` : ''}
                                                 {b.immeuble ? ` - Imm. ${b.immeuble}` : ''}
                                                 {b.etage ? ` - Étage ${b.etage}` : ''}
                                                 {b.num_appartement ? ` - N° ${b.num_appartement}` : ''}
                                             </span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id}</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien})` : ''}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -559,8 +565,12 @@ const Properties = () => {
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
                             <div>
-                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">Détails Unité {selectedBien.num_appartement}</h3>
-                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">{selectedBien.type_bien} • ID #{selectedBien.id}</p>
+                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
+                                    {selectedBien.nom ? selectedBien.nom : `Détails Unité ${selectedBien.num_appartement}`}
+                                </h3>
+                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+                                    {selectedBien.type_bien} {selectedBien.nom ? `(${selectedBien.num_appartement})` : ''} • ID #{selectedBien.id}
+                                </p>
                             </div>
                             <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                 <X size={20} />

@@ -20,6 +20,7 @@ interface Terrain {
 
 interface BienFormInputs {
     terrain_id: number;
+    nom: string;
     type_bien: string;
     groupe_habitation: string;
     immeuble: string;
@@ -86,6 +87,7 @@ const AddProperty: React.FC = () => {
     } = useForm<BienFormInputs>({
         defaultValues: {
             statut: 'Libre',
+            nom: '',
             surface_m2: undefined,
             prix_par_m2_finition: undefined,
             prix_global_finition: 0,
@@ -105,6 +107,7 @@ const AddProperty: React.FC = () => {
                     reset({
                         ...data,
                         terrain_id: data.terrain_id,
+                        nom: data.nom || '',
                         etage: data.etage !== null ? String(data.etage) : '',
                         surface_m2: formatNumber(data.surface_m2) as any,
                         prix_par_m2_finition: formatNumber(data.prix_par_m2_finition) as any,
@@ -170,6 +173,7 @@ const AddProperty: React.FC = () => {
             const payload = {
                 ...data,
                 terrain_id: Number(data.terrain_id),
+                nom: data.nom || null,
                 etage: data.etage !== '' ? Number(data.etage) : null,
                 surface_m2: parseNumber(String(data.surface_m2)),
                 prix_par_m2_finition: parseNumber(String(data.prix_par_m2_finition)),
@@ -351,6 +355,20 @@ const AddProperty: React.FC = () => {
                                     <option value="Autre">Autre</option>
                                 </select>
                             </FieldWrapper>
+
+                            {/* Nom du Bien */}
+                            {type_bien && type_bien !== 'Appartement' && (
+                                <div className="sm:col-span-2">
+                                    <FieldWrapper label="Nom / Identifiant unique (Optionnel)" error={errors.nom?.message} fieldError={fieldErrors.nom}>
+                                        <input
+                                            {...register('nom', { maxLength: { value: 255, message: 'Max 255 caractères.' } })}
+                                            className={inputCls(!!errors.nom)}
+                                            placeholder={type_bien === 'Lot Villa' ? "Ex: Lot Villa X2323 ou Lot Villa Mohammed" : "Ex: Nom du local..."}
+                                        />
+                                        <p className="mt-1 text-[10px] text-slate-400 italic">Donnez un nom unique à ce bien pour le distinguer plus facilement.</p>
+                                    </FieldWrapper>
+                                </div>
+                            )}
 
                             {/* Statut */}
                             <FieldWrapper label="Statut *" error={errors.statut?.message} fieldError={fieldErrors.statut}>

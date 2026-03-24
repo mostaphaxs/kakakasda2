@@ -16,6 +16,7 @@ interface StockItem {
     destination?: {
         num_appartement: string;
         type_bien: string;
+        nom?: string;
     };
 }
 

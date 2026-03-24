@@ -16,6 +16,7 @@ interface Bien {
     id: number;
     num_appartement: string;
     type_bien: string;
+    nom?: string;
 }
 
 interface StockExitFormProps {
@@ -131,7 +132,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                                 <option value="">Sélectionner une destination</option>
                                 {biens.map(bien => (
                                     <option key={bien.id} value={bien.id}>
-                                        {bien.type_bien} - {bien.num_appartement}
+                                        {bien.nom ? bien.nom : `${bien.type_bien} - ${bien.num_appartement}`}
                                     </option>
                                 ))}
                             </select>

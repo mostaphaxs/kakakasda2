@@ -24,6 +24,7 @@ class BienController extends Controller
     {
         $validated = $request->validate([
             'terrain_id'        => 'required|integer|exists:terrains,id',
+            'nom'               => 'nullable|string|max:255',
             'type_bien'         => 'required|string|max:100',
             'groupe_habitation' => 'nullable|string|max:100',
             'immeuble'          => 'nullable|string|max:100',
@@ -78,6 +79,7 @@ class BienController extends Controller
     {
         $validated = $request->validate([
             'terrain_id'        => 'sometimes|required|integer|exists:terrains,id',
+            'nom'               => 'nullable|string|max:255',
             'type_bien'         => 'sometimes|required|string|max:100',
             'groupe_habitation' => 'nullable|string|max:100',
             'immeuble'          => 'nullable|string|max:100',
