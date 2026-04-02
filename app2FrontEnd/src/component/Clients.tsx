@@ -1,6 +1,6 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -93,13 +93,17 @@ const Clients = () => {
     const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
     const [availableBiens, setAvailableBiens] = useState<Bien[]>([]);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-    const [editBienIds, setEditBienIds] = useState<string[]>([]);
+    const [editBienId, setEditBienId] = useState<string>('');
 
     // Details Modal State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailClient, setDetailClient] = useState<Client | null>(null);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+    // WhatsApp Language Modal State
+    const [isWhatsAppLangModalOpen, setIsWhatsAppLangModalOpen] = useState(false);
+    const [whatsappTargetClient, setWhatsappTargetClient] = useState<Client | null>(null);
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -145,10 +149,11 @@ const Clients = () => {
             prenom: client.prenom,
             tel: client.tel,
             cin: client.cin,
-            date_reservation: client.date_reservation,
             avec_finition: client.avec_finition,
+            date_reservation: client.date_reservation ? client.date_reservation.split(' ')[0] : ''
         });
-        setEditBienIds(client.biens?.map(b => String(b.id)) || []);
+        setEditBienId(client.biens && client.biens.length > 0 ? String(client.biens[0].id) : '');
+        setFieldErrors({});
         setIsEditModalOpen(true);
     };
 
@@ -166,13 +171,8 @@ const Clients = () => {
             await apiFetch(`/clients/${editFormData.id}`, {
                 method: 'PUT',
                 body: JSON.stringify({
-                    nom: editFormData.nom,
-                    prenom: editFormData.prenom,
-                    tel: editFormData.tel,
-                    cin: editFormData.cin,
-                    date_reservation: editFormData.date_reservation,
-                    avec_finition: editFormData.avec_finition || false,
-                    bien_ids: editBienIds.map(id => Number(id))
+                    ...editFormData,
+                    bien_id: editBienId ? Number(editBienId) : null
                 })
             });
 
@@ -300,6 +300,44 @@ const Clients = () => {
         } finally {
             setIsSubmittingCancel(false);
         }
+    };
+
+    const handleWhatsAppMessage = (client: Client, language: 'fr' | 'ar') => {
+        if (!client.tel) {
+            toast.error("Le client n'a pas de numéro de téléphone.");
+            return;
+        }
+
+        const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
+        const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+        const reste = Math.max(0, prixGlobal - totalVerse);
+
+        let message = '';
+        if (language === 'fr') {
+            message = `Bonjour ${client.nom} ${client.prenom},\n\nVoici un récapitulatif de votre situation :\n- Prix Global : ${formatNumber(prixGlobal)} DH\n- Total Versé : ${formatNumber(totalVerse)} DH\n- Reste à payer : ${formatNumber(reste)} DH\n\nMerci de nous contacter pour toute question.`;
+        } else {
+            message = `مرحباً ${client.nom} ${client.prenom}،\n\nإليك ملخص وضعيتك المالية :\n- السعر الإجمالي: ${formatNumber(prixGlobal)} درهم\n- المبلغ المدفوع: ${formatNumber(totalVerse)} درهم\n- الباقي للأداء: ${formatNumber(reste)} درهم\n\nيرجى الاتصال بنا لأي استفسار. شكراً.`;
+        }
+
+        const encodedMessage = encodeURIComponent(message);
+
+        let cleanTel = client.tel.replace(/\s/g, '').replace(/[^0-9+]/g, '');
+
+        if (cleanTel.startsWith('0') && (cleanTel.startsWith('06') || cleanTel.startsWith('07')) && cleanTel.length === 10) {
+            cleanTel = '212' + cleanTel.substring(1);
+        } else if (!cleanTel.startsWith('+') && !cleanTel.startsWith('212') && cleanTel.length === 9) {
+            cleanTel = '212' + cleanTel;
+        }
+
+        const whatsappUrl = `https://wa.me/${cleanTel}?text=${encodedMessage}`;
+
+        openExternal(whatsappUrl);
+        setIsWhatsAppLangModalOpen(false);
+    };
+
+    const handleOpenWhatsAppLangModal = (client: Client) => {
+        setWhatsappTargetClient(client);
+        setIsWhatsAppLangModalOpen(true);
     };
 
     const handleAssociatePayment = async (e: React.FormEvent) => {
@@ -667,6 +705,13 @@ const Clients = () => {
                                                     >
                                                         <Eye size={18} />
                                                     </button>
+                                                    <button
+                                                        onClick={() => handleOpenWhatsAppLangModal(c)}
+                                                        className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                                                        title="Envoyer Rappel WhatsApp"
+                                                    >
+                                                        <MessageCircle size={18} />
+                                                    </button>
                                                     <button onClick={() => handleEdit(c)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all" >
                                                         <Edit2 size={16} />
                                                     </button>
@@ -969,48 +1014,38 @@ const Clients = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Biens Assignés</label>
-                                    <div className="flex flex-wrap gap-2 mb-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
-                                        {editBienIds.map(id => {
-                                            const b = availableBiens.find(x => x.id === Number(id)) || clients.flatMap(c => c.biens || []).find(x => x.id === Number(id));
-                                            return b ? (
-                                                <span key={id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">
-                                                    {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setEditBienIds(prev => prev.filter(x => x !== id))}
-                                                        className="hover:text-blue-900"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </span>
-                                            ) : null;
-                                        })}
-                                        {editBienIds.length === 0 && <span className="text-gray-400 text-xs italic">Aucun bien sélectionné</span>}
-                                    </div>
-
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
                                     <select
                                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                        onChange={(e) => {
-                                            if (e.target.value && !editBienIds.includes(e.target.value)) {
-                                                setEditBienIds([...editBienIds, e.target.value]);
-                                            }
-                                            e.target.value = "";
-                                        }}
-                                        value=""
+                                        value={editBienId}
+                                        onChange={(e) => setEditBienId(e.target.value)}
                                     >
-                                        <option value="">Ajouter un bien...</option>
-                                        {availableBiens
-                                            .filter(b => !editBienIds.includes(b.id.toString()))
-                                            .map(b => (
-                                                <option key={b.id} value={b.id}>
-                                                    {b.type_bien} {b.immeuble ? `- Imm. ${b.immeuble} ` : ''}{b.etage ? `- Étage ${b.etage} ` : ''}{b.num_appartement ? `- N° ${b.num_appartement} ` : ''}({b.statut})
-                                                </option>
-                                            ))}
+                                        <option value="">— Aucun bien —</option>
+                                        {/* Current Bien */}
+                                        {editBienId && !availableBiens.find(b => b.id === Number(editBienId)) && (
+                                            (() => {
+                                                const currentClient = clients.find(c => c.id === editFormData.id);
+                                                const b = currentClient?.biens?.find(x => x.id === Number(editBienId));
+                                                return b ? (
+                                                    <option key={b.id} value={b.id}>
+                                                        {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''} (Actuel)
+                                                    </option>
+                                                ) : null;
+                                            })()
+                                        )}
+                                        {availableBiens.map((b) => (
+                                            <option
+                                                key={b.id}
+                                                value={b.id}
+                                                disabled={b.statut !== 'Libre' && b.id !== Number(editBienId)}
+                                            >
+                                                {b.type_bien} {b.num_appartement ? `(N° ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 
-                                {editBienIds.length > 0 && (
+                                {editBienId && (
                                     <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
                                         <div>
                                             <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
@@ -1139,6 +1174,10 @@ const Clients = () => {
                                                         <div className="flex justify-between text-sm mb-1">
                                                             <span className="text-gray-400">Type / Unité:</span>
                                                             <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm mb-1">
+                                                            <span className="text-gray-400">Localisation:</span>
+                                                            <span className="font-bold text-gray-700"> {b.immeuble ? `Imm. ${b.immeuble}` : ''} {b.etage === 0 ? 'RDC' : b.etage ? `Étage ${b.etage}` : ''}</span>
                                                         </div>
                                                         <div className="flex justify-between text-sm">
                                                             <span className="text-gray-400">Statut:</span>
@@ -1400,6 +1439,39 @@ const Clients = () => {
                     </div>
                 )
             }
+            {/* WhatsApp Language Modal */}
+            {isWhatsAppLangModalOpen && whatsappTargetClient && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
+                            <h3 className="font-bold text-gray-800">Choisir la Langue / اختر اللغة</h3>
+                            <button
+                                onClick={() => setIsWhatsAppLangModalOpen(false)}
+                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 grid grid-cols-2 gap-4">
+                            <button
+                                onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'fr')}
+                                className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                            >
+                                <span className="text-3xl">🇫🇷</span>
+                                <span className="font-bold text-gray-700 group-hover:text-emerald-700">Français</span>
+                            </button>
+
+                            <button
+                                onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'ar')}
+                                className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                            >
+                                <span className="text-3xl">🇲🇦</span>
+                                <span className="font-bold text-gray-700 group-hover:text-emerald-700">العربية</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 };

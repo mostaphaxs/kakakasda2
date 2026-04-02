@@ -352,7 +352,7 @@ const Properties = () => {
                                                 )}
                                                 {b.groupe_habitation ? ` - ${b.groupe_habitation}` : ''}
                                                 {b.immeuble ? ` - Imm. ${b.immeuble}` : ''}
-                                                {b.etage ? ` - Étage ${b.etage}` : ''}
+                                                {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
                                                 {b.num_appartement ? ` - N° ${b.num_appartement}` : ''}
                                             </span>
                                             <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien})` : ''}</span>

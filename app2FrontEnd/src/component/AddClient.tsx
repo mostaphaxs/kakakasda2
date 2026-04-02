@@ -23,7 +23,7 @@ interface ClientFormInputs {
     prenom: string;
     cin: string;
     tel: string;
-    bien_ids: string[];
+    bien_id: string;
     date_reservation: string;
     avec_finition: boolean;
 }
@@ -66,12 +66,12 @@ const AddClient: React.FC = () => {
         setValue,
     } = useForm<ClientFormInputs>({
         defaultValues: {
-            bien_ids: [],
+            bien_id: '',
             avec_finition: false,
         }
     });
 
-    const selectedBienIds = watch('bien_ids') || [];
+    const selectedBienId = watch('bien_id');
 
     // ── Fetch biens libres ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -99,7 +99,7 @@ const AddClient: React.FC = () => {
                     prenom: data.prenom.trim(),
                     cin: data.cin.trim().toUpperCase(),
                     tel: data.tel.trim(),
-                    bien_ids: data.bien_ids.map(id => Number(id)),
+                    bien_id: data.bien_id ? Number(data.bien_id) : null,
                     date_reservation: data.date_reservation || null,
                     avec_finition: data.avec_finition || false,
                 }),
@@ -258,68 +258,36 @@ const AddClient: React.FC = () => {
 
                             {/* Biens liés */}
                             <div className="sm:col-span-2">
-                                <FieldWrapper label="Biens réservés (optionnel)" error={errors.bien_ids?.message}>
+                                <FieldWrapper label="Bien réservé (optionnel)" error={errors.bien_id?.message} fieldError={fieldErrors.bien_id}>
                                     {loadingBiens ? (
                                         <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-300 text-slate-400 text-sm">
                                             <Loader2 size={14} className="animate-spin" /> Chargement…
                                         </div>
                                     ) : (
-                                        <div className="space-y-3">
-                                            <select
-                                                onChange={(e) => {
-                                                    const id = e.target.value;
-                                                    if (id && !selectedBienIds.includes(id)) {
-                                                        setValue('bien_ids', [...selectedBienIds, id]);
-                                                    }
-                                                    e.target.value = "";
-                                                }}
-                                                className={inputCls(!!errors.bien_ids)}
-                                            >
-                                                <option value="">— Ajouter un bien —</option>
-                                                {biens
-                                                    .filter(b => !selectedBienIds.includes(String(b.id)))
-                                                    .map((b) => (
-                                                        <option
-                                                            key={b.id}
-                                                            value={b.id}
-                                                            disabled={b.statut !== 'Libre'}
-                                                        >
-                                                            {b.type_bien} {b.num_appartement ? `(N° ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
-                                                        </option>
-                                                    ))}
-                                            </select>
-
-                                            {/* Selection Tags */}
-                                            {selectedBienIds.length > 0 && (
-                                                <div className="flex flex-wrap gap-2 p-3 bg-blue-50/50 border border-blue-100 rounded-xl">
-                                                    {selectedBienIds.map(id => {
-                                                        const b = biens.find(item => String(item.id) === id);
-                                                        if (!b) return null;
-                                                        return (
-                                                            <div key={id} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-200 rounded-lg shadow-sm text-[11px] font-bold text-blue-800 animate-in zoom-in-95 duration-200">
-                                                                <span>{b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : `(ID: ${b.id})`}</span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setValue('bien_ids', selectedBienIds.filter(sid => sid !== id))}
-                                                                    className="text-blue-400 hover:text-red-500 transition-colors"
-                                                                >
-                                                                    <X size={12} />
-                                                                </button>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <select
+                                            {...register('bien_id')}
+                                            className={inputCls(!!errors.bien_id)}
+                                        >
+                                            <option value="">— Choisir un bien —</option>
+                                            {biens.map((b) => (
+                                                <option
+                                                    key={b.id}
+                                                    value={b.id}
+                                                    disabled={b.statut !== 'Libre'}
+                                                >
+                                                    {b.type_bien} {b.immeuble ? `(Imm. ${b.immeuble})` : ''} {b.num_appartement ? `(N° ${b.num_appartement})` : ''} · {b.etage === 0 ? 'RDC' : `Étage ${b.etage}`} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                                </option>
+                                            ))}
+                                        </select>
                                     )}
                                 </FieldWrapper>
                             </div>
 
-                            {selectedBienIds.length > 0 && (
+                            {selectedBienId && (
                                 <div className="sm:col-span-2 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
                                     <div>
                                         <p className="text-sm font-bold text-indigo-900">Choix de Finition</p>
-                                        <p className="text-xs text-indigo-700/70">Le client souhaite-t-il la finition pour ces biens ?</p>
+                                        <p className="text-xs text-indigo-700/70">Le client souhaite-t-il la finition pour ce bien ?</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" {...register('avec_finition')} className="sr-only peer" />

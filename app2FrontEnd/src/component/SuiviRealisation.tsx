@@ -189,7 +189,7 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
         bien.type_bien,
         bien.groupe_habitation,
         bien.immeuble ? `Imm. ${bien.immeuble}` : null,
-        bien.etage ? `Étage ${bien.etage}` : null,
+        bien.etage === 0 ? 'RDC' : bien.etage ? `Étage ${bien.etage}` : null,
         bien.num_appartement ? `N° ${bien.num_appartement}` : null,
     ].filter(Boolean).join(' · ');
 

@@ -26,8 +26,7 @@ class ClientController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'bien_ids'         => 'nullable|array',
-            'bien_ids.*'       => 'integer|exists:biens,id',
+            'bien_id'          => 'nullable|integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
             'cin'              => 'required|string|max:20|unique:clients,cin',
@@ -39,9 +38,9 @@ class ClientController extends Controller
         return DB::transaction(function () use ($validated) {
             $client = Client::create($validated);
 
-            if (!empty($validated['bien_ids'])) {
-                $client->biens()->sync($validated['bien_ids']);
-                Bien::whereIn('id', $validated['bien_ids'])->update(['statut' => 'Reserve']);
+            if (!empty($validated['bien_id'])) {
+                $client->biens()->sync([$validated['bien_id']]);
+                Bien::where('id', $validated['bien_id'])->update(['statut' => 'Reserve']);
             }
 
             return response()->json([
@@ -65,8 +64,7 @@ class ClientController extends Controller
     public function update(Request $request, Client $client): JsonResponse
     {
         $validated = $request->validate([
-            'bien_ids'         => 'nullable|array',
-            'bien_ids.*'       => 'integer|exists:biens,id',
+            'bien_id'          => 'nullable|integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
             'cin'              => 'required|string|max:20|unique:clients,cin,' . $client->id,
@@ -77,26 +75,25 @@ class ClientController extends Controller
 
         return DB::transaction(function () use ($validated, $client) {
             $oldBienIds = $client->biens()->pluck('biens.id')->toArray();
-            $newBienIds = $validated['bien_ids'] ?? [];
+            $newBienId = $validated['bien_id'] ?? null;
 
             $client->update($validated);
-            $client->biens()->sync($newBienIds);
+            $client->biens()->sync($newBienId ? [$newBienId] : []);
 
             // Free removed biens
-            $removed = array_diff($oldBienIds, $newBienIds);
+            $removed = array_diff($oldBienIds, $newBienId ? [$newBienId] : []);
             if (!empty($removed)) {
                 Bien::whereIn('id', $removed)->update(['statut' => 'Libre']);
             }
 
-            // Reserve new ones
-            $added = array_diff($newBienIds, $oldBienIds);
-            if (!empty($added)) {
-                Bien::whereIn('id', $added)->update(['statut' => 'Reserve']);
+            // Reserve new one
+            if ($newBienId && !in_array($newBienId, $oldBienIds)) {
+                Bien::where('id', $newBienId)->update(['statut' => 'Reserve']);
                 
                 // Retroactively associate any unassociated payments
                 $client->payments()
                     ->whereNull('bien_id')
-                    ->update(['bien_id' => $added[0] ?? null]); // Simple fallback to the first new property
+                    ->update(['bien_id' => $newBienId]);
             }
 
             return response()->json([

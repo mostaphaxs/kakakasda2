@@ -43,8 +43,15 @@ class PurchaseInvoice extends Model
     protected static function updateStock($adjustment, $articleId)
     {
         $stock = StockTracking::firstOrNew(['article_id' => $articleId]);
-        $stock->initial_stock += $adjustment;
+        
+        // Ensure numeric values to avoid issues with nulls from firstOrNew
+        $currentInitial = $stock->initial_stock ?? 0;
+        $currentConsumed = $stock->consumed_qty ?? 0;
+
+        $stock->initial_stock = $currentInitial + $adjustment;
+        $stock->consumed_qty = $currentConsumed;
         $stock->remaining_stock = $stock->initial_stock - $stock->consumed_qty;
+        
         $stock->save();
     }
 

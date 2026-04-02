@@ -302,6 +302,7 @@ const AddProperty: React.FC = () => {
                                         className={inputCls(!!errors.etage)}
                                         placeholder="0"
                                     />
+                                    <p className="mt-1 text-[10px] text-slate-400 italic">Note: L'étage 0 correspond au Rez-de-chaussée (RDC).</p>
                                 </FieldWrapper>
                             )}
 

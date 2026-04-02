@@ -26,20 +26,20 @@ class PurchaseInvoiceController extends Controller
         return PurchaseInvoice::create($validated);
     }
 
-    public function show(PurchaseInvoice $purchaseInvoice)
+    public function show(PurchaseInvoice $purchase_invoice)
     {
-        return $purchaseInvoice->load(['article', 'supplier']);
+        return $purchase_invoice->load(['article', 'supplier']);
     }
 
-    public function update(Request $request, PurchaseInvoice $purchaseInvoice)
+    public function update(Request $request, PurchaseInvoice $purchase_invoice)
     {
-        $purchaseInvoice->update($request->all());
-        return $purchaseInvoice;
+        $purchase_invoice->update($request->all());
+        return $purchase_invoice;
     }
 
-    public function destroy(PurchaseInvoice $purchaseInvoice)
+    public function destroy(PurchaseInvoice $purchase_invoice)
     {
-        $purchaseInvoice->delete();
+        $purchase_invoice->delete();
         return response()->noContent();
     }
 }
