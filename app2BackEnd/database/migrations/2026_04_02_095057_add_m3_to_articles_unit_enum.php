@@ -12,7 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE articles MODIFY COLUMN unit ENUM('m2', 'ML', 'U', 'Kg', 'M3')");
+        Schema::table('articles', function (Blueprint $table) {
+            $table->string('unit')->change();
+        });
     }
 
     /**
@@ -20,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE articles MODIFY COLUMN unit ENUM('m2', 'ML', 'U', 'Kg')");
+        Schema::table('articles', function (Blueprint $table) {
+            $table->string('unit')->change();
+        });
     }
 };

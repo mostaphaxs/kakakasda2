@@ -23,11 +23,29 @@ class PurchaseInvoice extends Model
     protected static function booted()
     {
         static::created(function ($invoice) {
-            $stock = StockTracking::firstOrNew(['article_id' => $invoice->article_id]);
-            $stock->initial_stock += $invoice->qty;
-            $stock->remaining_stock = $stock->initial_stock - $stock->consumed_qty;
-            $stock->save();
+            static::updateStock($invoice->qty, $invoice->article_id);
         });
+
+        static::updated(function ($invoice) {
+            if ($invoice->wasChanged('qty') || $invoice->wasChanged('article_id')) {
+                // Undo old values
+                static::updateStock(-$invoice->getOriginal('qty'), $invoice->getOriginal('article_id'));
+                // Apply new values
+                static::updateStock($invoice->qty, $invoice->article_id);
+            }
+        });
+
+        static::deleted(function ($invoice) {
+            static::updateStock(-$invoice->qty, $invoice->article_id);
+        });
+    }
+
+    protected static function updateStock($adjustment, $articleId)
+    {
+        $stock = StockTracking::firstOrNew(['article_id' => $articleId]);
+        $stock->initial_stock += $adjustment;
+        $stock->remaining_stock = $stock->initial_stock - $stock->consumed_qty;
+        $stock->save();
     }
 
     public function article()

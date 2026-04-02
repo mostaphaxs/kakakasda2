@@ -13,7 +13,7 @@ class BienController extends Controller
      */
     public function index(): JsonResponse
     {
-        $biens = Bien::with(['terrain', 'client', 'suiviFinition'])->latest()->get();
+        $biens = Bien::with(['terrain', 'clients', 'suiviFinition'])->latest()->get();
         return response()->json($biens);
     }
 

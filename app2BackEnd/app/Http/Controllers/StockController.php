@@ -27,7 +27,11 @@ class StockController extends Controller
             'destination_id' => 'required|exists:biens,id',
         ]);
 
-        $stock = StockTracking::where('article_id', $validated['article_id'])->firstOrFail();
+        $stock = StockTracking::where('article_id', $validated['article_id'])->first();
+
+        if (!$stock) {
+            return response()->json(['message' => 'Aucun stock trouvé pour cet article. Veuillez d\'abord enregistrer une entrée de stock.'], 404);
+        }
 
         if ($stock->remaining_stock < $validated['qty']) {
             return response()->json(['message' => 'Insufficient stock'], 400);
