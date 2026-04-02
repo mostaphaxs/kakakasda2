@@ -1,8 +1,8 @@
-// src/component/SuiviRealisation.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Loader2, Save, BarChart2, Plus, Trash2, Pencil, Check, Paintbrush } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,24 +70,21 @@ const uid = () => `item_${++_uid}`;
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
-    const [loading, setLoading] = useState(true);
-    const [savingGO, setSavingGO] = useState(false);
-    const [savingFin, setSavingFin] = useState(false);
-
+    const queryClient = useQueryClient();
     const [goPct, setGoPct] = useState(0);
     const [items, setItems] = useState<FinItem[]>([]);
 
     // ─── Load ─────────────────────────────────────────────────────────────────
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await apiFetch<SuiviData>(`/biens/${bien.id}/suivi`);
-            setGoPct(data.gros_oeuvre_pourcentage ?? 0);
+    const { data: suiviData, isLoading: loading } = useQuery({
+        queryKey: ['biens', bien.id, 'suivi'],
+        queryFn: () => apiFetch<SuiviData>(`/biens/${bien.id}/suivi`),
+    });
 
-            const server = data.suivi_finition ?? [];
-
+    useEffect(() => {
+        if (suiviData) {
+            setGoPct(suiviData.gros_oeuvre_pourcentage ?? 0);
+            const server = suiviData.suivi_finition ?? [];
             if (server.length === 0) {
-                // First time – seed from defaults
                 setItems(DEFAULT_ELEMENTS.map(d => ({
                     id: uid(),
                     label: d.label,
@@ -96,8 +93,7 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
                     editing: false,
                 })));
             } else {
-                // Rebuild from server data
-                const serverItems: FinItem[] = server.map(s => {
+                setItems(server.map(s => {
                     const def = DEFAULT_ELEMENTS.find(d => d.element === s.element);
                     return {
                         id: uid(),
@@ -106,17 +102,57 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
                         checked: s.checked,
                         editing: false,
                     };
-                });
-                setItems(serverItems);
+                }));
             }
-        } catch {
-            toast.error('Erreur de chargement du suivi');
-        } finally {
-            setLoading(false);
         }
-    }, [bien.id]);
+    }, [suiviData]);
 
-    useEffect(() => { load(); }, [load]);
+    // ─── Mutations ────────────────────────────────────────────────────────────
+    const goMutation = useMutation({
+        mutationFn: (pourcentage: number) =>
+            apiFetch(`/biens/${bien.id}/suivi/gros-oeuvre`, {
+                method: 'POST',
+                body: JSON.stringify({ pourcentage }),
+            }),
+        onSuccess: () => {
+            toast.success('Gros Œuvre enregistré');
+            queryClient.invalidateQueries({ queryKey: ['biens', bien.id, 'suivi'] });
+            if (onRefresh) onRefresh();
+        },
+        onError: () => toast.error('Erreur lors de la sauvegarde'),
+    });
+
+    const finMutation = useMutation({
+        mutationFn: (payload: any) =>
+            apiFetch(`/biens/${bien.id}/suivi/finition`, {
+                method: 'POST',
+                body: JSON.stringify({ items: payload }),
+            }),
+        onSuccess: () => {
+            toast.success('Finition enregistrée');
+            queryClient.invalidateQueries({ queryKey: ['biens', bien.id, 'suivi'] });
+            if (onRefresh) onRefresh();
+        },
+        onError: () => toast.error('Erreur lors de la sauvegarde'),
+    });
+
+    const saveGO = () => goMutation.mutate(goPct);
+
+    const saveFinition = () => {
+        setItems(prev => prev.map(i => ({ ...i, editing: false })));
+        const payload = items.map(i => {
+            const isDefault = DEFAULT_ELEMENTS.some(d => d.element === i.element);
+            return {
+                element: isDefault ? i.element : ('autre_' + i.id).substring(0, 90),
+                label_custom: isDefault ? null : i.label,
+                checked: i.checked,
+            };
+        });
+        finMutation.mutate(payload);
+    };
+
+    const savingGO = goMutation.isPending;
+    const savingFin = finMutation.isPending;
 
     // ─── Computed ─────────────────────────────────────────────────────────────
     const done = items.filter(i => i.checked).length;
@@ -148,49 +184,6 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
             editing: true,
         }]);
 
-    // ─── Save GO ──────────────────────────────────────────────────────────────
-    const saveGO = async () => {
-        setSavingGO(true);
-        try {
-            await apiFetch(`/biens/${bien.id}/suivi/gros-oeuvre`, {
-                method: 'POST',
-                body: JSON.stringify({ pourcentage: goPct }),
-            });
-            toast.success('Gros Œuvre enregistré');
-            if (onRefresh) onRefresh();
-        } catch {
-            toast.error('Erreur lors de la sauvegarde');
-        } finally {
-            setSavingGO(false);
-        }
-    };
-
-    // ─── Save Finition ────────────────────────────────────────────────────────
-    const saveFinition = async () => {
-        setItems(prev => prev.map(i => ({ ...i, editing: false })));
-        setSavingFin(true);
-        try {
-            const payload = items.map(i => {
-                const isDefault = DEFAULT_ELEMENTS.some(d => d.element === i.element);
-                return {
-                    element: isDefault ? i.element : ('autre_' + i.id).substring(0, 90),
-                    label_custom: isDefault ? null : i.label,
-                    checked: i.checked,
-                };
-            });
-            await apiFetch(`/biens/${bien.id}/suivi/finition`, {
-                method: 'POST',
-                body: JSON.stringify({ items: payload }),
-            });
-            toast.success('Finition enregistrée');
-            if (onRefresh) onRefresh();
-        } catch {
-            toast.error('Erreur lors de la sauvegarde');
-        } finally {
-            setSavingFin(false);
-        }
-    };
-
     // ─── Helpers ──────────────────────────────────────────────────────────────
     const bienLabel = [
         bien.type_bien,
@@ -201,17 +194,17 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
     ].filter(Boolean).join(' · ');
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[96vh] border border-white/20">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[96vh] border border-white/20">
 
                 {/* ── Header ── */}
-                <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-                    <div className="flex items-center gap-4 text-slate-900">
-                        <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-100">
-                            <BarChart2 className="text-white" size={24} />
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+                    <div className="flex items-center gap-3 text-slate-900">
+                        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center shadow-lg shadow-slate-100">
+                            <BarChart2 className="text-white" size={20} />
                         </div>
                         <div>
-                            <h3 className="font-black text-slate-900 text-xl tracking-tight leading-tight">
+                            <h3 className="font-black text-slate-900 text-lg tracking-tight leading-tight">
                                 Suivi de Réalisation
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
@@ -230,7 +223,7 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 space-y-4">
                             <div className="relative">
@@ -247,8 +240,8 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Client Card */}
                                     {bien.client && (
-                                        <div className="group relative p-5 bg-white rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4 animate-in slide-in-from-left duration-500 overflow-hidden">
-                                            <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg shadow-slate-100 shrink-0">
+                                        <div className="group relative p-4 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 animate-in slide-in-from-left duration-500 overflow-hidden">
+                                            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shadow-slate-100 shrink-0">
                                                 <span className="text-sm font-black text-white tracking-tighter">
                                                     {bien.client.prenom[0]}{bien.client.nom[0]}
                                                 </span>

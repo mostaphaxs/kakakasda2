@@ -9,7 +9,6 @@ class Client extends Model
 {
     use HasFrenchDates;
     protected $fillable = [
-        'bien_id',
         'nom',
         'prenom',
         'cin',
@@ -24,9 +23,9 @@ class Client extends Model
         'date_reservation' => 'date',
     ];
 
-    public function bien()
+    public function biens()
     {
-        return $this->belongsTo(Bien::class);
+        return $this->belongsToMany(Bien::class);
     }
 
     public function payments()

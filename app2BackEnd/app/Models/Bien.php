@@ -53,9 +53,9 @@ class Bien extends Model
         return $this->hasMany(SuiviHistorique::class);
     }
 
-    public function client()
+    public function clients()
     {
-        return $this->hasOne(Client::class);
+        return $this->belongsToMany(Client::class);
     }
 
     /**

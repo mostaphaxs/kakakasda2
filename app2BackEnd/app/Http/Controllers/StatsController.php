@@ -68,55 +68,63 @@ class StatsController extends Controller
         $globalChiffreAffaires = 0;
         $globalBiensTypes = [];
 
+        // Pre-fetch all necessary data in bulk to avoid N+1 queries
+        $allBiens = Bien::with('client')->get()->groupBy('terrain_id');
+        
+        $allPaymentsByTerrain = payments::join('biens', 'payments.bien_id', '=', 'biens.id')
+            ->selectRaw('biens.terrain_id, SUM(CAST(payments.amount AS DECIMAL(15,2)) - CAST(COALESCE(payments.refund_amount, 0) AS DECIMAL(15,2))) as net_total')
+            ->groupBy('biens.terrain_id')
+            ->pluck('net_total', 'terrain_id');
+
+        $allReservationsByTerrain = Client::join('biens', 'clients.bien_id', '=', 'biens.id')
+            ->selectRaw('biens.terrain_id, count(*) as count')
+            ->groupBy('biens.terrain_id')
+            ->pluck('count', 'terrain_id');
+
+        $allChargesBureauByTerrain = Charge::selectRaw('
+                terrain_id,
+                SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
+            ')
+            ->groupBy('terrain_id')
+            ->pluck('total', 'terrain_id');
+
+        $allChargesIntervenantsByTerrain = ContractorPayment::where('payable_type', 'App\Models\Intervenant')
+            ->join('intervenants', 'contractor_payments.payable_id', '=', 'intervenants.id')
+            ->selectRaw('intervenants.terrain_id, SUM(contractor_payments.amount) as total')
+            ->groupBy('intervenants.terrain_id')
+            ->pluck('total', 'terrain_id');
+
+        $allChargesContractorsByTerrain = ContractorPayment::where('payable_type', 'App\Models\Contractor')
+            ->join('contractors', 'contractor_payments.payable_id', '=', 'contractors.id')
+            ->selectRaw('contractors.terrain_id, SUM(contractor_payments.amount) as total')
+            ->groupBy('contractors.terrain_id')
+            ->pluck('total', 'terrain_id');
+
         foreach ($terrains as $terrain) {
             $tInvested = $terrain->total ?? 0;
+            $tId = $terrain->id;
 
-            $tEncaissements = payments::whereIn('bien_id', function ($query) use ($terrain) {
-                $query->select('id')->from('biens')->where('terrain_id', $terrain->id);
-            })->selectRaw('SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as net_total')
-              ->value('net_total') ?? 0;
-
-            $tReservations = Client::whereIn('bien_id', function ($query) use ($terrain) {
-                $query->select('id')->from('biens')->where('terrain_id', $terrain->id);
-            })->count();
-
-            $tChargesBureau = Charge::where('terrain_id', $terrain->id)->selectRaw('
-                SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
-            ')->value('total') ?? 0;
-
-            $tChargesIntervenants = ContractorPayment::where('payable_type', 'App\Models\Intervenant')
-                ->whereIn('payable_id', function ($query) use ($terrain) {
-                    $query->select('id')->from('intervenants')->where('terrain_id', $terrain->id);
-                })->sum('amount');
-
-            $tChargesContractors = ContractorPayment::where('payable_type', 'App\Models\Contractor')
-                ->whereIn('payable_id', function ($query) use ($terrain) {
-                    $query->select('id')->from('contractors')->where('terrain_id', $terrain->id);
-                })->sum('amount');
+            $tEncaissements = $allPaymentsByTerrain->get($tId, 0);
+            $tReservations = $allReservationsByTerrain->get($tId, 0);
+            $tChargesBureau = $allChargesBureauByTerrain->get($tId, 0);
+            $tChargesIntervenants = $allChargesIntervenantsByTerrain->get($tId, 0);
+            $tChargesContractors = $allChargesContractorsByTerrain->get($tId, 0);
 
             $tTotalCharges = $tChargesBureau + $tChargesIntervenants + $tChargesContractors;
             $tCoutGlobal = $tInvested + $tTotalCharges;
 
-            $tBiensStatus = Bien::where('terrain_id', $terrain->id)
-                ->select('statut', \DB::raw('count(*) as count'))
-                ->groupBy('statut')
-                ->pluck('count', 'statut')
-                ->toArray();
+            // Biens details for this terrain
+            $tBiens = $allBiens->get($tId, collect());
+            
+            $tBiensStatus = $tBiens->groupBy('statut')->map->count()->toArray();
+            $tBiensTypes = $tBiens->groupBy('type_bien')->map->count()->toArray();
 
-            // Chiffre d'Affaires & Profitability
-            $tChiffreAffaires = Bien::join('clients', 'biens.id', '=', 'clients.bien_id')
-                ->where('biens.terrain_id', $terrain->id)
-                ->selectRaw('SUM(CASE WHEN clients.avec_finition = 1 THEN biens.prix_global_finition ELSE biens.prix_global_non_finition END) as total_ca')
-                ->value('total_ca') ?? 0;
+            // Chiffre d'Affaires calculation
+            $tChiffreAffaires = $tBiens->filter(fn($b) => $b->client)
+                ->sum(fn($b) => $b->client->avec_finition ? $b->prix_global_finition : $b->prix_global_non_finition);
 
             $tResteARecouvrer = max(0, $tChiffreAffaires - $tEncaissements);
             $tBeneficeEstime = $tChiffreAffaires - $tCoutGlobal;
-
-            $tBiensTypes = Bien::where('terrain_id', $terrain->id)
-                ->select('type_bien', \DB::raw('count(*) as count'))
-                ->groupBy('type_bien')
-                ->pluck('count', 'type_bien')
-                ->toArray();
 
             $globalChiffreAffaires += $tChiffreAffaires;
             foreach ($tBiensTypes as $type => $count) {
@@ -127,7 +135,7 @@ class StatsController extends Controller
             }
 
             $terrainsStats[] = [
-                'id' => $terrain->id,
+                'id' => $tId,
                 'nom_terrain' => $terrain->nom_terrain,
                 'investissement' => (float) $tInvested,
                 'encaissements' => (float) $tEncaissements,

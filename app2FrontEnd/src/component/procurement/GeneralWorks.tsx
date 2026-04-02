@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiFetch } from '../../lib/api';
 import { Wrench, Search, PlusCircle, Download, Edit2, Trash2, X, Save, Banknote, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface GeneralWork {
     id: number;
@@ -19,48 +20,51 @@ interface GeneralWork {
 
 const GeneralWorks: React.FC = () => {
     const navigate = useNavigate();
-    const [works, setWorks] = useState<GeneralWork[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [editingWork, setEditingWork] = useState<GeneralWork | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    const [suppliers, setSuppliers] = useState<any[]>([]);
-
-    const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
+    const { register, handleSubmit, reset } = useForm();
 
     const WORK_TYPES = ['Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable', 'Solaire'];
 
-    useEffect(() => {
-        fetchWorks();
-        fetchSuppliers();
-    }, []);
+    const { data: works = [], isLoading: loading } = useQuery({
+        queryKey: ['general-works'],
+        queryFn: () => apiFetch<GeneralWork[]>('/general-works'),
+    });
 
-    const fetchWorks = async () => {
-        try {
-            const data = await apiFetch<GeneralWork[]>('/general-works');
-            setWorks(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { data: suppliers = [] } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => apiFetch<any[]>('/suppliers'),
+    });
 
-    const fetchSuppliers = async () => {
-        const sups = await apiFetch<any[]>('/suppliers');
-        setSuppliers(sups);
-    };
+    const deleteMutation = useMutation({
+        mutationFn: (id: number) => apiFetch(`/general-works/${id}`, { method: 'DELETE' }),
+        onSuccess: () => {
+            toast.success('Travaux supprimés');
+            queryClient.invalidateQueries({ queryKey: ['general-works'] });
+        },
+        onError: (error: any) => toast.error(error.message),
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: number; data: any }) =>
+            apiFetch(`/general-works/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            }),
+        onSuccess: () => {
+            toast.success('Travaux mis à jour !');
+            setIsEditModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['general-works'] });
+        },
+        onError: (error: any) => toast.error(error.message || 'Erreur lors de la mise à jour.'),
+    });
 
     const handleDelete = async (id: number) => {
         if (!confirm('Supprimer ces travaux ?')) return;
-        try {
-            await apiFetch(`/general-works/${id}`, { method: 'DELETE' });
-            toast.success('Travaux supprimés');
-            fetchWorks();
-        } catch (error: any) {
-            toast.error(error.message);
-        }
+        deleteMutation.mutate(id);
     };
 
     const handleEdit = (work: GeneralWork) => {
@@ -76,17 +80,7 @@ const GeneralWorks: React.FC = () => {
 
     const onSubmitUpdate = async (data: any) => {
         if (!editingWork) return;
-        try {
-            await apiFetch(`/general-works/${editingWork.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(data)
-            });
-            toast.success('Travaux mis à jour !');
-            setIsEditModalOpen(false);
-            fetchWorks();
-        } catch (error: any) {
-            toast.error(error.message || 'Erreur lors de la mise à jour.');
-        }
+        updateMutation.mutate({ id: editingWork.id, data });
     };
 
     const filtered = works.filter(w =>
@@ -106,24 +100,23 @@ const GeneralWorks: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="p-4 space-y-4 bg-gray-50 min-h-screen">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
-                            <Wrench className="text-orange-600 h-8 w-8" />
+                        <h1 className="text-lg font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
+                            <Wrench className="text-orange-600 h-6 w-6" />
                             Suivi des Travaux Généraux
                         </h1>
-                        <p className="text-gray-500 text-sm font-medium">Suivi financier des prestations de service (Image 3).</p>
+                        <p className="text-gray-500 text-[10px] uppercase font-bold tracking-widest italic">Suivi Financier</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={handleExport} className="flex items-center gap-2 bg-orange-50 text-orange-600 px-4 py-2.5 rounded-xl border border-orange-100 hover:bg-orange-100 transition font-black text-xs uppercase tracking-widest">
                             <Download size={18} />
                             Exporter
                         </button>
-                        <button onClick={() => navigate('/add-travaux')} className="flex items-center gap-2 bg-orange-600 text-white px-6 py-2.5 rounded-xl hover:bg-orange-700 transition font-black shadow-lg shadow-orange-100 text-xs uppercase tracking-widest">
-                            <PlusCircle size={18} />
-                            Nouveau
+                        <button onClick={() => navigate('/add-travaux')} className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition font-black shadow-lg shadow-orange-100 text-[10px] uppercase tracking-widest">
+                            <PlusCircle size={16} /> Nouveau
                         </button>
                     </div>
                 </div>
@@ -136,22 +129,22 @@ const GeneralWorks: React.FC = () => {
                             placeholder="Rechercher par prestataire ou nature..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-orange-500 outline-none transition-all shadow-sm"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-sm">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-sm">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                         <tr>
-                            <th className="px-6 py-4">Nature des Travaux</th>
-                            <th className="px-6 py-4">Prestataire</th>
-                            <th className="px-6 py-4">Montant Marché</th>
-                            <th className="px-6 py-4">Payé</th>
-                            <th className="px-6 py-4 text-right">Solde</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
+                            <th className="px-4 py-2.5">Nature des Travaux</th>
+                            <th className="px-4 py-2.5">Prestataire</th>
+                            <th className="px-4 py-2.5">Montant Marché</th>
+                            <th className="px-4 py-2.5">Payé</th>
+                            <th className="px-4 py-2.5 text-right">Solde</th>
+                            <th className="px-4 py-2.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -237,11 +230,11 @@ const GeneralWorks: React.FC = () => {
 
                             <button
                                 type="submit"
-                                disabled={isSubmitting}
+                                disabled={updateMutation.isPending}
                                 className="w-full h-14 bg-orange-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-orange-700 transition-all shadow-xl flex items-center justify-center space-x-3 shadow-orange-100"
                             >
                                 <Save size={20} />
-                                <span>{isSubmitting ? 'Mise à jour...' : 'Confirmer les modifications'}</span>
+                                <span>{updateMutation.isPending ? 'Mise à jour...' : 'Confirmer les modifications'}</span>
                             </button>
                         </form>
                     </div>

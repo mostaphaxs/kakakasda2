@@ -53,7 +53,7 @@ interface Client {
     cin: string;
     date_reservation: string | null;
     avec_finition: boolean;
-    bien?: Bien;
+    biens?: Bien[];
     payments?: (Payment & { receipt_path?: string })[];
     scanned_docs?: ScannedDoc[];
 }
@@ -93,6 +93,7 @@ const Clients = () => {
     const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
     const [availableBiens, setAvailableBiens] = useState<Bien[]>([]);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+    const [editBienIds, setEditBienIds] = useState<string[]>([]);
 
     // Details Modal State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -106,7 +107,6 @@ const Clients = () => {
     const [filterType, setFilterType] = useState<string>('all');
     const [filterTerrain, setFilterTerrain] = useState<string>('all');
     const [filterHasBien, setFilterHasBien] = useState<'all' | 'with' | 'without'>('all');
-    const [filterBienStatus, setFilterBienStatus] = useState<string>('all');
 
     const fetchData = async () => {
         try {
@@ -147,8 +147,8 @@ const Clients = () => {
             cin: client.cin,
             date_reservation: client.date_reservation,
             avec_finition: client.avec_finition,
-            bien: client.bien
         });
+        setEditBienIds(client.biens?.map(b => String(b.id)) || []);
         setIsEditModalOpen(true);
     };
 
@@ -172,7 +172,7 @@ const Clients = () => {
                     cin: editFormData.cin,
                     date_reservation: editFormData.date_reservation,
                     avec_finition: editFormData.avec_finition || false,
-                    bien_id: editFormData.bien?.id || null
+                    bien_ids: editBienIds.map(id => Number(id))
                 })
             });
 
@@ -335,7 +335,10 @@ const Clients = () => {
         try {
             const formData = new FormData();
             formData.append('client_id', selectedClient.id.toString());
-            formData.append('bien_id', selectedClient.bien?.id.toString() || '');
+            // If client has only one property, associate it automatically. 
+            // If multiple, we might need a selector in the modal, but for now we'll send nothing or the first one.
+            const targetBienId = selectedClient.biens?.length === 1 ? selectedClient.biens[0].id : (selectedBienId || '');
+            formData.append('bien_id', targetBienId.toString());
             formData.append('amount', parseNumber(paymentAmount).toString());
             formData.append('payment_date', paymentDate);
             formData.append('type', paymentType);
@@ -378,8 +381,8 @@ const Clients = () => {
             c.prenom.toLowerCase().includes(search) ||
             c.tel.includes(search) ||
             c.cin.toLowerCase().includes(search) ||
-            (c.bien?.id.toString().includes(search)) ||
-            (c.bien?.type_bien.toLowerCase().includes(search))
+            (c.biens?.some(b => b.id.toString().includes(search))) ||
+            (c.biens?.some(b => b.type_bien.toLowerCase().includes(search)))
         );
 
         if (!matchesSearch) return false;
@@ -389,17 +392,14 @@ const Clients = () => {
         if (filterFinition === 'sans' && c.avec_finition) return false;
 
         // 3. Type
-        if (filterType !== 'all' && c.bien?.type_bien !== filterType) return false;
+        if (filterType !== 'all' && !c.biens?.some(b => b.type_bien === filterType)) return false;
 
         // 4. Terrain / Project
-        if (filterTerrain !== 'all' && c.bien?.terrain_id?.toString() !== filterTerrain) return false;
+        if (filterTerrain !== 'all' && !c.biens?.some(b => b.terrain_id?.toString() === filterTerrain)) return false;
 
         // 6. Statut Attribution
-        if (filterHasBien === 'with' && !c.bien) return false;
-        if (filterHasBien === 'without' && c.bien) return false;
-
-        // 7. Statut Bien
-        if (filterBienStatus !== 'all' && c.bien?.statut !== filterBienStatus) return false;
+        if (filterHasBien === 'with' && (!c.biens || c.biens.length === 0)) return false;
+        if (filterHasBien === 'without' && c.biens && c.biens.length > 0) return false;
 
         return true;
     });
@@ -410,7 +410,6 @@ const Clients = () => {
         setFilterType('all');
         setFilterTerrain('all');
         setFilterHasBien('all');
-        setFilterBienStatus('all');
     };
 
     const handleExport = () => {
@@ -420,9 +419,7 @@ const Clients = () => {
         }
 
         const dataToExport = filteredClients.map(c => {
-            const prixGlobal = c.bien
-                ? (c.avec_finition ? parseFloat(String(c.bien.prix_global_finition || 0)) : parseFloat(String(c.bien.prix_global_non_finition || 0)))
-                : 0;
+            const prixGlobal = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? parseFloat(String(b.prix_global_finition || 0)) : parseFloat(String(b.prix_global_non_finition || 0))), 0) || 0;
             const totalVerse = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
             return {
                 'ID': c.id,
@@ -430,14 +427,14 @@ const Clients = () => {
                 'PRÉNOM': c.prenom?.toUpperCase(),
                 'TÉLÉPHONE': c.tel,
                 'CIN': c.cin?.toUpperCase(),
-                'BIEN ASSIGNÉ': c.bien?.type_bien || 'N/A',
-                'UNITÉ': c.bien?.num_appartement || 'N/A',
+                'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
+                'UNITÉS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
                 'PRIX TOTAL (DH)': prixGlobal,
                 'VERSÉ (DH)': totalVerse,
                 'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
                 'NB PAIEMENTS': c.payments?.length || 0,
                 'DATE RÉSERVATION': c.date_reservation || 'N/A',
-                'STATUT BIEN': c.bien?.statut || 'N/A'
+                'STATUTS': c.biens?.map(b => b.statut).join(', ') || 'N/A'
             };
         });
 
@@ -478,7 +475,7 @@ const Clients = () => {
                 </div>
 
                 {/* Filter Controls */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-4 border-t border-gray-50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-4 border-t border-gray-50">
                     <div className="relative lg:col-span-2">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
@@ -514,9 +511,9 @@ const Clients = () => {
                         className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
                     >
                         <option value="all">Type: Tous</option>
-                        <option value="Appartement">Appartement</option>
-                        <option value="Terrain">Terrain</option>
-                        <option value="Magasin">Magasin</option>
+                        {Array.from(new Set(availableBiens.map(b => b.type_bien).filter(type => type && type !== "Terrain"))).sort().map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
                     </select>
 
                     <select
@@ -545,16 +542,6 @@ const Clients = () => {
                         <option value="without">Sans Bien</option>
                     </select>
 
-                    <select
-                        value={filterBienStatus}
-                        onChange={(e) => setFilterBienStatus(e.target.value)}
-                        className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
-                    >
-                        <option value="all">S. Bien: Tous</option>
-                        <option value="Libre">Libre</option>
-                        <option value="Reserve">Réservé</option>
-                        <option value="Vendu">Vendu</option>
-                    </select>
 
                     <div className="flex items-center gap-2 lg:col-span-1">
                         <button
@@ -611,8 +598,8 @@ const Clients = () => {
                                                 <div className="text-[10px] text-slate-400 font-bold uppercase">{c.cin}</div>
                                             </td>
                                             <td className="px-6 py-4 font-bold text-slate-700">
-                                                {c.bien
-                                                    ? (c.avec_finition ? formatNumber(c.bien.prix_global_finition) : formatNumber(c.bien.prix_global_non_finition)) + ' DH'
+                                                {c.biens && c.biens.length > 0
+                                                    ? formatNumber(c.biens.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0)) + ' DH'
                                                     : '—'}
                                             </td>
                                             <td className="px-6 py-4">
@@ -645,21 +632,24 @@ const Clients = () => {
                                             </td>
                                             <td className="px-6 py-4 font-bold text-rose-500">
                                                 {(() => {
-                                                    const prix = c.bien
-                                                        ? (c.avec_finition ? parseFloat(String(c.bien.prix_global_finition || 0)) : parseFloat(String(c.bien.prix_global_non_finition || 0)))
-                                                        : 0;
+                                                    const prix = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
                                                     const paid = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
                                                     const reste = Math.max(0, prix - paid);
-                                                    if (!c.bien) return '—';
+                                                    if (!c.biens || c.biens.length === 0) return '—';
                                                     return reste > 0 ? formatNumber(reste) + ' DH' : 'Soldé';
                                                 })()}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${c.bien?.statut === 'Libre' ? 'bg-green-100 text-green-700' :
-                                                    c.bien?.statut === 'Vendu' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'
-                                                    }`}>
-                                                    {c.bien?.type_bien || 'N/A'} • {c.bien?.statut || 'Inconnu'}
-                                                </span>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {(c.biens || []).map(b => (
+                                                        <span key={b.id} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
+                                                            b.statut === 'Vendu' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                            {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
+                                                        </span>
+                                                    ))}
+                                                    {(!c.biens || c.biens.length === 0) && <span className="text-[10px] text-gray-400 italic">Aucun bien</span>}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex justify-center gap-2">
@@ -740,6 +730,26 @@ const Clients = () => {
                                         {fieldErrors.amount && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.amount[0]}</p>}
                                     </div>
                                 </div>
+
+                                {selectedClient.biens && selectedClient.biens.length > 1 && (
+                                    <div className="animate-in slide-in-from-top-2 duration-200">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide text-emerald-600">Bien Concerné</label>
+                                        <select
+                                            required
+                                            value={selectedBienId}
+                                            onChange={(e) => setSelectedBienId(e.target.value)}
+                                            className={`w-full px-3 py-2.5 bg-emerald-50/50 border ${fieldErrors.bien_id ? 'border-red-500' : 'border-emerald-100'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold text-emerald-800`}
+                                        >
+                                            <option value="">Sélectionnez le bien...</option>
+                                            {selectedClient.biens.map(b => (
+                                                <option key={b.id} value={b.id}>
+                                                    {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {fieldErrors.bien_id && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.bien_id[0]}</p>}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -959,39 +969,52 @@ const Clients = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
-                                    <select
-                                        value={editFormData.bien?.id || ''}
-                                        onChange={e => {
-                                            const selected = availableBiens.find(b => b.id === parseInt(e.target.value));
-                                            setEditFormData({ ...editFormData, bien: selected });
-                                        }}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.bien_id ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
-                                    >
-                                        <option value="">Aucun</option>
-                                        {availableBiens.map(b => {
-                                            const isAssignedToThisClient = editFormData.bien?.id === b.id;
-                                            const isAvailable = b.statut === 'Libre' || isAssignedToThisClient;
-                                            return (
-                                                <option
-                                                    key={b.id}
-                                                    value={b.id}
-                                                    disabled={!isAvailable}
-                                                    className={!isAvailable ? 'text-red-500 font-bold' : ''}
-                                                >
-                                                    {b.type_bien} {b.immeuble ? `- Imm. ${b.immeuble} ` : ''}{b.etage ? `- Étage ${b.etage} ` : ''}{b.num_appartement ? `- N° ${b.num_appartement} ` : ''}({b.statut})
-                                                    {!isAvailable && ' - OCCUPÉ'}
-                                                </option>
-                                            );
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Biens Assignés</label>
+                                    <div className="flex flex-wrap gap-2 mb-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[50px]">
+                                        {editBienIds.map(id => {
+                                            const b = availableBiens.find(x => x.id === Number(id)) || clients.flatMap(c => c.biens || []).find(x => x.id === Number(id));
+                                            return b ? (
+                                                <span key={id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">
+                                                    {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setEditBienIds(prev => prev.filter(x => x !== id))}
+                                                        className="hover:text-blue-900"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </span>
+                                            ) : null;
                                         })}
+                                        {editBienIds.length === 0 && <span className="text-gray-400 text-xs italic">Aucun bien sélectionné</span>}
+                                    </div>
+
+                                    <select
+                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                        onChange={(e) => {
+                                            if (e.target.value && !editBienIds.includes(e.target.value)) {
+                                                setEditBienIds([...editBienIds, e.target.value]);
+                                            }
+                                            e.target.value = "";
+                                        }}
+                                        value=""
+                                    >
+                                        <option value="">Ajouter un bien...</option>
+                                        {availableBiens
+                                            .filter(b => !editBienIds.includes(b.id.toString()))
+                                            .map(b => (
+                                                <option key={b.id} value={b.id}>
+                                                    {b.type_bien} {b.immeuble ? `- Imm. ${b.immeuble} ` : ''}{b.etage ? `- Étage ${b.etage} ` : ''}{b.num_appartement ? `- N° ${b.num_appartement} ` : ''}({b.statut})
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
 
-                                {editFormData.bien && (
+                                {editBienIds.length > 0 && (
                                     <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
                                         <div>
                                             <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
-                                            <p className="text-[9px] font-bold text-indigo-700/70">Le client souhaite-t-il la finition ?</p>
+                                            <p className="text-[9px] font-bold text-indigo-700/70">Appliquer la finition pour tous les biens ?</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
@@ -1060,9 +1083,7 @@ const Clients = () => {
                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                                         <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Prix Global</p>
                                         <p className="text-lg font-bold text-slate-700">
-                                            {detailClient.bien
-                                                ? (detailClient.avec_finition ? formatNumber(detailClient.bien.prix_global_finition) : formatNumber(detailClient.bien.prix_global_non_finition))
-                                                : 0} <span className="text-xs">DH</span>
+                                            {formatNumber(detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0)} <span className="text-xs">DH</span>
                                         </p>
                                     </div>
                                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -1078,11 +1099,8 @@ const Clients = () => {
                                         <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Reste à payer</p>
                                         <p className="text-lg font-bold text-rose-600">
                                             {(() => {
-                                                const prix = detailClient.bien
-                                                    ? (detailClient.avec_finition ? parseFloat(String(detailClient.bien.prix_global_finition || 0)) : parseFloat(String(detailClient.bien.prix_global_non_finition || 0)))
-                                                    : 0;
+                                                const prix = detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
                                                 const paid = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
-                                                if (!detailClient.bien) return '—';
                                                 return formatNumber(Math.max(0, prix - paid));
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1113,17 +1131,21 @@ const Clients = () => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Détails du Bien</h4>
-                                        {detailClient.bien ? (
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-400">Type de Bien:</span>
-                                                    <span className="font-bold text-gray-700">{detailClient.bien.type_bien}</span>
-                                                </div>
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-400">Statut:</span>
-                                                    <span className={`font-bold ${detailClient.bien.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{detailClient.bien.statut}</span>
-                                                </div>
+                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Détails des Biens</h4>
+                                        {detailClient.biens && detailClient.biens.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {detailClient.biens.map(b => (
+                                                    <div key={b.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic">
+                                                        <div className="flex justify-between text-sm mb-1">
+                                                            <span className="text-gray-400">Type / Unité:</span>
+                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-400">Statut:</span>
+                                                            <span className={`font-bold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         ) : (
                                             <p className="text-sm text-gray-400 italic">Aucun bien assigné.</p>

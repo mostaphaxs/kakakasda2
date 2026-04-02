@@ -85,6 +85,7 @@ const ArticleManagement: React.FC = () => {
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Unité</label>
                         <select {...register('unit', { required: true })} className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-0 text-sm transition-all shadow-sm">
                             <option value="m2">m2</option>
+                            <option value="M3">M3</option>
                             <option value="ML">ML</option>
                             <option value="U">U (Unité)</option>
                             <option value="Kg">Kg</option>

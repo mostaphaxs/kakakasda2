@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
 import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload } from 'lucide-react';
@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Supplier {
     id: number;
@@ -22,39 +23,45 @@ interface Supplier {
 
 const Suppliers: React.FC = () => {
     const navigate = useNavigate();
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [contractFile, setContractFile] = useState<File | null>(null);
 
-    const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
+    const { register, handleSubmit, reset } = useForm();
 
-    useEffect(() => {
-        fetchSuppliers();
-    }, []);
+    const { data: suppliers = [], isLoading: loading } = useQuery({
+        queryKey: ['suppliers'],
+        queryFn: () => apiFetch<Supplier[]>('/suppliers'),
+    });
 
-    const fetchSuppliers = async () => {
-        try {
-            const data = await apiFetch<Supplier[]>('/suppliers');
-            setSuppliers(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const deleteMutation = useMutation({
+        mutationFn: (id: number) => apiFetch(`/suppliers/${id}`, { method: 'DELETE' }),
+        onSuccess: () => {
+            toast.success('Fournisseur supprimé');
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        },
+        onError: (error: any) => toast.error(error.message),
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: ({ id, formData }: { id: number; formData: FormData }) =>
+            apiFetch(`/suppliers/${id}`, {
+                method: 'POST',
+                body: formData,
+            }),
+        onSuccess: () => {
+            toast.success('Fournisseur mis à jour !');
+            setIsEditModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+        },
+        onError: (error: any) => toast.error(error.message || 'Erreur lors de la mise à jour.'),
+    });
 
     const handleDelete = async (id: number) => {
         if (!confirm('Supprimer ce fournisseur ?')) return;
-        try {
-            await apiFetch(`/suppliers/${id}`, { method: 'DELETE' });
-            toast.success('Fournisseur supprimé');
-            fetchSuppliers();
-        } catch (error: any) {
-            toast.error(error.message);
-        }
+        deleteMutation.mutate(id);
     };
 
     const handleEdit = (supplier: Supplier) => {
@@ -75,35 +82,19 @@ const Suppliers: React.FC = () => {
 
     const onSubmitUpdate = async (data: any) => {
         if (!editingSupplier) return;
-        try {
-            const formData = new FormData();
+        const formData = new FormData();
+        formData.append('nom_societe', data.nom_societe || '');
+        formData.append('nom_gerant', data.nom_gerant || '');
+        formData.append('adresse', data.adresse || '');
+        formData.append('tel', data.tel || '');
+        formData.append('ice', data.ice || '');
+        formData.append('if', data.if || '');
+        formData.append('rc', data.rc || '');
+        formData.append('description', data.description || '');
+        if (contractFile) formData.append('scan_contrat', contractFile);
+        formData.append('_method', 'PUT');
 
-            formData.append('nom_societe', data.nom_societe || '');
-            formData.append('nom_gerant', data.nom_gerant || '');
-            formData.append('adresse', data.adresse || '');
-            formData.append('tel', data.tel || '');
-            formData.append('ice', data.ice || '');
-            formData.append('if', data.if || '');
-            formData.append('rc', data.rc || '');
-            formData.append('description', data.description || '');
-
-            if (contractFile) {
-                formData.append('scan_contrat', contractFile);
-            }
-
-            formData.append('_method', 'PUT');
-
-            await apiFetch(`/suppliers/${editingSupplier.id}`, {
-                method: 'POST',
-                body: formData
-            });
-
-            toast.success('Fournisseur mis à jour !');
-            setIsEditModalOpen(false);
-            fetchSuppliers();
-        } catch (error: any) {
-            toast.error(error.message || 'Erreur lors de la mise à jour.');
-        }
+        updateMutation.mutate({ id: editingSupplier.id, formData });
     };
 
     const handleViewContract = (path: string) => {
@@ -130,29 +121,29 @@ const Suppliers: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen font-sans">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="p-4 space-y-4 bg-gray-50 min-h-screen font-sans">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
-                            <Truck className="text-slate-600 h-8 w-8" />
+                        <h1 className="text-lg font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
+                            <Truck className="text-slate-600 h-6 w-6" />
                             Répertoire Fournisseurs
                         </h1>
-                        <p className="text-gray-500 text-sm font-medium italic">Gérez votre base de partenaires techniques.</p>
+                        <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest italic">Base Partenaires</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button onClick={handleExport} className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition font-black text-xs uppercase tracking-widest shadow-sm">
                             <Download size={18} /> Exporter
                         </button>
-                        <button onClick={() => navigate('/add-supplier')} className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2.5 rounded-xl hover:bg-black transition font-black shadow-lg shadow-slate-100 text-xs uppercase tracking-widest">
-                            <PlusCircle size={18} /> Nouveau
+                        <button onClick={() => navigate('/add-supplier')} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-black transition font-black shadow-lg shadow-slate-100 text-[10px] uppercase tracking-widest">
+                            <PlusCircle size={16} /> Nouveau
                         </button>
                     </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-50">
-                    <div className="relative max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <div className="relative max-w-sm">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                         <input
                             type="text"
                             placeholder="Rechercher par société ou gérant..."
@@ -164,14 +155,14 @@ const Suppliers: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden text-sm">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-sm">
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                         <tr>
-                            <th className="px-6 py-4">Société / Contact</th>
-                            <th className="px-6 py-4">Identifiants</th>
-                            <th className="px-6 py-4">Contrat</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
+                            <th className="px-4 py-2.5">Société / Contact</th>
+                            <th className="px-4 py-2.5">Identifiants</th>
+                            <th className="px-4 py-2.5">Contrat</th>
+                            <th className="px-4 py-2.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 italic font-medium">
@@ -179,7 +170,7 @@ const Suppliers: React.FC = () => {
                             <tr><td colSpan={4} className="p-10 text-center text-gray-400">Chargement...</td></tr>
                         ) : filtered.map(s => (
                             <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-3">
                                     <div className="flex flex-col">
                                         <span className="font-black text-slate-900 uppercase tracking-tight">{s.nom_societe}</span>
                                         <span className="text-[10px] text-gray-500 flex items-center mt-0.5 uppercase">
@@ -224,7 +215,7 @@ const Suppliers: React.FC = () => {
             {/* Edit Modal */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-900 text-white">
                             <h3 className="font-black text-base uppercase tracking-widest flex items-center gap-3">
                                 <Briefcase size={20} /> Modifier {editingSupplier?.nom_societe}
@@ -234,7 +225,7 @@ const Suppliers: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-8">
+                        <div className="p-6">
                             <form onSubmit={handleSubmit(onSubmitUpdate)} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
@@ -313,7 +304,7 @@ const Suppliers: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" disabled={isSubmitting} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center justify-center space-x-3">{isSubmitting ? '...' : <><Save size={20} /><span>Mettre à jour</span></>}</button>
+                                <button type="submit" disabled={updateMutation.isPending} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center justify-center space-x-3">{updateMutation.isPending ? '...' : <><Save size={20} /><span>Mettre à jour</span></>}</button>
                             </form>
                         </div>
                     </div>

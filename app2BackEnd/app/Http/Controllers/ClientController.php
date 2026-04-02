@@ -16,7 +16,7 @@ class ClientController extends Controller
      */
     public function index(): JsonResponse
     {
-        $clients = Client::with(['bien', 'payments'])->latest()->get();
+        $clients = Client::with(['biens', 'payments'])->latest()->get();
         return response()->json($clients);
     }
 
@@ -26,7 +26,8 @@ class ClientController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'bien_id'          => 'nullable|integer|exists:biens,id|unique:clients,bien_id',
+            'bien_ids'         => 'nullable|array',
+            'bien_ids.*'       => 'integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
             'cin'              => 'required|string|max:20|unique:clients,cin',
@@ -38,15 +39,14 @@ class ClientController extends Controller
         return DB::transaction(function () use ($validated) {
             $client = Client::create($validated);
 
-            // Mark bien as Reserved when assigned
-            if (!empty($validated['bien_id'])) {
-                Bien::where('id', $validated['bien_id'])
-                    ->update(['statut' => 'Reserve']);
+            if (!empty($validated['bien_ids'])) {
+                $client->biens()->sync($validated['bien_ids']);
+                Bien::whereIn('id', $validated['bien_ids'])->update(['statut' => 'Reserve']);
             }
 
             return response()->json([
                 'message' => 'Client ajouté avec succès.',
-                'client'  => $client->fresh('bien'),
+                'client'  => $client->fresh('biens'),
             ], 201);
         });
     }
@@ -56,7 +56,7 @@ class ClientController extends Controller
      */
     public function show(Client $client): JsonResponse
     {
-        return response()->json($client->load('bien'));
+        return response()->json($client->load('biens'));
     }
 
     /**
@@ -65,8 +65,8 @@ class ClientController extends Controller
     public function update(Request $request, Client $client): JsonResponse
     {
         $validated = $request->validate([
-            // Ignore the current client's bien_id when checking uniqueness
-            'bien_id'          => 'nullable|integer|exists:biens,id|unique:clients,bien_id,' . $client->id,
+            'bien_ids'         => 'nullable|array',
+            'bien_ids.*'       => 'integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
             'cin'              => 'required|string|max:20|unique:clients,cin,' . $client->id,
@@ -76,29 +76,32 @@ class ClientController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated, $client) {
-            $oldBienId = $client->bien_id;
-            $newBienId = $validated['bien_id'] ?? null;
+            $oldBienIds = $client->biens()->pluck('biens.id')->toArray();
+            $newBienIds = $validated['bien_ids'] ?? [];
 
             $client->update($validated);
+            $client->biens()->sync($newBienIds);
 
-            // If bien changed, update statuts accordingly
-            if ($oldBienId !== $newBienId) {
-                if ($oldBienId) {
-                    Bien::where('id', $oldBienId)->update(['statut' => 'Libre']);
-                }
-                if ($newBienId) {
-                    Bien::where('id', $newBienId)->update(['statut' => 'Reserve']);
-                    
-                    // Retroactively associate any unassociated payments this client made
-                    $client->payments()
-                        ->whereNull('bien_id')
-                        ->update(['bien_id' => $newBienId]);
-                }
+            // Free removed biens
+            $removed = array_diff($oldBienIds, $newBienIds);
+            if (!empty($removed)) {
+                Bien::whereIn('id', $removed)->update(['statut' => 'Libre']);
+            }
+
+            // Reserve new ones
+            $added = array_diff($newBienIds, $oldBienIds);
+            if (!empty($added)) {
+                Bien::whereIn('id', $added)->update(['statut' => 'Reserve']);
+                
+                // Retroactively associate any unassociated payments
+                $client->payments()
+                    ->whereNull('bien_id')
+                    ->update(['bien_id' => $added[0] ?? null]); // Simple fallback to the first new property
             }
 
             return response()->json([
                 'message' => 'Client mis à jour avec succès.',
-                'client'  => $client->fresh('bien'),
+                'client'  => $client->fresh('biens'),
             ]);
         });
     }
@@ -109,10 +112,14 @@ class ClientController extends Controller
     public function destroy(Client $client): JsonResponse
     {
         return DB::transaction(function () use ($client) {
-            // Free the bien when client is deleted
-            if ($client->bien_id) {
-                Bien::where('id', $client->bien_id)->update(['statut' => 'Libre']);
+            $bienIds = $client->biens()->pluck('biens.id')->toArray();
+            
+            // Free the biens
+            if (!empty($bienIds)) {
+                Bien::whereIn('id', $bienIds)->update(['statut' => 'Libre']);
             }
+
+            $client->biens()->detach();
 
             // Remove client document directory
             Storage::disk('public')->deleteDirectory("clients/{$client->id}");
@@ -152,7 +159,7 @@ class ClientController extends Controller
         return response()->json([
             'message'  => 'Document ajouté avec succès.',
             'document' => $docData,
-            'client'   => $client->fresh('bien'),
+            'client'   => $client->fresh('biens'),
         ], 201);
     }
 
@@ -180,7 +187,7 @@ class ClientController extends Controller
 
         return response()->json([
             'message' => 'Document supprimé.',
-            'client'  => $client->fresh('bien'),
+            'client'  => $client->fresh('biens'),
         ]);
     }
 }

@@ -60,6 +60,7 @@ const AddArticle: React.FC = () => {
                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Unité de mesure</label>
                             <select {...register('unit', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 transition-all font-bold text-sm shadow-sm ring-0 outline-none">
                                 <option value="m2">m2</option>
+                                <option value="M3">M3</option>
                                 <option value="ML">ML</option>
                                 <option value="U">U (Unité)</option>
                                 <option value="Kg">Kg</option>
