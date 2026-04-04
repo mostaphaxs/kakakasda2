@@ -19,6 +19,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\GeneralWorkController;
+use App\Http\Controllers\SettingController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -95,4 +96,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // General Works
     Route::apiResource('general-works', GeneralWorkController::class);
+
+    // Settings
+    Route::get('/settings/pricing', [SettingController::class, 'getPricing']);
+    Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
 });

@@ -13,6 +13,8 @@ class Client extends Model
         'prenom',
         'cin',
         'tel',
+        'tel_2',
+        'adresse',
         'date_reservation',
         'scanned_docs',
         'avec_finition',

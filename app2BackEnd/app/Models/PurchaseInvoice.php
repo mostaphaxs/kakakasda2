@@ -6,62 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class PurchaseInvoice extends Model
 {
-    protected $fillable = ['invoice_no', 'supplier_id', 'article_id', 'qty', 'unit_price', 'vat_rate'];
+    protected $fillable = ['invoice_no', 'reference_bon', 'supplier_id', 'total_ht', 'total_ttc', 'scan_contract'];
 
-    protected $appends = ['price_ht', 'price_ttc'];
+    protected $appends = ['scan_contract_url'];
 
-    public function getPriceHtAttribute()
+    public function getScanContractUrlAttribute()
     {
-        return $this->qty * $this->unit_price;
-    }
-
-    public function getPriceTtcAttribute()
-    {
-        return $this->price_ht * (1 + $this->vat_rate / 100);
-    }
-
-    protected static function booted()
-    {
-        static::created(function ($invoice) {
-            static::updateStock($invoice->qty, $invoice->article_id);
-        });
-
-        static::updated(function ($invoice) {
-            if ($invoice->wasChanged('qty') || $invoice->wasChanged('article_id')) {
-                // Undo old values
-                static::updateStock(-$invoice->getOriginal('qty'), $invoice->getOriginal('article_id'));
-                // Apply new values
-                static::updateStock($invoice->qty, $invoice->article_id);
-            }
-        });
-
-        static::deleted(function ($invoice) {
-            static::updateStock(-$invoice->qty, $invoice->article_id);
-        });
-    }
-
-    protected static function updateStock($adjustment, $articleId)
-    {
-        $stock = StockTracking::firstOrNew(['article_id' => $articleId]);
-        
-        // Ensure numeric values to avoid issues with nulls from firstOrNew
-        $currentInitial = $stock->initial_stock ?? 0;
-        $currentConsumed = $stock->consumed_qty ?? 0;
-
-        $stock->initial_stock = $currentInitial + $adjustment;
-        $stock->consumed_qty = $currentConsumed;
-        $stock->remaining_stock = $stock->initial_stock - $stock->consumed_qty;
-        
-        $stock->save();
-    }
-
-    public function article()
-    {
-        return $this->belongsTo(Article::class);
+        return $this->scan_contract ? '/storage/' . $this->scan_contract : null;
     }
 
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(PurchaseInvoiceItem::class);
     }
 }

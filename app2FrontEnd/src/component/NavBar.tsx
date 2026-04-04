@@ -1,6 +1,6 @@
 // src/component/NavBar.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Menu, X, Building2, LogOut, ChevronDown, Home, MapPin, UserPlus, WalletCards, HardHat, Users, Layers, Download, Database, Package, ShoppingCart, Truck, Wrench } from 'lucide-react';
+import { Plus, Menu, X, Building2, LogOut, ChevronDown, Home, MapPin, UserPlus, WalletCards, HardHat, Users, Layers, Download, Database, Package, ShoppingCart, Truck, Wrench, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
@@ -72,12 +72,12 @@ const Navbar: React.FC = () => {
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
+        { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: Building2, label: 'Biens & Locaux', path: '/properties' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
-        { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
-        { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
+        { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
         { icon: Package, label: 'Catalogue Articles', path: '/articles' },
         { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
@@ -288,6 +288,15 @@ const Navbar: React.FC = () => {
                     <div className="flex items-center gap-2 md:gap-6">
                         {token ? (
                             <>
+                                {/* Configuration Button */}
+                                <button
+                                    onClick={() => navigate('/property-pricing')}
+                                    className="hidden lg:flex items-center gap-2 bg-slate-50 text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100 transition font-black text-xs uppercase tracking-widest border border-slate-200"
+                                >
+                                    <Settings2 size={16} className="text-slate-900" />
+                                    <span>Configuration</span>
+                                </button>
+
                                 {/* Consulter Dropdown */}
                                 <div className="relative hidden lg:block" ref={navDropdownRef}>
                                     <button
@@ -436,6 +445,13 @@ const Navbar: React.FC = () => {
                             </button>
                         ))}
                         <div className="border-t border-gray-100 my-1 py-1">
+                            <button
+                                onClick={() => { setIsMobileMenuOpen(false); navigate('/property-pricing'); }}
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border-l-4 border-slate-900"
+                            >
+                                <Settings2 size={16} className="text-slate-900" />
+                                <span className="font-black uppercase tracking-tight text-slate-900">Configuration</span>
+                            </button>
                             {navItems.map(({ icon: Icon, label, path }) => (
                                 <button
                                     key={path}

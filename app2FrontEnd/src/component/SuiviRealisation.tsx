@@ -62,6 +62,7 @@ const DEFAULT_ELEMENTS: { element: string; label: string }[] = [
     { element: 'aluminium', label: 'Aluminium' },
     { element: 'portes', label: 'Portes' },
     { element: 'porte_principale', label: 'Porte principale' },
+    { element: 'sanitaire', label: 'Sanitaire' },
 ];
 
 let _uid = 0;

@@ -46,6 +46,7 @@ const DEFAULT_FINITION_ITEMS = [
     { element: 'aluminium', label: 'Aluminium' },
     { element: 'portes', label: 'Portes' },
     { element: 'porte_principale', label: 'Porte principale' },
+    { element: 'sanitaire', label: 'Sanitaire' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -148,29 +149,11 @@ const AddProperty: React.FC = () => {
         }
     });
 
-    // ── Auto-calculate prix_global ──────────────────────────────────────────────
-    const surface = watch('surface_m2');
-    const prix_m2_fin = watch('prix_par_m2_finition');
-    const prix_m2_non_fin = watch('prix_par_m2_non_finition');
+    // ── Price configuration moved to separate module ──────────────────────────
+
     const type_bien = watch('type_bien');
     const isVilla = type_bien === 'Villa';
     const isLotVilla = type_bien === 'Lot Villa';
-
-    useEffect(() => {
-        const s = parseNumber(String(surface));
-        const p_fin = parseNumber(String(prix_m2_fin));
-        if (!isNaN(s) && !isNaN(p_fin) && s > 0 && p_fin > 0) {
-            setValue('prix_global_finition', parseFloat((s * p_fin).toFixed(2)));
-        } else {
-            setValue('prix_global_finition', 0);
-        }
-        const p_non_fin = parseNumber(String(prix_m2_non_fin));
-        if (!isNaN(s) && !isNaN(p_non_fin) && s > 0 && p_non_fin > 0) {
-            setValue('prix_global_non_finition', parseFloat((s * p_non_fin).toFixed(2)));
-        } else {
-            setValue('prix_global_non_finition', 0);
-        }
-    }, [surface, prix_m2_fin, prix_m2_non_fin, setValue]);
 
     const onSubmit: SubmitHandler<BienFormInputs> = (data) => {
         setServerError('');
@@ -180,10 +163,10 @@ const AddProperty: React.FC = () => {
             nom: data.nom || null,
             etage: data.etage !== '' ? Number(data.etage) : null,
             surface_m2: parseNumber(String(data.surface_m2)),
-            prix_par_m2_finition: parseNumber(String(data.prix_par_m2_finition)),
-            prix_global_finition: Number(data.prix_global_finition),
-            prix_par_m2_non_finition: parseNumber(String(data.prix_par_m2_non_finition)),
-            prix_global_non_finition: Number(data.prix_global_non_finition),
+            prix_par_m2_finition: data.prix_par_m2_finition ? parseNumber(String(data.prix_par_m2_finition)) : null,
+            prix_global_finition: data.prix_global_finition ? Number(data.prix_global_finition) : null,
+            prix_par_m2_non_finition: data.prix_par_m2_non_finition ? parseNumber(String(data.prix_par_m2_non_finition)) : null,
+            prix_global_non_finition: data.prix_global_non_finition ? Number(data.prix_global_non_finition) : null,
             groupe_habitation: data.groupe_habitation || null,
             immeuble: data.immeuble || null,
             num_appartement: data.num_appartement || null,
@@ -293,16 +276,18 @@ const AddProperty: React.FC = () => {
                             {/* Étage */}
                             {(!isVilla && !isLotVilla) && (
                                 <FieldWrapper label="Étage" error={errors.etage?.message} fieldError={fieldErrors.etage}>
-                                    <input
-                                        type="number"
-                                        {...register('etage', {
-                                            min: { value: -5, message: 'Min -5.' },
-                                            max: { value: 100, message: 'Max 100.' },
-                                        })}
+                                    <select
+                                        {...register('etage')}
                                         className={inputCls(!!errors.etage)}
-                                        placeholder="0"
-                                    />
-                                    <p className="mt-1 text-[10px] text-slate-400 italic">Note: L'étage 0 correspond au Rez-de-chaussée (RDC).</p>
+                                    >
+                                        <option value="">— Sélectionner —</option>
+                                        <option value="0">Rez-de-chaussée (RDC)</option>
+                                        <option value="1">1er Étage</option>
+                                        <option value="2">2ème Étage</option>
+                                        <option value="3">3ème Étage</option>
+                                        <option value="4">4ème Étage</option>
+                                        <option value="5">5ème Étage</option>
+                                    </select>
                                 </FieldWrapper>
                             )}
 
@@ -364,6 +349,19 @@ const AddProperty: React.FC = () => {
                                     <option value="Reserve">🟡 Réservé</option>
                                     <option value="Vendu">🔴 Vendu</option>
                                 </select>
+                            </FieldWrapper>
+
+                            {/* Surface */}
+                            <FieldWrapper label="Surface (m²) *" error={errors.surface_m2?.message} fieldError={fieldErrors.surface_m2}>
+                                <input
+                                    type="text"
+                                    {...register('surface_m2', {
+                                        required: 'Requis.',
+                                        onChange: (e) => setValue('surface_m2', formatNumber(e.target.value) as any)
+                                    })}
+                                    className={`${inputCls(!!errors.surface_m2)} font-bold text-indigo-700`}
+                                    placeholder="0.00"
+                                />
                             </FieldWrapper>
 
                             {/* Description */}
@@ -437,92 +435,7 @@ const AddProperty: React.FC = () => {
                             </>
                         )}
 
-                        {/* ──── Section: Financier ──── */}
-                        <div className="px-5 py-3 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{!isEdit ? '4' : '3'} – Financier</h2>
-                        </div>
-                        <div className="px-5 py-5 space-y-5">
-
-                            {/* Surface Highlight Card */}
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 sm:w-2/3 sm:mx-auto w-full shadow-sm text-center">
-                                <label className="block text-[10px] font-black text-indigo-900 mb-1 uppercase tracking-widest">Surface Principale (m²) *</label>
-                                <div>
-                                    <input
-                                        type="text"
-                                        {...register('surface_m2', {
-                                            required: 'Requis.',
-                                            onChange: (e) => setValue('surface_m2', formatNumber(e.target.value) as any)
-                                        })}
-                                        className={`w-full px-3 py-2 rounded-lg border ${errors.surface_m2 ? 'border-red-400 focus:ring-red-400' : 'border-indigo-200'} focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-black text-lg text-center text-indigo-900 bg-white placeholder-indigo-300 shadow-inner`}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Pricing Panels Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                                {/* Finition Panel */}
-                                <div className="bg-white border border-blue-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="bg-blue-50/80 px-4 py-3 border-b border-blue-100">
-                                        <h3 className="font-bold text-blue-800 text-sm flex items-center gap-2">✨ Avec Finition</h3>
-                                    </div>
-                                    <div className="p-4 space-y-3">
-                                        <FieldWrapper label="Prix unitaire / m² (DH) *" error={errors.prix_par_m2_finition?.message} fieldError={fieldErrors.prix_par_m2_finition}>
-                                            <input
-                                                type="text"
-                                                {...register('prix_par_m2_finition', {
-                                                    required: 'Requis.',
-                                                    onChange: (e) => setValue('prix_par_m2_finition', formatNumber(e.target.value) as any)
-                                                })}
-                                                className={`${inputCls(!!errors.prix_par_m2_finition)} font-bold text-lg text-blue-900`}
-                                                placeholder="0.00"
-                                            />
-                                        </FieldWrapper>
-
-                                        <div className="pt-2 mt-3 border-t border-gray-100">
-                                            <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Total Finition Estimé</label>
-                                            <div className="w-full px-3 py-2 rounded-lg bg-gray-50 text-blue-700 font-black text-lg tracking-wide border border-gray-200 text-right">
-                                                {watch('prix_global_finition') > 0
-                                                    ? formatNumber(watch('prix_global_finition')) + ' DH'
-                                                    : '—'}
-                                            </div>
-                                            <input type="hidden" {...register('prix_global_finition')} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Non Finition Panel */}
-                                <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                                    <div className="bg-slate-50 border-b border-slate-200 px-4 py-3">
-                                        <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2">🧱 Sans Finition (Gros Œuvre)</h3>
-                                    </div>
-                                    <div className="p-4 space-y-3">
-                                        <FieldWrapper label="Prix unitaire / m² (DH) *" error={errors.prix_par_m2_non_finition?.message} fieldError={fieldErrors.prix_par_m2_non_finition}>
-                                            <input
-                                                type="text"
-                                                {...register('prix_par_m2_non_finition', {
-                                                    required: 'Requis.',
-                                                    onChange: (e) => setValue('prix_par_m2_non_finition', formatNumber(e.target.value) as any)
-                                                })}
-                                                className={`${inputCls(!!errors.prix_par_m2_non_finition)} font-bold text-lg text-slate-800`}
-                                                placeholder="0.00"
-                                            />
-                                        </FieldWrapper>
-
-                                        <div className="pt-2 mt-3 border-t border-gray-100">
-                                            <label className="block text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Total Non Finition Estimé</label>
-                                            <div className="w-full px-3 py-2 rounded-lg bg-gray-50 text-slate-700 font-black text-lg tracking-wide border border-gray-200 text-right">
-                                                {watch('prix_global_non_finition') > 0
-                                                    ? formatNumber(watch('prix_global_non_finition')) + ' DH'
-                                                    : '—'}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
+                        {/* Financial configuration has been extracted out */}
 
                         {/* ──── Footer Actions ──── */}
                         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-2">

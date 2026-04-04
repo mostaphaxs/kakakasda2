@@ -18,6 +18,7 @@ import EditTerrain from './component/EditTerrain.tsx'
 import Charges from './component/Charges.tsx'
 import Clients from './component/Clients.tsx'
 import Profile from './component/Profile.tsx'
+import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import { Toaster } from 'react-hot-toast';
 
 // Procurement Components
@@ -60,6 +61,7 @@ const App: React.FC = () => {
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/terrains" element={<PrivateRoute><Terrains /></PrivateRoute>} />
               <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
+              <Route path="/property-pricing" element={<PrivateRoute><ConfigPrixBiens /></PrivateRoute>} />
               <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
               <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
               <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />

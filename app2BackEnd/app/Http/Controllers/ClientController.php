@@ -29,8 +29,10 @@ class ClientController extends Controller
             'bien_id'          => 'nullable|integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
-            'cin'              => 'required|string|max:20|unique:clients,cin',
+            'cin'              => 'required|string|max:20',
             'tel'              => 'required|string|max:20',
+            'tel_2'            => 'nullable|string|max:20',
+            'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
         ]);
@@ -67,8 +69,10 @@ class ClientController extends Controller
             'bien_id'          => 'nullable|integer|exists:biens,id',
             'nom'              => 'required|string|max:100',
             'prenom'           => 'required|string|max:100',
-            'cin'              => 'required|string|max:20|unique:clients,cin,' . $client->id,
+            'cin'              => 'required|string|max:20',
             'tel'              => 'required|string|max:20',
+            'tel_2'            => 'nullable|string|max:20',
+            'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
         ]);
@@ -186,5 +190,16 @@ class ClientController extends Controller
             'message' => 'Document supprimé.',
             'client'  => $client->fresh('biens'),
         ]);
+    }
+    /**
+     * Search for a client by CIN.
+     */
+    public function searchByCin(string $cin): JsonResponse
+    {
+        $client = Client::where('cin', $cin)->first();
+        if (!$client) {
+            return response()->json(['message' => 'Non trouvé'], 404);
+        }
+        return response()->json($client);
     }
 }

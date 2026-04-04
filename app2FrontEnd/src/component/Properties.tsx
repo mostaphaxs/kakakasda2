@@ -33,6 +33,7 @@ interface Bien {
     description?: string;
     terrain?: any;
     client?: any;
+    clients?: any[];
     charges_syndic?: number | null;
     frais_branchement_eau?: number | null;
     frais_branchement_electricite?: number | null;
@@ -61,6 +62,23 @@ const Properties = () => {
         queryKey: ['biens'],
         queryFn: () => apiFetch<Bien[]>('/biens'),
     });
+
+    const { data: globalPricing } = useQuery({
+        queryKey: ['settings-pricing'],
+        queryFn: () => apiFetch<{ default_prix_m2_finition: number; default_prix_m2_gros_oeuvre: number }>('/settings/pricing'),
+    });
+
+    const getEffectivePrice = (bien: Bien, type: 'finition' | 'gros') => {
+        if (type === 'finition') {
+            if (bien.prix_global_finition && bien.prix_global_finition > 0) return bien.prix_global_finition;
+            const rate = bien.prix_par_m2_finition || globalPricing?.default_prix_m2_finition || 9000;
+            return bien.surface_m2 * rate;
+        } else {
+            if (bien.prix_global_non_finition && bien.prix_global_non_finition > 0) return bien.prix_global_non_finition;
+            const rate = bien.prix_par_m2_non_finition || globalPricing?.default_prix_m2_gros_oeuvre || 7000;
+            return bien.surface_m2 * rate;
+        }
+    };
 
     const { data: annexesData = [], isLoading: annexLoading } = useQuery({
         queryKey: ['annex-units', selectedBien?.id],
@@ -269,11 +287,14 @@ const Properties = () => {
                         className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
                     >
                         <option value="all">Étage: Tous</option>
-                        {Array.from(new Set(biens.map(b => b.etage))).sort((a, b) => (a || 0) - (b || 0)).map(etage => (
-                            <option key={etage} value={etage?.toString()}>
-                                {etage === 0 ? 'RDC' : `Étage ${etage}`}
-                            </option>
-                        ))}
+                        {Array.from(new Set(biens.map(b => b.etage)))
+                            .filter(etage => etage !== null && etage !== undefined)
+                            .sort((a, b) => (a as any || 0) - (b as any || 0))
+                            .map(etage => (
+                                <option key={etage} value={etage?.toString()}>
+                                    {etage === 0 ? 'RDC' : `Étage ${etage}`}
+                                </option>
+                            ))}
                     </select>
 
                     <button
@@ -365,12 +386,23 @@ const Properties = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center font-bold text-slate-500 text-xs">{b.surface_m2} m²</td>
                                     <td className="px-4 py-3 text-center">
-                                        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                            b.statut === 'Vendu' ? 'bg-rose-50 text-rose-500 border-rose-100' :
-                                                'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                            }`}>
-                                            {b.statut}
-                                        </span>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                b.statut === 'Vendu' ? 'bg-rose-50 text-rose-500 border-rose-100' :
+                                                    'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                }`}>
+                                                {b.statut}
+                                            </span>
+                                            {b.clients && b.clients.length > 0 && b.statut !== 'Libre' && (
+                                                <div className="flex flex-col items-center">
+                                                    {b.clients.map((c: any) => (
+                                                        <span key={c.id} className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                                                            {c.nom} {c.prenom}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col gap-1.5 min-w-[140px]">
@@ -399,8 +431,8 @@ const Properties = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex flex-col items-end">
-                                            <span className="font-black text-slate-900 text-xs whitespace-nowrap">{formatNumber(b.prix_global_finition)} DH</span>
-                                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{formatNumber(b.prix_global_non_finition)} DH</span>
+                                            <span className="font-black text-slate-900 text-xs whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'finition'))} DH</span>
+                                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'gros'))} DH</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-center">
@@ -604,13 +636,17 @@ const Properties = () => {
                                         </div>
                                     </div>
 
-                                    {selectedBien.client && (
+                                    {selectedBien.clients && selectedBien.clients.length > 0 && (
                                         <div className="animate-in slide-in-from-left-2 duration-300">
                                             <label className="text-[10px] font-black text-emerald-600 uppercase block mb-2 tracking-widest">Informations Client</label>
-                                            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                                <p className="text-sm font-black text-emerald-800 uppercase">{selectedBien.client.nom} {selectedBien.client.prenom}</p>
-                                                <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">CIN: {selectedBien.client.cin}</p>
-                                                <p className="text-[10px] font-bold text-emerald-600 uppercase">Tél: {selectedBien.client.tel}</p>
+                                            <div className="flex flex-col gap-2">
+                                                {selectedBien.clients.map((c: any) => (
+                                                    <div key={c.id} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                                                        <p className="text-sm font-black text-emerald-800 uppercase">{c.nom} {c.prenom}</p>
+                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">CIN: {c.cin}</p>
+                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase">Tél: {c.tel}</p>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}

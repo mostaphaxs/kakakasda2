@@ -23,6 +23,8 @@ interface ClientFormInputs {
     prenom: string;
     cin: string;
     tel: string;
+    tel_2?: string;
+    adresse?: string;
     bien_id: string;
     date_reservation: string;
     avec_finition: boolean;
@@ -99,6 +101,8 @@ const AddClient: React.FC = () => {
                     prenom: data.prenom.trim(),
                     cin: data.cin.trim().toUpperCase(),
                     tel: data.tel.trim(),
+                    tel_2: data.tel_2 ? data.tel_2.trim() : null,
+                    adresse: data.adresse ? data.adresse.trim() : null,
                     bien_id: data.bien_id ? Number(data.bien_id) : null,
                     date_reservation: data.date_reservation || null,
                     avec_finition: data.avec_finition || false,
@@ -248,6 +252,34 @@ const AddClient: React.FC = () => {
                                     placeholder="Ex: +212 6 12 34 56 78"
                                 />
                             </FieldWrapper>
+
+                            <FieldWrapper label="Téléphone secondaire (Optionnel)" error={errors.tel_2?.message} fieldError={fieldErrors.tel_2}>
+                                <input
+                                    type="tel"
+                                    {...register('tel_2', {
+                                        maxLength: { value: 20, message: 'Max 20 caractères.' },
+                                        pattern: {
+                                            value: /^[+0-9\s\-()]{6,20}$/,
+                                            message: 'Numéro de téléphone invalide.',
+                                        },
+                                    })}
+                                    className={inputCls(!!errors.tel_2)}
+                                    placeholder="Ex: +212 7 12 34 56 78"
+                                />
+                            </FieldWrapper>
+
+                            <div className="sm:col-span-2">
+                                <FieldWrapper label="Adresse de Localisation (Optionnel)" error={errors.adresse?.message} fieldError={fieldErrors.adresse}>
+                                    <textarea
+                                        {...register('adresse', {
+                                            maxLength: { value: 255, message: 'Max 255 caractères.' },
+                                        })}
+                                        rows={2}
+                                        className={inputCls(!!errors.adresse) + " resize-none"}
+                                        placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
+                                    ></textarea>
+                                </FieldWrapper>
+                            </div>
                         </div>
 
                         {/* ── Section: Réservation ── */}

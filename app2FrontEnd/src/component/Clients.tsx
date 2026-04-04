@@ -50,6 +50,8 @@ interface Client {
     nom: string;
     prenom: string;
     tel: string;
+    tel_2?: string;
+    adresse?: string;
     cin: string;
     date_reservation: string | null;
     avec_finition: boolean;
@@ -104,6 +106,10 @@ const Clients = () => {
     // WhatsApp Language Modal State
     const [isWhatsAppLangModalOpen, setIsWhatsAppLangModalOpen] = useState(false);
     const [whatsappTargetClient, setWhatsappTargetClient] = useState<Client | null>(null);
+    const [isWhatsAppEditorOpen, setIsWhatsAppEditorOpen] = useState(false);
+    const [whatsappMessageContent, setWhatsappMessageContent] = useState('');
+    const [isWhatsAppPhoneModalOpen, setIsWhatsAppPhoneModalOpen] = useState(false);
+    const [whatsappTargetPhone, setWhatsappTargetPhone] = useState<string>('');
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -148,6 +154,8 @@ const Clients = () => {
             nom: client.nom,
             prenom: client.prenom,
             tel: client.tel,
+            tel_2: client.tel_2,
+            adresse: client.adresse,
             cin: client.cin,
             avec_finition: client.avec_finition,
             date_reservation: client.date_reservation ? client.date_reservation.split(' ')[0] : ''
@@ -319,9 +327,15 @@ const Clients = () => {
             message = `مرحباً ${client.nom} ${client.prenom}،\n\nإليك ملخص وضعيتك المالية :\n- السعر الإجمالي: ${formatNumber(prixGlobal)} درهم\n- المبلغ المدفوع: ${formatNumber(totalVerse)} درهم\n- الباقي للأداء: ${formatNumber(reste)} درهم\n\nيرجى الاتصال بنا لأي استفسار. شكراً.`;
         }
 
-        const encodedMessage = encodeURIComponent(message);
+        setWhatsappMessageContent(message);
+        setIsWhatsAppLangModalOpen(false);
+        setIsWhatsAppEditorOpen(true);
+    };
 
-        let cleanTel = client.tel.replace(/\s/g, '').replace(/[^0-9+]/g, '');
+    const handleSendWhatsApp = () => {
+        if (!whatsappTargetClient || !whatsappTargetPhone) return;
+
+        let cleanTel = whatsappTargetPhone.replace(/\s/g, '').replace(/[^0-9+]/g, '');
 
         if (cleanTel.startsWith('0') && (cleanTel.startsWith('06') || cleanTel.startsWith('07')) && cleanTel.length === 10) {
             cleanTel = '212' + cleanTel.substring(1);
@@ -329,15 +343,21 @@ const Clients = () => {
             cleanTel = '212' + cleanTel;
         }
 
+        const encodedMessage = encodeURIComponent(whatsappMessageContent);
         const whatsappUrl = `https://wa.me/${cleanTel}?text=${encodedMessage}`;
 
         openExternal(whatsappUrl);
-        setIsWhatsAppLangModalOpen(false);
+        setIsWhatsAppEditorOpen(false);
     };
 
     const handleOpenWhatsAppLangModal = (client: Client) => {
         setWhatsappTargetClient(client);
-        setIsWhatsAppLangModalOpen(true);
+        if (client.tel && client.tel_2) {
+            setIsWhatsAppPhoneModalOpen(true);
+        } else {
+            setWhatsappTargetPhone(client.tel);
+            setIsWhatsAppLangModalOpen(true);
+        }
     };
 
     const handleAssociatePayment = async (e: React.FormEvent) => {
@@ -464,6 +484,8 @@ const Clients = () => {
                 'NOM': c.nom?.toUpperCase(),
                 'PRÉNOM': c.prenom?.toUpperCase(),
                 'TÉLÉPHONE': c.tel,
+                'TÉLÉPHONE 2': c.tel_2 || '-',
+                'ADRESSE': c.adresse || '-',
                 'CIN': c.cin?.toUpperCase(),
                 'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
                 'UNITÉS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
@@ -1013,6 +1035,30 @@ const Clients = () => {
                                     </div>
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone Sec.</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.tel_2 || ''}
+                                            onChange={e => setEditFormData({ ...editFormData, tel_2: e.target.value })}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.tel_2 ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                        />
+                                        {fieldErrors.tel_2 && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel_2[0]}</p>}
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse de Localisation</label>
+                                        <textarea
+                                            value={editFormData.adresse || ''}
+                                            onChange={e => setEditFormData({ ...editFormData, adresse: e.target.value })}
+                                            rows={2}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
+                                            placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
+                                        ></textarea>
+                                        {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
                                     <select
@@ -1154,6 +1200,18 @@ const Clients = () => {
                                                 <span className="text-gray-400">Téléphone:</span>
                                                 <span className="font-bold text-gray-700">{detailClient.tel}</span>
                                             </div>
+                                            {detailClient.tel_2 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-400">Tél Sec.:</span>
+                                                    <span className="font-bold text-gray-700">{detailClient.tel_2}</span>
+                                                </div>
+                                            )}
+                                            {detailClient.adresse && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-400">Adresse:</span>
+                                                    <span className="font-bold text-gray-700 truncate max-w-[200px]" title={detailClient.adresse}>{detailClient.adresse}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-400">CIN:</span>
                                                 <span className="font-bold text-gray-700 uppercase">{detailClient.cin}</span>
@@ -1467,6 +1525,94 @@ const Clients = () => {
                             >
                                 <span className="text-3xl">🇲🇦</span>
                                 <span className="font-bold text-gray-700 group-hover:text-emerald-700">العربية</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* WhatsApp Editor Modal */}
+            {isWhatsAppEditorOpen && whatsappTargetClient && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
+                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                <MessageCircle size={18} className="text-emerald-600" />
+                                Modifier le Message
+                            </h3>
+                            <button
+                                onClick={() => setIsWhatsAppEditorOpen(false)}
+                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                                Contenu du message
+                            </label>
+                            <textarea
+                                value={whatsappMessageContent}
+                                onChange={(e) => setWhatsappMessageContent(e.target.value)}
+                                rows={8}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"
+                                dir="auto"
+                            />
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsWhatsAppEditorOpen(false)}
+                                    className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    onClick={handleSendWhatsApp}
+                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-200 flex items-center gap-2 transition-colors"
+                                >
+                                    <MessageCircle size={16} />
+                                    Envoyer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* WhatsApp Phone Selection Modal */}
+            {isWhatsAppPhoneModalOpen && whatsappTargetClient && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                            <h3 className="font-bold text-gray-800">Sélectionner le Numéro</h3>
+                            <button
+                                onClick={() => setIsWhatsAppPhoneModalOpen(false)}
+                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <div className="p-6 flex flex-col gap-4">
+                            <button
+                                onClick={() => {
+                                    setWhatsappTargetPhone(whatsappTargetClient.tel);
+                                    setIsWhatsAppPhoneModalOpen(false);
+                                    setIsWhatsAppLangModalOpen(true);
+                                }}
+                                className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                            >
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Principal</span>
+                                <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel}</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setWhatsappTargetPhone(whatsappTargetClient.tel_2 as string);
+                                    setIsWhatsAppPhoneModalOpen(false);
+                                    setIsWhatsAppLangModalOpen(true);
+                                }}
+                                className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                            >
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Secondaire</span>
+                                <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel_2}</span>
                             </button>
                         </div>
                     </div>
