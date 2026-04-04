@@ -58,6 +58,7 @@ const AddClient: React.FC = () => {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [uploadingDocs, setUploadingDocs] = useState(false);
+    const [existingClient, setExistingClient] = useState<any | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const {
@@ -74,6 +75,37 @@ const AddClient: React.FC = () => {
     });
 
     const selectedBienId = watch('bien_id');
+    const cinValue = watch('cin');
+
+    // ── Search existing client by CIN ──────────────────────────────────────────
+    useEffect(() => {
+        if (!cinValue || cinValue.length < 4) {
+            setExistingClient(null);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            try {
+                const res = await apiFetch<any>(`/clients/search-by-cin/${cinValue.toUpperCase()}`);
+                setExistingClient(res);
+            } catch (err) {
+                setExistingClient(null);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [cinValue]);
+
+    const handleAutoFill = () => {
+        if (!existingClient) return;
+        setValue('nom', existingClient.nom);
+        setValue('prenom', existingClient.prenom);
+        setValue('tel', existingClient.tel);
+        if (existingClient.tel_2) setValue('tel_2', existingClient.tel_2);
+        if (existingClient.adresse) setValue('adresse', existingClient.adresse);
+        setExistingClient(null);
+        toast.success('Informations pré-remplies !');
+    };
 
     // ── Fetch biens libres ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -235,6 +267,21 @@ const AddClient: React.FC = () => {
                                     placeholder="Ex: AB123456"
                                     style={{ textTransform: 'uppercase' }}
                                 />
+                                {existingClient && (
+                                    <div className="mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <p className="text-[10px] text-blue-700 font-bold uppercase tracking-tight">Client existant trouvé</p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs font-black text-slate-800 uppercase">{existingClient.nom} {existingClient.prenom}</p>
+                                            <button
+                                                type="button"
+                                                onClick={handleAutoFill}
+                                                className="px-3 py-1 bg-white border border-blue-200 text-blue-600 rounded text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-colors"
+                                            >
+                                                Utiliser
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </FieldWrapper>
 
                             <FieldWrapper label="Téléphone *" error={errors.tel?.message} fieldError={fieldErrors.tel}>

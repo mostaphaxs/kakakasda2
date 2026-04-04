@@ -42,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);
+    Route::get('/clients/search-by-cin/{cin}', [ClientController::class, 'searchByCin']);
     Route::post('/clients', [ClientController::class, 'store']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);

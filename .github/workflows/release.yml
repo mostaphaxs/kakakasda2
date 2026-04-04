@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 24
           cache: 'npm'
-          cache-dependency-path: './app1FrontEnd/package-lock.json'
+          cache-dependency-path: 'app2FrontEnd/package-lock.json'
 
 
       - name: Install Rust
@@ -34,7 +34,7 @@ jobs:
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './app1FrontEnd/src-tauri'
+          workspaces: 'app2FrontEnd/src-tauri'
 
       - name: Install dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
@@ -44,7 +44,7 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm install
-        working-directory: ./app1FrontEnd 
+        working-directory: app2FrontEnd 
 
       - name: Build and Upload El Ouaha App
         uses: tauri-apps/tauri-action@v0
@@ -52,7 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         with:
-          projectPath: ./app1FrontEnd
+          projectPath: app2FrontEnd
           # This guarantees the .exe goes to the tag you pushed
           tagName: ${{ github.ref_name }} 
           releaseName: "El Ouaha ${{ github.ref_name }}"
