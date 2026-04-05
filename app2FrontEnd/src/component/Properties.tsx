@@ -623,7 +623,7 @@ const Properties = () => {
                                         <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-gray-500">Projet:</span>
-                                                <span className="font-bold text-gray-800">#{selectedBien.terrain_id} {selectedBien.terrain?.nom_projet ? `(${selectedBien.terrain.nom_projet})` : ''}</span>
+                                                <span className="font-bold text-gray-800"> {selectedBien.terrain?.nom_projet ? `${selectedBien.terrain.nom_projet}` : 'Aucun Projet'}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-gray-500">Étage:</span>

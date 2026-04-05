@@ -5,8 +5,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:5173', 'http://localhost', 
-    'http://127.0.0.1:8000', 'tauri://localhost', 'http://tauri.localhost'],
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
