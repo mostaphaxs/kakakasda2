@@ -5,19 +5,30 @@
 // is never hard-coded in component files.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Fail fast at build time if the env variable is missing.
-let RAW_URL = import.meta.env.VITE_API_URL as string | undefined;
+// Robustness check for environment variables
+const GET_VITE_URL = () => {
+    const url = import.meta.env.VITE_API_URL;
+    if (typeof url === 'string' && url.includes('VITE_API_URL=')) {
+        return url.split('VITE_API_URL=')[1];
+    }
+    return url;
+};
 
-// Robustness check: if the user accidentally included the key (e.g. VITE_API_URL=http://...)
-if (RAW_URL && RAW_URL.includes('VITE_API_URL=')) {
-    RAW_URL = RAW_URL.split('VITE_API_URL=')[1];
+let RAW_URL = GET_VITE_URL();
+
+// FALLBACK: In production desktop builds, we expect the backend at localhost:8000
+if (!RAW_URL && !import.meta.env.DEV) {
+    console.warn("[api] VITE_API_URL missing in production build. Falling back to default: http://127.0.0.1:8000/api");
+    RAW_URL = 'http://127.0.0.1:8000/api';
 }
 
 if (!RAW_URL || !RAW_URL.startsWith('http')) {
-    throw new Error(
-        `[api] VITE_API_URL is invalid or missing: "${RAW_URL}". ` +
-        'It MUST be an absolute URL starting with http:// or https://'
-    );
+    const errorMsg = `[API Error] VITE_API_URL is invalid or missing: "${RAW_URL}". ` +
+        `This often means your .env file wasn't picked up during build. ` +
+        `Check your .env.production file or your build environment.`;
+
+    console.error(errorMsg);
+    throw new Error(errorMsg);
 }
 
 // Strip any accidental trailing slash for consistent concatenation.
