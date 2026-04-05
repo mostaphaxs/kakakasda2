@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Purchase Invoices
     Route::apiResource('purchase-invoices', PurchaseInvoiceController::class);
+    Route::post('/purchase-invoices/{purchase_invoice}/payments', [PurchaseInvoiceController::class, 'addPayment']);
 
     // Stock management
     Route::get('/stock', [StockController::class, 'index']);

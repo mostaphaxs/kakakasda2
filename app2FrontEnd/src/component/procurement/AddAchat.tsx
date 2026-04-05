@@ -16,6 +16,7 @@ interface PurchaseInvoiceForm {
     invoice_no?: string;
     reference_bon?: string;
     supplier_id: string;
+    terrain_id?: string;
     scan_contract?: FileList | null;
     items: PurchaseInvoiceItemForm[];
 }
@@ -24,6 +25,7 @@ const AddAchat: React.FC = () => {
     const navigate = useNavigate();
     const [articles, setArticles] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [terrains, setTerrains] = useState<any[]>([]);
 
     const { register, control, handleSubmit, watch, formState: { isSubmitting, errors } } = useForm<PurchaseInvoiceForm>({
         defaultValues: {
@@ -50,12 +52,14 @@ const AddAchat: React.FC = () => {
     useEffect(() => {
         const load = async () => {
             try {
-                const [art, sup] = await Promise.all([
+                const [art, sup, ter] = await Promise.all([
                     apiFetch<any[]>('/articles'),
-                    apiFetch<any[]>('/suppliers')
+                    apiFetch<any[]>('/suppliers'),
+                    apiFetch<any[]>('/terrains')
                 ]);
                 setArticles(art);
                 setSuppliers(sup);
+                setTerrains(ter);
             } catch (error) {
                 console.error(error);
             }
@@ -73,6 +77,7 @@ const AddAchat: React.FC = () => {
         if (data.invoice_no) fd.append('invoice_no', data.invoice_no);
         if (data.reference_bon) fd.append('reference_bon', data.reference_bon);
         fd.append('supplier_id', String(data.supplier_id));
+        if (data.terrain_id) fd.append('terrain_id', String(data.terrain_id));
         if (data.scan_contract?.[0]) fd.append('scan_contract', data.scan_contract[0]);
 
         data.items.forEach((item: any, i: number) => {
@@ -137,6 +142,14 @@ const AddAchat: React.FC = () => {
                                     <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <input {...register('reference_bon')} className="w-full h-12 pl-12 pr-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold shadow-sm outline-none" placeholder="Ex: BC-001" />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Projet (Optionnel)</label>
+                                <select {...register('terrain_id')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold shadow-sm outline-none">
+                                    <option value="">Global / Pas de projet</option>
+                                    {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_terrain}</option>)}
+                                </select>
                             </div>
 
                             <div>

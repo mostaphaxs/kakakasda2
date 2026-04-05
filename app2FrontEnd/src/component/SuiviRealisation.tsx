@@ -73,7 +73,15 @@ const uid = () => `item_${++_uid}`;
 const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
     const queryClient = useQueryClient();
     const [goPct, setGoPct] = useState(0);
-    const [items, setItems] = useState<FinItem[]>([]);
+    const [items, setItems] = useState<FinItem[]>(() =>
+        DEFAULT_ELEMENTS.map(d => ({
+            id: d.element,
+            label: d.label,
+            element: d.element,
+            checked: false,
+            editing: false,
+        }))
+    );
 
     // ─── Load ─────────────────────────────────────────────────────────────────
     const { data: suiviData, isLoading: loading } = useQuery({
@@ -85,26 +93,31 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
         if (suiviData) {
             setGoPct(suiviData.gros_oeuvre_pourcentage ?? 0);
             const server = suiviData.suivi_finition ?? [];
-            if (server.length === 0) {
-                setItems(DEFAULT_ELEMENTS.map(d => ({
-                    id: uid(),
-                    label: d.label,
-                    element: d.element,
-                    checked: false,
+
+            // Merge defaults with server data
+            const mergedItems = DEFAULT_ELEMENTS.map(def => {
+                const s = server.find(item => item.element === def.element);
+                return {
+                    id: def.element,
+                    label: s?.label_custom ?? def.label,
+                    element: def.element,
+                    checked: !!s?.checked,
                     editing: false,
-                })));
-            } else {
-                setItems(server.map(s => {
-                    const def = DEFAULT_ELEMENTS.find(d => d.element === s.element);
-                    return {
-                        id: uid(),
-                        label: s.label_custom ?? def?.label ?? s.element,
-                        element: s.element,
-                        checked: s.checked,
-                        editing: false,
-                    };
+                };
+            });
+
+            // Add any non-default items from server
+            const nonDefaultItems = server
+                .filter(s => !DEFAULT_ELEMENTS.some(def => def.element === s.element))
+                .map(s => ({
+                    id: s.element,
+                    label: s.label_custom ?? s.element,
+                    element: s.element,
+                    checked: !!s.checked,
+                    editing: false,
                 }));
-            }
+
+            setItems([...mergedItems, ...nonDefaultItems]);
         }
     }, [suiviData]);
 
@@ -144,7 +157,7 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
         const payload = items.map(i => {
             const isDefault = DEFAULT_ELEMENTS.some(d => d.element === i.element);
             return {
-                element: isDefault ? i.element : ('autre_' + i.id).substring(0, 90),
+                element: i.element,
                 label_custom: isDefault ? null : i.label,
                 checked: i.checked,
             };
@@ -176,14 +189,16 @@ const SuiviRealisation: React.FC<Props> = ({ bien, onClose, onRefresh }) => {
     const removeItem = (id: string) =>
         setItems(prev => prev.filter(i => i.id !== id));
 
-    const addItem = () =>
+    const addItem = () => {
+        const stableId = `autre_${Date.now()}`;
         setItems(prev => [...prev, {
-            id: uid(),
-            label: 'Autre',
-            element: `autre_${uid()}`,
+            id: stableId,
+            label: 'Nouvel élément',
+            element: stableId,
             checked: false,
             editing: true,
         }]);
+    };
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     const bienLabel = [

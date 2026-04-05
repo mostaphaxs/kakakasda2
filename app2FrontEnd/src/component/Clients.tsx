@@ -1,12 +1,13 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
+import SuiviRealisation from './SuiviRealisation';
 
 interface Bien {
     id: number;
@@ -63,6 +64,7 @@ interface Client {
 const Clients = () => {
     const navigate = useNavigate();
     const [clients, setClients] = useState<Client[]>([]);
+    const [suiviBien, setSuiviBien] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Modal State
@@ -1237,9 +1239,19 @@ const Clients = () => {
                                                             <span className="text-gray-400">Localisation:</span>
                                                             <span className="font-bold text-gray-700"> {b.immeuble ? `Imm. ${b.immeuble}` : ''} {b.etage === 0 ? 'RDC' : b.etage ? `Étage ${b.etage}` : ''}</span>
                                                         </div>
-                                                        <div className="flex justify-between text-sm">
-                                                            <span className="text-gray-400">Statut:</span>
-                                                            <span className={`font-bold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
+                                                        <div className="flex justify-between items-center text-sm">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-gray-400">Statut:</span>
+                                                                <span className={`font-bold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setSuiviBien(b)}
+                                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-black transition-all"
+                                                                title="Suivi de Réalisation"
+                                                            >
+                                                                <Paintbrush size={12} />
+                                                                Suivi
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -1617,6 +1629,14 @@ const Clients = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {/* Suivi de Réalisation Modal */}
+            {suiviBien && (
+                <SuiviRealisation
+                    bien={suiviBien}
+                    onClose={() => setSuiviBien(null)}
+                    onRefresh={fetchData}
+                />
             )}
         </div >
     );

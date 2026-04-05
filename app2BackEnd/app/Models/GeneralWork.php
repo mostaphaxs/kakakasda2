@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class GeneralWork extends Model
 {
-    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'balance'];
+    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'balance', 'terrain_id'];
+
+    public function terrain()
+    {
+        return $this->belongsTo(Terrain::class);
+    }
 
     protected $appends = ['calculated_balance'];
 

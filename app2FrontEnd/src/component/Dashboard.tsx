@@ -1,6 +1,6 @@
 // src/component/Dashboard.tsx
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin, UserPlus, Eye, EyeOff, Lock, Info, Clock } from 'lucide-react';
+import { TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin, UserPlus, Eye, EyeOff, Lock, Info, Clock, ShoppingBag, Paintbrush } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
@@ -16,6 +16,8 @@ interface Stats {
     bureau: number;
     intervenants: number;
     contractors: number;
+    achats: number;
+    general_works: number;
   };
   biens_status: { [key: string]: number };
   biens_types: { [key: string]: number };
@@ -24,6 +26,7 @@ interface Stats {
   benefice_estime: number;
   recent_clients: any[];
   recent_payments: any[];
+  recent_purchases: any[];
   terrains_stats?: {
     id: number;
     nom_terrain: string;
@@ -35,6 +38,8 @@ interface Stats {
       bureau: number;
       intervenants: number;
       contractors: number;
+      achats: number;
+      general_works: number;
     };
     cout_global: number;
     biens_status: { [key: string]: number };
@@ -79,14 +84,20 @@ const Dashboard = () => {
   const displayClients = useMemo(() => {
     if (!apiStats?.recent_clients) return [];
     if (selectedTerrainId === null) return apiStats.recent_clients;
-    return apiStats.recent_clients.filter(c => c.bien && c.bien.terrain_id === selectedTerrainId);
+    return apiStats.recent_clients.filter(c => c.biens && c.biens.some((b: any) => b.terrain_id === selectedTerrainId));
   }, [apiStats, selectedTerrainId]);
 
   const displayPayments = useMemo(() => {
     if (!apiStats?.recent_payments) return [];
     if (selectedTerrainId === null) return apiStats.recent_payments;
-    return apiStats.recent_payments.filter(p => p.client?.bien && p.client.bien.terrain_id === selectedTerrainId);
+    return apiStats.recent_payments.filter(p => p.client?.biens && p.client.biens.some((b: any) => b.terrain_id === selectedTerrainId));
   }, [apiStats, selectedTerrainId]);
+
+  const displayPurchases = useMemo(() => {
+    if (!apiStats?.recent_purchases) return [];
+    // Purchases are global for now
+    return apiStats.recent_purchases;
+  }, [apiStats]);
 
   const fetchData = async () => {
     try {
@@ -311,6 +322,8 @@ const Dashboard = () => {
           <div className="p-5 space-y-3 flex-grow">
             {[
               { label: 'Entreprises de construction (Travaux)', value: stats.charges_details.contractors, icon: Home, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'Achats de Matériaux & Fournitures', value: stats.charges_details.achats, icon: ShoppingBag, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+              { label: 'Travaux Généraux & Entretien', value: stats.charges_details.general_works, icon: Paintbrush, color: 'text-rose-600', bg: 'bg-rose-50' },
               { label: 'Intervenants Techniques (Notaires, Architectes...)', value: stats.charges_details.intervenants, icon: MapPin, color: 'text-indigo-600', bg: 'bg-indigo-50' },
               { label: 'Dépenses administratives & Bureau', value: stats.charges_details.bureau, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
             ].map((item, idx) => (
@@ -435,7 +448,7 @@ const Dashboard = () => {
           <h3 className="text-lg font-bold text-gray-800">Dernières Activités</h3>
           <Clock className="text-gray-400" size={20} />
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Colonne 1: Paiements */}
           <div>
@@ -487,11 +500,12 @@ const Dashboard = () => {
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900">{client.prenom} {client.nom}</p>
-                          {client.bien && (
+                          {client.biens && client.biens.length > 0 && (
                             <p className="text-xs text-gray-600 font-medium">
-                              {client.bien.type_bien}
-                              {client.bien.immeuble ? ` - Imm. ${client.bien.immeuble}` : ''}
-                              {client.bien.num_appartement ? ` - N° ${client.bien.num_appartement}` : ''}
+                              {client.biens[0].type_bien}
+                              {client.biens[0].immeuble ? ` - Imm. ${client.biens[0].immeuble}` : ''}
+                              {client.biens[0].num_appartement ? ` - N° ${client.biens[0].num_appartement}` : ''}
+                              {client.biens.length > 1 ? ` (+${client.biens.length - 1})` : ''}
                             </p>
                           )}
                         </div>
@@ -502,6 +516,35 @@ const Dashboard = () => {
               ) : (
                 <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl">
                   <p className="text-sm text-gray-500 italic">Aucune réservation récente pour cet espace.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Colonne 3: Achats */}
+          <div>
+            <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-rose-700 mb-4 border-b border-gray-100 pb-2">
+              <ShoppingBag size={18} /> Derniers Achats (Stock)
+            </h4>
+            <div className="space-y-3">
+              {displayPurchases.length > 0 ? (
+                displayPurchases.map((achat: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center p-3 sm:p-4 bg-gray-50/50 hover:bg-rose-50/30 rounded-xl border border-gray-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-rose-100 text-rose-700 rounded-lg">
+                        <ShoppingBag size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900">{achat.supplier?.nom_societe || 'Fournisseur inconnu'}</p>
+                        <p className="text-[10px] text-gray-500 font-bold uppercase">{achat.invoice_no || 'SANS RÉF'}</p>
+                      </div>
+                    </div>
+                    {renderAmount(achat.total_ttc, "text-base", "text-rose-700")}
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl">
+                  <p className="text-sm text-gray-500 italic">Aucun achat récent.</p>
                 </div>
               )}
             </div>

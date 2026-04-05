@@ -8,10 +8,12 @@ import { Wrench, Save, ArrowLeft } from 'lucide-react';
 const AddGeneralWork: React.FC = () => {
     const navigate = useNavigate();
     const [suppliers, setSuppliers] = useState<any[]>([]);
+    const [terrains, setTerrains] = useState<any[]>([]);
     const { register, handleSubmit, formState: { isSubmitting } } = useForm();
 
     useEffect(() => {
         apiFetch<any[]>('/suppliers').then(setSuppliers);
+        apiFetch<any[]>('/terrains').then(setTerrains);
     }, []);
 
     const onSubmit = async (data: any) => {
@@ -63,6 +65,13 @@ const AddGeneralWork: React.FC = () => {
                                 <option value="Débarquement">Débarquement</option>
                                 <option value="Déplacement terre/sable">Déplacement terre/sable</option>
                                 <option value="Solaire">Solaire</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Projet (Terrain)</label>
+                            <select {...register('terrain_id', { required: false })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 transition-all font-bold shadow-sm ring-0 outline-none">
+                                <option value="">Aucun (Global)</option>
+                                {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_terrain}</option>)}
                             </select>
                         </div>
                     </div>

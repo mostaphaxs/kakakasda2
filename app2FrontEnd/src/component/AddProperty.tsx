@@ -339,18 +339,6 @@ const AddProperty: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Statut */}
-                            <FieldWrapper label="Statut *" error={errors.statut?.message} fieldError={fieldErrors.statut}>
-                                <select
-                                    {...register('statut', { required: 'Le statut est requis.' })}
-                                    className={inputCls(!!errors.statut)}
-                                >
-                                    <option value="Libre">🟢 Libre</option>
-                                    <option value="Reserve">🟡 Réservé</option>
-                                    <option value="Vendu">🔴 Vendu</option>
-                                </select>
-                            </FieldWrapper>
-
                             {/* Surface */}
                             <FieldWrapper label="Surface (m²) *" error={errors.surface_m2?.message} fieldError={fieldErrors.surface_m2}>
                                 <input

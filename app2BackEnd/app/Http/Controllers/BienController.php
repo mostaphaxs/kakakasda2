@@ -38,7 +38,7 @@ class BienController extends Controller
             ],
             'surface_m2'        => 'required|numeric|min:1|max:999999',
             'description'       => 'nullable|string|max:1000',
-            'statut'            => 'required|in:Libre,Reserve,Vendu',
+            'statut'            => 'nullable|in:Libre,Reserve,Vendu',
             'prix_par_m2_finition'       => 'nullable|numeric|min:0',
             'prix_global_finition'       => 'nullable|numeric|min:0',
             'prix_par_m2_non_finition'   => 'nullable|numeric|min:0',
@@ -65,6 +65,8 @@ class BienController extends Controller
         $validated['prix_global_finition']    = $validated['surface_m2'] * $validated['prix_par_m2_finition'];
         $validated['prix_par_m2_non_finition'] = $validated['prix_par_m2_non_finition'] ?? $defaultGros;
         $validated['prix_global_non_finition'] = $validated['surface_m2'] * $validated['prix_par_m2_non_finition'];
+        
+        $validated['statut'] = $validated['statut'] ?? 'Libre';
 
         $bien = Bien::create($validated);
 
@@ -115,7 +117,7 @@ class BienController extends Controller
             ],
             'surface_m2'        => 'sometimes|required|numeric|min:1|max:999999',
             'description'       => 'nullable|string|max:1000',
-            'statut'            => 'sometimes|required|in:Libre,Reserve,Vendu',
+            'statut'            => 'nullable|in:Libre,Reserve,Vendu',
             'prix_par_m2_finition'       => 'sometimes|nullable|numeric|min:0',
             'prix_global_finition'       => 'sometimes|nullable|numeric|min:0',
             'prix_par_m2_non_finition'   => 'sometimes|nullable|numeric|min:0',

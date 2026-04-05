@@ -8,6 +8,8 @@ use App\Models\Client;
 use App\Models\Charge;
 use App\Models\ContractorPayment;
 use App\Models\Bien;
+use App\Models\PurchaseInvoice;
+use App\Models\GeneralWork;
 use Illuminate\Http\JsonResponse;
 
 class StatsController extends Controller
@@ -39,9 +41,15 @@ class StatsController extends Controller
         // 6. Charges Contractors (Sum of payments to Contractors)
         $chargesContractors = ContractorPayment::where('payable_type', 'App\Models\Contractor')
             ->sum('amount');
+            
+        // 6b. Achats (Sum of Purchase Invoices)
+        $totalAchats = PurchaseInvoice::sum('total_ttc');
+
+        // 6c. General Works (Sum of General Work totals)
+        $totalGeneralWorks = GeneralWork::sum('total_amount');
 
         // 7. Total Global (Investissement + All Charges)
-        $totalCharges = $chargesBureau + $chargesIntervenants + $chargesContractors;
+        $totalCharges = $chargesBureau + $chargesIntervenants + $chargesContractors + $totalAchats + $totalGeneralWorks;
         $coutGlobal = $totalInvested + $totalCharges;
 
         // 8. Detail: Property Status
@@ -51,13 +59,18 @@ class StatsController extends Controller
             ->toArray();
 
         // 9. Detail: Recent Clients
-        $recentClients = Client::with('bien')
+        $recentClients = Client::with('biens')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
 
-        // 10. Detail: Recent Payments
-        $recentPayments = payments::with(['client.bien'])
+        $recentPayments = payments::with(['client.biens'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+            
+        // 10b. Detail: Recent Purchases
+        $recentPurchases = PurchaseInvoice::with('supplier')
             ->orderBy('created_at', 'desc')
             ->take(5)
             ->get();
@@ -69,15 +82,16 @@ class StatsController extends Controller
         $globalBiensTypes = [];
 
         // Pre-fetch all necessary data in bulk to avoid N+1 queries
-        $allBiens = Bien::with('client')->get()->groupBy('terrain_id');
+        $allBiens = Bien::with('clients')->get()->groupBy('terrain_id');
         
         $allPaymentsByTerrain = payments::join('biens', 'payments.bien_id', '=', 'biens.id')
             ->selectRaw('biens.terrain_id, SUM(CAST(payments.amount AS DECIMAL(15,2)) - CAST(COALESCE(payments.refund_amount, 0) AS DECIMAL(15,2))) as net_total')
             ->groupBy('biens.terrain_id')
             ->pluck('net_total', 'terrain_id');
 
-        $allReservationsByTerrain = Client::join('biens', 'clients.bien_id', '=', 'biens.id')
-            ->selectRaw('biens.terrain_id, count(*) as count')
+        $allReservationsByTerrain = \DB::table('bien_client')
+            ->join('biens', 'bien_client.bien_id', '=', 'biens.id')
+            ->selectRaw('biens.terrain_id, count(distinct bien_client.client_id) as count')
             ->groupBy('biens.terrain_id')
             ->pluck('count', 'terrain_id');
 
@@ -100,6 +114,16 @@ class StatsController extends Controller
             ->groupBy('contractors.terrain_id')
             ->pluck('total', 'terrain_id');
 
+        $allAchatsByTerrain = PurchaseInvoice::selectRaw('terrain_id, SUM(total_ttc) as total')
+            ->whereNotNull('terrain_id')
+            ->groupBy('terrain_id')
+            ->pluck('total', 'terrain_id');
+
+        $allGeneralWorksByTerrain = GeneralWork::selectRaw('terrain_id, SUM(total_amount) as total')
+            ->whereNotNull('terrain_id')
+            ->groupBy('terrain_id')
+            ->pluck('total', 'terrain_id');
+
         foreach ($terrains as $terrain) {
             $tInvested = $terrain->total ?? 0;
             $tId = $terrain->id;
@@ -109,8 +133,10 @@ class StatsController extends Controller
             $tChargesBureau = $allChargesBureauByTerrain->get($tId, 0);
             $tChargesIntervenants = $allChargesIntervenantsByTerrain->get($tId, 0);
             $tChargesContractors = $allChargesContractorsByTerrain->get($tId, 0);
+            $tTotalAchats = $allAchatsByTerrain->get($tId, 0);
+            $tTotalGeneralWorks = $allGeneralWorksByTerrain->get($tId, 0);
 
-            $tTotalCharges = $tChargesBureau + $tChargesIntervenants + $tChargesContractors;
+            $tTotalCharges = $tChargesBureau + $tChargesIntervenants + $tChargesContractors + $tTotalAchats + $tTotalGeneralWorks;
             $tCoutGlobal = $tInvested + $tTotalCharges;
 
             // Biens details for this terrain
@@ -119,9 +145,14 @@ class StatsController extends Controller
             $tBiensStatus = $tBiens->groupBy('statut')->map->count()->toArray();
             $tBiensTypes = $tBiens->groupBy('type_bien')->map->count()->toArray();
 
-            // Chiffre d'Affaires calculation
-            $tChiffreAffaires = $tBiens->filter(fn($b) => $b->client)
-                ->sum(fn($b) => $b->client->avec_finition ? $b->prix_global_finition : $b->prix_global_non_finition);
+            // Chiffre d'Affaires calculation (Property + Annexes)
+            $tChiffreAffaires = $tBiens->filter(fn($b) => $b->clients->isNotEmpty())
+                ->sum(function($b) {
+                    $client = $b->clients->first();
+                    $basePrice = $client->avec_finition ? $b->prix_global_finition : $b->prix_global_non_finition;
+                    $annexPrice = \App\Models\annex_units::where('bien_id', $b->id)->sum('prix');
+                    return $basePrice + $annexPrice;
+                });
 
             $tResteARecouvrer = max(0, $tChiffreAffaires - $tEncaissements);
             $tBeneficeEstime = $tChiffreAffaires - $tCoutGlobal;
@@ -145,6 +176,8 @@ class StatsController extends Controller
                     'bureau' => (float) $tChargesBureau,
                     'intervenants' => (float) $tChargesIntervenants,
                     'contractors' => (float) $tChargesContractors,
+                    'achats' => (float) $tTotalAchats,
+                    'general_works' => (float) $tTotalGeneralWorks,
                 ],
                 'cout_global' => (float) $tCoutGlobal,
                 'biens_status' => $tBiensStatus,
@@ -167,6 +200,8 @@ class StatsController extends Controller
                 'bureau' => (float) $chargesBureau,
                 'intervenants' => (float) $chargesIntervenants,
                 'contractors' => (float) $chargesContractors,
+                'achats' => (float) $totalAchats,
+                'general_works' => (float) $totalGeneralWorks,
             ],
             'cout_global' => (float) $coutGlobal,
             'chiffre_affaires' => (float) $globalChiffreAffaires,
@@ -176,6 +211,7 @@ class StatsController extends Controller
             'biens_types' => $globalBiensTypes,
             'recent_clients' => $recentClients,
             'recent_payments' => $recentPayments,
+            'recent_purchases' => $recentPurchases,
             'terrains_stats' => $terrainsStats,
         ]);
     }

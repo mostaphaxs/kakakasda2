@@ -10,7 +10,7 @@ class PurchaseInvoiceController extends Controller
 {
     public function index()
     {
-        return PurchaseInvoice::with(['supplier', 'items.article'])->get();
+        return PurchaseInvoice::with(['supplier', 'terrain', 'items.article', 'payments'])->get();
     }
 
     public function store(Request $request)
@@ -19,6 +19,7 @@ class PurchaseInvoiceController extends Controller
             'invoice_no' => 'nullable|string|unique:purchase_invoices,invoice_no',
             'reference_bon' => 'nullable|string|unique:purchase_invoices,reference_bon',
             'supplier_id' => 'required|exists:suppliers,id',
+            'terrain_id' => 'nullable|exists:terrains,id',
             'scan_contract' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'items' => 'required|array|min:1',
             'items.*.article_id' => 'required|exists:articles,id',
@@ -47,6 +48,7 @@ class PurchaseInvoiceController extends Controller
                 'invoice_no' => $validated['invoice_no'] ?? null,
                 'reference_bon' => $validated['reference_bon'] ?? null,
                 'supplier_id' => $validated['supplier_id'],
+                'terrain_id' => $validated['terrain_id'] ?? null,
                 'total_ht' => $total_ht,
                 'total_ttc' => $total_ttc,
                 'scan_contract' => $scanPath,
@@ -64,7 +66,7 @@ class PurchaseInvoiceController extends Controller
             return $invoice;
         });
 
-        return response()->json($purchaseInvoice->load('supplier', 'items.article'), 201);
+        return response()->json($purchaseInvoice->load(['supplier', 'terrain', 'items.article', 'payments']), 201);
     }
 
     public function update(Request $request, PurchaseInvoice $purchase_invoice)
@@ -73,6 +75,7 @@ class PurchaseInvoiceController extends Controller
             'invoice_no' => 'nullable|string|unique:purchase_invoices,invoice_no,' . $purchase_invoice->id,
             'reference_bon' => 'nullable|string|unique:purchase_invoices,reference_bon,' . $purchase_invoice->id,
             'supplier_id' => 'required|exists:suppliers,id',
+            'terrain_id' => 'nullable|exists:terrains,id',
             'scan_contract' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
             'items' => 'required|array|min:1',
             'items.*.id' => 'nullable|exists:purchase_invoice_items,id',
@@ -105,6 +108,7 @@ class PurchaseInvoiceController extends Controller
                 'invoice_no' => $validated['invoice_no'] ?? null,
                 'reference_bon' => $validated['reference_bon'] ?? null,
                 'supplier_id' => $validated['supplier_id'],
+                'terrain_id' => $validated['terrain_id'] ?? null,
                 'total_ht' => $total_ht,
                 'total_ttc' => $total_ttc,
                 'scan_contract' => $scanPath,
@@ -142,7 +146,7 @@ class PurchaseInvoiceController extends Controller
             }
         });
 
-        return response()->json($purchase_invoice->load('supplier', 'items.article'));
+        return response()->json($purchase_invoice->load(['supplier', 'terrain', 'items.article', 'payments']));
     }
 
     public function destroy(PurchaseInvoice $purchase_invoice)
@@ -156,5 +160,27 @@ class PurchaseInvoiceController extends Controller
         });
         
         return response()->json(['message' => 'Deleted successfully']);
+    }
+
+    public function addPayment(Request $request, PurchaseInvoice $purchase_invoice)
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'method' => 'required|string',
+            'reference_no' => 'nullable|string',
+            'bank_name' => 'nullable|string',
+            'notes' => 'nullable|string',
+            'scan_path' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        if ($request->hasFile('scan_path')) {
+            $path = $request->file('scan_path')->store('payments', 'public');
+            $validated['scan_path'] = $path;
+        }
+
+        $purchase_invoice->payments()->create($validated);
+        
+        return response()->json($purchase_invoice->fresh(['supplier', 'terrain', 'items.article', 'payments']));
     }
 }

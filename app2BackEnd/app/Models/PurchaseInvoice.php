@@ -6,9 +6,24 @@ use Illuminate\Database\Eloquent\Model;
 
 class PurchaseInvoice extends Model
 {
-    protected $fillable = ['invoice_no', 'reference_bon', 'supplier_id', 'total_ht', 'total_ttc', 'scan_contract'];
+    protected $fillable = ['invoice_no', 'reference_bon', 'supplier_id', 'total_ht', 'total_ttc', 'paid_amount', 'scan_contract', 'terrain_id'];
 
-    protected $appends = ['scan_contract_url'];
+    public function terrain()
+    {
+        return $this->belongsTo(Terrain::class);
+    }
+
+    public function payments()
+    {
+        return $this->morphMany(ContractorPayment::class, 'payable');
+    }
+
+    protected $appends = ['scan_contract_url', 'balance'];
+
+    public function getBalanceAttribute()
+    {
+        return $this->total_ttc - $this->paid_amount;
+    }
 
     public function getScanContractUrlAttribute()
     {

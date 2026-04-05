@@ -9,13 +9,14 @@ class GeneralWorkController extends Controller
 {
     public function index()
     {
-        return GeneralWork::with('supplier')->get();
+        return GeneralWork::with(['supplier', 'terrain'])->get();
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
+            'terrain_id' => 'required|exists:terrains,id',
             'work_type' => 'required|string',
             'total_amount' => 'required|numeric',
             'paid_amount' => 'nullable|numeric',
@@ -26,7 +27,7 @@ class GeneralWorkController extends Controller
 
     public function show(GeneralWork $generalWork)
     {
-        return $generalWork->load('supplier');
+        return $generalWork->load(['supplier', 'terrain']);
     }
 
     public function update(Request $request, GeneralWork $generalWork)

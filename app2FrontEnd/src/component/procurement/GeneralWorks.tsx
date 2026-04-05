@@ -16,6 +16,8 @@ interface GeneralWork {
     supplier_id: number;
     supplier: { nom_societe: string };
     created_at: string;
+    terrain_id?: number;
+    terrain?: { nom_terrain: string };
 }
 
 const GeneralWorks: React.FC = () => {
@@ -37,6 +39,11 @@ const GeneralWorks: React.FC = () => {
     const { data: suppliers = [] } = useQuery({
         queryKey: ['suppliers'],
         queryFn: () => apiFetch<any[]>('/suppliers'),
+    });
+
+    const { data: terrains = [] } = useQuery({
+        queryKey: ['terrains'],
+        queryFn: () => apiFetch<any[]>('/terrains'),
     });
 
     const deleteMutation = useMutation({
@@ -72,6 +79,7 @@ const GeneralWorks: React.FC = () => {
         reset({
             work_type: work.work_type,
             supplier_id: work.supplier_id,
+            terrain_id: work.terrain_id,
             total_amount: work.total_amount,
             paid_amount: work.paid_amount,
         });
@@ -140,6 +148,7 @@ const GeneralWorks: React.FC = () => {
                     <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                         <tr>
                             <th className="px-4 py-2.5">Nature des Travaux</th>
+                            <th className="px-4 py-2.5">Projet</th>
                             <th className="px-4 py-2.5">Prestataire</th>
                             <th className="px-4 py-2.5">Montant Marché</th>
                             <th className="px-4 py-2.5">Payé</th>
@@ -155,6 +164,9 @@ const GeneralWorks: React.FC = () => {
                         ) : filtered.map(w => (
                             <tr key={w.id} className="hover:bg-orange-50/20 transition-colors group">
                                 <td className="px-6 py-4 font-black text-slate-800 uppercase tracking-tight">{w.work_type}</td>
+                                <td className="px-6 py-4 font-bold text-blue-500 uppercase text-[10px]">
+                                    {w.terrain?.nom_terrain || 'N/A'}
+                                </td>
                                 <td className="px-6 py-4 font-bold text-slate-500 uppercase text-xs">{w.supplier.nom_societe}</td>
                                 <td className="px-6 py-4 font-black text-blue-600">{w.total_amount?.toLocaleString('fr-MA')} DH</td>
                                 <td className="px-6 py-4 font-black text-emerald-600">{w.paid_amount?.toLocaleString('fr-MA')} DH</td>
@@ -209,6 +221,15 @@ const GeneralWorks: React.FC = () => {
                                     </label>
                                     <select {...register('supplier_id', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-600 transition-all font-bold text-sm outline-none shadow-sm">
                                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.nom_societe}</option>)}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                        <Briefcase size={12} className="mr-2" /> Projet
+                                    </label>
+                                    <select {...register('terrain_id', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-600 transition-all font-bold text-sm outline-none shadow-sm">
+                                        {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_terrain}</option>)}
                                     </select>
                                 </div>
 
