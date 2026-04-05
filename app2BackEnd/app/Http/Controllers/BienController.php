@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bien;
+use App\Models\SuiviFinition;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -92,7 +93,7 @@ class BienController extends Controller
      */
     public function show(Bien $bien): JsonResponse
     {
-        return response()->json($bien->load('terrain'));
+        return response()->json($bien->load(['terrain', 'suiviFinition']));
     }
 
     /**
@@ -123,6 +124,11 @@ class BienController extends Controller
             'prix_par_m2_non_finition'   => 'sometimes|nullable|numeric|min:0',
             'prix_global_non_finition'   => 'sometimes|nullable|numeric|min:0',
             'document_path'     => 'nullable|string|max:500',
+            'gros_oeuvre_pourcentage'    => 'nullable|integer|min:0|max:100',
+            'suivi_finition'             => 'nullable|array',
+            'suivi_finition.*.element'   => 'required|string|max:100',
+            'suivi_finition.*.label_custom' => 'nullable|string|max:255',
+            'suivi_finition.*.checked'   => 'sometimes|boolean',
         ]);
 
         $surface = $validated['surface_m2'] ?? $bien->surface_m2;
@@ -133,11 +139,28 @@ class BienController extends Controller
             $validated['prix_global_non_finition'] = $surface * $validated['prix_par_m2_non_finition'];
         }
 
+        // Extract suivi_finition before passing validated data to model update
+        $suiviFinitionItems = $validated['suivi_finition'] ?? null;
+        unset($validated['suivi_finition']);
+
         $bien->update($validated);
+
+        // Sync suivi_finition: wipe and recreate for idempotency
+        if (!is_null($suiviFinitionItems)) {
+            SuiviFinition::where('bien_id', $bien->id)->delete();
+            foreach ($suiviFinitionItems as $item) {
+                SuiviFinition::create([
+                    'bien_id'      => $bien->id,
+                    'element'      => $item['element'],
+                    'label_custom' => $item['label_custom'] ?? null,
+                    'checked'      => !empty($item['checked']) ? 1 : 0,
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Bien mis à jour avec succès.',
-            'bien'    => $bien,
+            'bien'    => $bien->load('suiviFinition'),
         ]);
     }
 

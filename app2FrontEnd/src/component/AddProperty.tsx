@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Building2, ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { Building2, ArrowLeft, Save, Loader2, Plus, Trash2 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -82,6 +82,7 @@ const AddProperty: React.FC = () => {
         watch,
         setValue,
         reset,
+        control,
         formState: { errors },
     } = useForm<BienFormInputs>({
         defaultValues: {
@@ -97,6 +98,8 @@ const AddProperty: React.FC = () => {
         },
     });
 
+    const { fields, append, remove } = useFieldArray({ control, name: 'suivi_finition' as any });
+
     const { data: terrains = [], isLoading: loadingTerrains } = useQuery({
         queryKey: ['terrains'],
         queryFn: () => apiFetch<Terrain[]>('/terrains'),
@@ -110,6 +113,31 @@ const AddProperty: React.FC = () => {
 
     useEffect(() => {
         if (bienData) {
+            // Map saved suivi_finition to the default item ordering so checkboxes align correctly
+            const dbFinition: { element: string; label_custom: string | null; checked: boolean }[] =
+                Array.isArray(bienData.suivi_finition) ? bienData.suivi_finition : [];
+
+            const defaultElements = new Set(DEFAULT_FINITION_ITEMS.map(d => d.element));
+
+            // Build ordered defaults first, then append any saved custom items
+            const mergedFinition = DEFAULT_FINITION_ITEMS.map((def) => {
+                const saved = dbFinition.find((f: any) => f.element === def.element);
+                return {
+                    element: def.element,
+                    label_custom: saved?.label_custom ?? null,
+                    checked: saved ? Boolean(saved.checked) : false,
+                };
+            });
+
+            // Append saved custom (non-default) items
+            const customItems = dbFinition
+                .filter((f: any) => !defaultElements.has(f.element))
+                .map((f: any) => ({
+                    element: f.element,
+                    label_custom: f.label_custom ?? '',
+                    checked: Boolean(f.checked),
+                }));
+
             reset({
                 ...bienData,
                 terrain_id: bienData.terrain_id,
@@ -118,6 +146,8 @@ const AddProperty: React.FC = () => {
                 surface_m2: formatNumber(bienData.surface_m2) as any,
                 prix_par_m2_finition: formatNumber(bienData.prix_par_m2_finition) as any,
                 prix_par_m2_non_finition: formatNumber(bienData.prix_par_m2_non_finition) as any,
+                gros_oeuvre_pourcentage: bienData.gros_oeuvre_pourcentage ?? 0,
+                suivi_finition: [...mergedFinition, ...customItems],
             });
         }
     }, [bienData, reset]);
@@ -366,7 +396,7 @@ const AddProperty: React.FC = () => {
                         </div>
 
                         {/* ──── Section: État d'Avancement Réel ──── */}
-                        {!isEdit && !isLotVilla && (
+                        {!isLotVilla && (
                             <>
                                 <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
                                     <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">3 – État d'Avancement Réel</h2>
@@ -374,49 +404,84 @@ const AddProperty: React.FC = () => {
                                 <div className="px-6 py-6 space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         {/* Gros Œuvre Binary Status */}
-                                        <div className="bg-white border border-slate-100 rounded-3xl p-6 space-y-5 shadow-sm">
+                                        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-xs font-black text-slate-900 uppercase tracking-widest">Gros Œuvre</label>
-                                                <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-widest">Gros Œuvre</label>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                                     {watch('gros_oeuvre_pourcentage') === 100 ? 'Terminé' : 'En cours'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex p-1 bg-slate-50 rounded-xl border border-slate-100">
+                                            <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('gros_oeuvre_pourcentage', 0)}
-                                                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${watch('gros_oeuvre_pourcentage') !== 100 ? 'bg-white shadow-sm text-black border border-slate-100' : 'text-slate-400'}`}
+                                                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all ${watch('gros_oeuvre_pourcentage') !== 100 ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
                                                 >
                                                     En cours
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('gros_oeuvre_pourcentage', 100)}
-                                                    className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-white shadow-sm text-black border border-slate-100' : 'text-slate-400'}`}
+                                                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
                                                 >
                                                     Terminé
                                                 </button>
                                             </div>
-
-                                            <p className="text-[10px] text-slate-400 font-medium italic">Sélectionnez l'état actuel des travaux de gros œuvre.</p>
                                         </div>
 
                                         {/* Finition Quick Checklist */}
-                                        <div className="bg-white border border-slate-100 rounded-3xl p-6 space-y-5 shadow-sm">
-                                            <label className="text-xs font-black text-slate-900 uppercase tracking-widest block">Checklist Finition</label>
+                                        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-widest block">Checklist Finition</label>
                                             <div className="grid grid-cols-2 gap-2">
-                                                {DEFAULT_FINITION_ITEMS.map((item, idx) => (
-                                                    <label key={item.element} className="flex items-center gap-2 p-2.5 bg-slate-50/50 hover:bg-white border border-slate-100 rounded-xl cursor-pointer transition-all group">
-                                                        <input
-                                                            type="checkbox"
-                                                            {...register(`suivi_finition.${idx}.checked` as any)}
-                                                            className="w-4 h-4 rounded text-slate-900 focus:ring-slate-900 border-slate-200"
-                                                        />
-                                                        <span className="text-[10px] font-bold text-slate-600 group-hover:text-black transition-colors uppercase tracking-tight">{item.label}</span>
-                                                    </label>
-                                                ))}
+                                                {fields.map((field, idx) => {
+                                                    const isDefault = DEFAULT_FINITION_ITEMS.some(d => d.element === (field as any).element);
+                                                    const label = DEFAULT_FINITION_ITEMS.find(d => d.element === (field as any).element)?.label;
+                                                    return isDefault ? (
+                                                        <label key={field.id} className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-white border border-gray-100 rounded-lg cursor-pointer transition-all group">
+                                                            <input
+                                                                type="checkbox"
+                                                                {...register(`suivi_finition.${idx}.checked` as any)}
+                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                                            />
+                                                            <span className="text-[10px] font-bold text-gray-600 group-hover:text-gray-900 transition-colors uppercase">{label}</span>
+                                                        </label>
+                                                    ) : (
+                                                        <div key={field.id} className="col-span-2 flex items-center gap-2 p-2 bg-blue-50/50 border border-blue-100 rounded-lg">
+                                                            <input
+                                                                type="checkbox"
+                                                                {...register(`suivi_finition.${idx}.checked` as any)}
+                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 shrink-0"
+                                                            />
+                                                            <input
+                                                                type="text"
+                                                                {...register(`suivi_finition.${idx}.label_custom` as any)}
+                                                                placeholder="Nom de l’élément..."
+                                                                className="flex-1 text-[11px] font-bold bg-transparent border-none outline-none text-gray-700 placeholder-gray-400"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => remove(idx)}
+                                                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
+                                            {/* Add custom item button */}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newKey = `autre_${Date.now()}`;
+                                                    append({ element: newKey, label_custom: '', checked: false });
+                                                }}
+                                                className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-gray-200 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-all bg-gray-50/30"
+                                            >
+                                                <Plus size={14} />
+                                                Ajouter un élément
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

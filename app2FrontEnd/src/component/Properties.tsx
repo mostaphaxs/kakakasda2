@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Pencil, BarChart2 } from 'lucide-react';
+import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Pencil, Edit2, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
-import SuiviRealisation from './SuiviRealisation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 
 interface AnnexUnit {
     id: number;
@@ -56,7 +56,7 @@ const Properties = () => {
     const [newAnnex, setNewAnnex] = useState({ type: 'Parking', prix: '', customType: '' });
     const [showOtherType, setShowOtherType] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-    const [suiviBien, setSuiviBien] = useState<Bien | null>(null);
+    // suiviBien state removed – tracking is now done inside the edit property page
 
     const { data: biens = [], isLoading: loading } = useQuery({
         queryKey: ['biens'],
@@ -351,8 +351,7 @@ const Properties = () => {
                             <th className="px-4 py-2.5 text-center">Statut</th>
                             <th className="px-4 py-2.5 text-center whitespace-nowrap">Réalisation (GO / FIN)</th>
                             <th className="px-4 py-2.5 text-right">Prix Total (Fin / Non Fin)</th>
-                            <th className="px-4 py-2.5 text-center">Actions</th>
-                            <th className="px-4 py-2.5 text-right"></th>
+                            <th className="px-4 py-2.5 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 italic">
@@ -435,26 +434,21 @@ const Properties = () => {
                                             <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'gros'))} DH</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-center">
-                                        <div className="flex items-center justify-center gap-1 opacity-10 sm:opacity-0 group-hover:opacity-100 transition-all">
-                                            <button onClick={() => navigate(`/edit-property/${b.id}`)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all border border-slate-100" title="Modifier">
-                                                <Pencil size={14} />
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-1.5">
+                                            <button onClick={() => navigate(`/edit-property/${b.id}`)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100" title="Modifier">
+                                                <Edit2 size={18} />
                                             </button>
-                                            <button onClick={() => handleOpenDetails(b)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all border border-slate-100" title="Détails">
-                                                <Layout size={14} />
+                                            <button onClick={() => handleOpenDetails(b)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100" title="Détails">
+                                                <Eye size={18} />
                                             </button>
-                                            <button onClick={() => openAnnexes(b)} className="p-1.5 bg-slate-50 text-slate-600 hover:bg-slate-900 hover:text-white rounded-lg transition-all border border-slate-100" title="Annexes">
-                                                <Layers size={14} />
+                                            <button onClick={() => openAnnexes(b)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100" title="Annexes">
+                                                <Layers size={18} />
                                             </button>
-                                            <button onClick={() => setSuiviBien(b)} className="p-1.5 bg-slate-900 text-white hover:bg-black rounded-lg transition-all shadow-sm" title="Suivi de Réalisation">
-                                                <BarChart2 size={14} />
+                                            <button onClick={() => handleDeleteBien(b.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100" title="Supprimer">
+                                                <Trash2 size={18} />
                                             </button>
                                         </div>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => handleDeleteBien(b.id)} className="p-1.5 text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100">
-                                            <Trash2 size={14} />
-                                        </button>
                                     </td>
                                 </tr>
                             ))
@@ -467,14 +461,6 @@ const Properties = () => {
                 </table>
             </div>
 
-            {/* Suivi de Réalisation Modal */}
-            {suiviBien && (
-                <SuiviRealisation
-                    bien={suiviBien}
-                    onClose={() => setSuiviBien(null)}
-                    onRefresh={() => queryClient.invalidateQueries({ queryKey: ['biens'] })}
-                />
-            )}
 
             {/* Annex Modal */}
             {isAnnexModalOpen && (

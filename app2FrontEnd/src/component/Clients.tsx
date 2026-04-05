@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
-import SuiviRealisation from './SuiviRealisation';
+
 
 interface Bien {
     id: number;
@@ -64,7 +64,7 @@ interface Client {
 const Clients = () => {
     const navigate = useNavigate();
     const [clients, setClients] = useState<Client[]>([]);
-    const [suiviBien, setSuiviBien] = useState<any | null>(null);
+    // suiviBien removed – the Suivi Réalisation is now embedded in the edit property page
     const [loading, setLoading] = useState(true);
 
     // Modal State
@@ -1245,7 +1245,7 @@ const Clients = () => {
                                                                 <span className={`font-bold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
                                                             </div>
                                                             <button
-                                                                onClick={() => setSuiviBien(b)}
+                                                                onClick={() => navigate(`/edit-property/${b.id}`)}
                                                                 className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-black transition-all"
                                                                 title="Suivi de Réalisation"
                                                             >
@@ -1629,14 +1629,6 @@ const Clients = () => {
                         </div>
                     </div>
                 </div>
-            )}
-            {/* Suivi de Réalisation Modal */}
-            {suiviBien && (
-                <SuiviRealisation
-                    bien={suiviBien}
-                    onClose={() => setSuiviBien(null)}
-                    onRefresh={fetchData}
-                />
             )}
         </div >
     );
