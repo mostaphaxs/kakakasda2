@@ -5,7 +5,9 @@
 // is never hard-coded in component files.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Robustness check for environment variables
+import { invoke } from '@tauri-apps/api/core';
+
+// Default values from .env as a safe fallback
 const GET_VITE_URL = () => {
     const url = import.meta.env.VITE_API_URL;
     if (typeof url === 'string' && url.includes('VITE_API_URL=')) {
@@ -14,26 +16,28 @@ const GET_VITE_URL = () => {
     return url;
 };
 
-let RAW_URL = GET_VITE_URL();
+const DEFAULT_URL = GET_VITE_URL() || 'http://127.0.0.1:8000/api';
 
-// FALLBACK: In production desktop builds, we expect the backend at localhost:8000
-if (!RAW_URL && !import.meta.env.DEV) {
-    console.warn("[api] VITE_API_URL missing in production build. Falling back to default: http://127.0.0.1:8000/api");
-    RAW_URL = 'http://127.0.0.1:8000/api';
+export let API_BASE = DEFAULT_URL.replace(/\/+$/, '');
+export let STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
+
+/**
+ * Initializes the API configuration by fetching the dynamic port/URL from Tauri.
+ * This should be called in main.tsx before the app renders.
+ */
+export async function initializeApiConfig() {
+    try {
+        // Attempt to get the dynamic URL from Rust
+        const tauriUrl = await invoke<string>('get_api_config');
+        if (tauriUrl && tauriUrl.startsWith('http')) {
+            API_BASE = tauriUrl.replace(/\/+$/, '');
+            STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
+            console.log(`[api] Dynamic configuration loaded: ${API_BASE}`);
+        }
+    } catch (error) {
+        console.warn("[api] Failed to fetch dynamic config from Tauri, using .env fallback:", error);
+    }
 }
-
-if (!RAW_URL || !RAW_URL.startsWith('http')) {
-    const errorMsg = `[API Error] VITE_API_URL is invalid or missing: "${RAW_URL}". ` +
-        `This often means your .env file wasn't picked up during build. ` +
-        `Check your .env.production file or your build environment.`;
-
-    console.error(errorMsg);
-    throw new Error(errorMsg);
-}
-
-// Strip any accidental trailing slash for consistent concatenation.
-export const API_BASE = RAW_URL.replace(/\/+$/, '');
-export const STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
 
 // ── Auth headers ──────────────────────────────────────────────────────────────
 

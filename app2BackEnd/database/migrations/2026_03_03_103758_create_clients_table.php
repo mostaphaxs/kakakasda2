@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('bien_id')->nullable()->constrained('biens')->onDelete('set null'); 
             $table->string('nom');
+            $table->string('email', 100)->nullable();
             $table->string('prenom');
             $table->string('cin')->unique();
             $table->string('tel');

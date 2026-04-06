@@ -14,6 +14,7 @@ class Client extends Model
         'cin',
         'tel',
         'tel_2',
+        'email',
         'adresse',
         'date_reservation',
         'scanned_docs',

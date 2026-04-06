@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-get-api-config"
+description = "Allows invoking the get_api_config command"
+commands.allow = ["get_api_config"]
+
+[[permission]]
+identifier = "allow-import-database"
+description = "Allows invoking the import_database command"
+commands.allow = ["import_database"]
+
+[[permission]]
+identifier = "allow-export-database"
+description = "Allows invoking the export_database command"
+commands.allow = ["export_database"]

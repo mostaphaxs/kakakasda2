@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { UserPlus, ArrowLeft, Save, Loader2, Upload, X, FileText, PlusCircle } from 'lucide-react';
+import { UserPlus, ArrowLeft, Save, Loader2, Upload, X, FileText, PlusCircle, Mail } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -24,6 +24,7 @@ interface ClientFormInputs {
     cin: string;
     tel: string;
     tel_2?: string;
+    email?: string;
     adresse?: string;
     bien_id: string;
     date_reservation: string;
@@ -102,6 +103,7 @@ const AddClient: React.FC = () => {
         setValue('prenom', existingClient.prenom);
         setValue('tel', existingClient.tel);
         if (existingClient.tel_2) setValue('tel_2', existingClient.tel_2);
+        if (existingClient.email) setValue('email', existingClient.email);
         if (existingClient.adresse) setValue('adresse', existingClient.adresse);
         setExistingClient(null);
         toast.success('Informations pré-remplies !');
@@ -134,6 +136,7 @@ const AddClient: React.FC = () => {
                     cin: data.cin.trim().toUpperCase(),
                     tel: data.tel.trim(),
                     tel_2: data.tel_2 ? data.tel_2.trim() : null,
+                    email: data.email ? data.email.trim() : null,
                     adresse: data.adresse ? data.adresse.trim() : null,
                     bien_id: data.bien_id ? Number(data.bien_id) : null,
                     date_reservation: data.date_reservation || null,
@@ -314,19 +317,36 @@ const AddClient: React.FC = () => {
                                     placeholder="Ex: +212 7 12 34 56 78"
                                 />
                             </FieldWrapper>
+                        </div>
 
-                            <div className="sm:col-span-2">
-                                <FieldWrapper label="Adresse de Localisation (Optionnel)" error={errors.adresse?.message} fieldError={fieldErrors.adresse}>
-                                    <textarea
-                                        {...register('adresse', {
-                                            maxLength: { value: 255, message: 'Max 255 caractères.' },
+                        <div className="px-6 grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+                            <FieldWrapper label="E-mail / Gmail (Optionnel)" error={errors.email?.message} fieldError={fieldErrors.email}>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                    <input
+                                        type="email"
+                                        {...register('email', {
+                                            maxLength: { value: 100, message: 'Max 100 caractères.' },
+                                            pattern: {
+                                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                                message: 'Adresse email invalide.',
+                                            },
                                         })}
-                                        rows={2}
-                                        className={inputCls(!!errors.adresse) + " resize-none"}
-                                        placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
-                                    ></textarea>
-                                </FieldWrapper>
-                            </div>
+                                        className={inputCls(!!errors.email) + " pl-10"}
+                                        placeholder="Ex: client@gmail.com"
+                                    />
+                                </div>
+                            </FieldWrapper>
+
+                            <FieldWrapper label="Adresse de Localisation (Optionnel)" error={errors.adresse?.message} fieldError={fieldErrors.adresse}>
+                                <input
+                                    {...register('adresse', {
+                                        maxLength: { value: 255, message: 'Max 255 caractères.' },
+                                    })}
+                                    className={inputCls(!!errors.adresse)}
+                                    placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
+                                />
+                            </FieldWrapper>
                         </div>
 
                         {/* ── Section: Réservation ── */}

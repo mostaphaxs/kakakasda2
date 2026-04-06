@@ -1,6 +1,6 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Mail, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,7 @@ interface Client {
     prenom: string;
     tel: string;
     tel_2?: string;
+    email?: string;
     adresse?: string;
     cin: string;
     date_reservation: string | null;
@@ -157,6 +158,7 @@ const Clients = () => {
             prenom: client.prenom,
             tel: client.tel,
             tel_2: client.tel_2,
+            email: client.email,
             adresse: client.adresse,
             cin: client.cin,
             avec_finition: client.avec_finition,
@@ -440,6 +442,8 @@ const Clients = () => {
             c.nom.toLowerCase().includes(search) ||
             c.prenom.toLowerCase().includes(search) ||
             c.tel.includes(search) ||
+            c.email?.toLowerCase().includes(search) ||
+            c.adresse?.toLowerCase().includes(search) ||
             c.cin.toLowerCase().includes(search) ||
             (c.biens?.some(b => b.id.toString().includes(search))) ||
             (c.biens?.some(b => b.type_bien.toLowerCase().includes(search)))
@@ -487,6 +491,7 @@ const Clients = () => {
                 'PRÉNOM': c.prenom?.toUpperCase(),
                 'TÉLÉPHONE': c.tel,
                 'TÉLÉPHONE 2': c.tel_2 || '-',
+                'EMAIL': c.email || '-',
                 'ADRESSE': c.adresse || '-',
                 'CIN': c.cin?.toUpperCase(),
                 'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
@@ -1033,12 +1038,6 @@ const Clients = () => {
                                             onChange={e => setEditFormData({ ...editFormData, cin: e.target.value })}
                                             className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
                                         />
-                                        {fieldErrors.cin && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.cin[0]}</p>}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone Sec.</label>
                                         <input
                                             type="text"
@@ -1048,17 +1047,43 @@ const Clients = () => {
                                         />
                                         {fieldErrors.tel_2 && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel_2[0]}</p>}
                                     </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse de Localisation</label>
-                                        <textarea
-                                            value={editFormData.adresse || ''}
-                                            onChange={e => setEditFormData({ ...editFormData, adresse: e.target.value })}
-                                            rows={2}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
-                                            placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
-                                        ></textarea>
-                                        {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">CIN *</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.cin || ''}
+                                            onChange={e => setEditFormData({ ...editFormData, cin: e.target.value })}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase`}
+                                            placeholder="AB123456"
+                                        />
+                                        {fieldErrors.cin && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.cin[0]}</p>}
                                     </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">E-mail (Optionnel)</label>
+                                        <input
+                                            type="email"
+                                            value={editFormData.email || ''}
+                                            onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            placeholder="client@gmail.com"
+                                        />
+                                        {fieldErrors.email && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.email[0]}</p>}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse (Optionnel)</label>
+                                    <input
+                                        type="text"
+                                        value={editFormData.adresse || ''}
+                                        onChange={e => setEditFormData({ ...editFormData, adresse: e.target.value })}
+                                        className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                        placeholder="123 Avenue Mohammed V..."
+                                    />
+                                    {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
                                 </div>
 
                                 <div>
@@ -1206,6 +1231,12 @@ const Clients = () => {
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-gray-400">Tél Sec.:</span>
                                                     <span className="font-bold text-gray-700">{detailClient.tel_2}</span>
+                                                </div>
+                                            )}
+                                            {detailClient.email && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-gray-400">E-mail:</span>
+                                                    <span className="font-bold text-gray-700 truncate max-w-[200px]" title={detailClient.email}>{detailClient.email}</span>
                                                 </div>
                                             )}
                                             {detailClient.adresse && (
@@ -1365,19 +1396,7 @@ const Clients = () => {
                                                     <div className="flex items-center gap-2">
                                                         {p.status !== 'Cancelled' && (
                                                             <>
-                                                                {!p.bien && (
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setTargetPayment(p);
-                                                                            setSelectedBienId('');
-                                                                            setIsAssociateModalOpen(true);
-                                                                        }}
-                                                                        className="p-2 bg-white text-blue-600 rounded-lg border border-gray-100 shadow-sm hover:bg-blue-50 transition-all"
-                                                                        title="Associer à un bien"
-                                                                    >
-                                                                        <PlusCircle size={14} />
-                                                                    </button>
-                                                                )}
+
                                                                 <button
                                                                     onClick={() => {
                                                                         setTargetPayment(p);

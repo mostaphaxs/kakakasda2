@@ -1,61 +1,74 @@
-name: Release
+name: "Publish Release"
+
 on:
   push:
     tags:
       - 'v*'
 
 jobs:
-  release:
+  publish-tauri:
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest, ubuntu-22.04]
+        include:
+          - platform: "windows-latest"
+          - platform: "ubuntu-22.04"
 
     runs-on: ${{ matrix.platform }}
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js with Cache
+      - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: 'npm'
-          cache-dependency-path: 'app2FrontEnd/package-lock.json'
+          node-version: 20
 
-
-      - name: Install Rust
+      - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: 'app2FrontEnd/src-tauri'
-
-      - name: Install dependencies (Ubuntu only)
+      - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Install frontend dependencies
-        run: npm install
-        working-directory: app2FrontEnd 
+      - name: build laravel backend (Linux/Docker)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          cd app2BackEnd
+          docker build -t static-builder -f static-build.Dockerfile .
+          docker create --name temp-container static-builder
+          mkdir -p ../app2FrontEnd/src-tauri/internal
+          docker cp temp-container:/go/src/app/frankenphp ../app2FrontEnd/src-tauri/internal/laravel-backend
+          docker rm temp-container
 
-      - name: Build and Upload El Ouaha App
+      - name: USE Linux backend for Windows (Cross-platform hack)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          # Ideally, we would build the Windows backend on a Windows runner or cross-compile.
+          # Since you are using FrankenPHP static builder (Linux-based), 
+          # you would typically need a Windows binary here.
+          # For now, we assume you have the windows binary pre-uploaded or we use an Artifact.
+          mkdir -p app2FrontEnd/src-tauri/internal
+          # [TIP] If you have a pre-built Windows backend, download it here.
+          echo "Please ensure laravel-backend-windows.exe exists in internal folder"
+          
+      - name: install frontend dependencies
+        run: |
+          cd app2FrontEnd
+          npm install
+
+      - name: build tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         with:
-          projectPath: app2FrontEnd
-          # This guarantees the .exe goes to the tag you pushed
-          tagName: ${{ github.ref_name }} 
-          releaseName: "El Ouaha ${{ github.ref_name }}"
-          releaseBody: "Automated Windows build for the El Ouaha Client."
-          releaseDraft: false
+          tagName: v__VERSION__ # the action will automatically replace this
+          releaseName: "App v__VERSION__"
+          releaseBody: "Automated production build."
+          releaseDraft: true
           prerelease: false
+          projectPath: "app2FrontEnd"

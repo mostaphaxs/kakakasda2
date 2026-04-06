@@ -7,6 +7,12 @@
   ],
   "permissions": [
     "core:default",
-    "allow-open-url"
+    "allow-open-url",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "core:event:default",
+    "allow-get-api-config",
+    "allow-import-database",
+    "allow-export-database"
   ]
 }
