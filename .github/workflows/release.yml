@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "windows-latest"
           - platform: "ubuntu-22.04"
 
     runs-on: ${{ matrix.platform }}
@@ -23,7 +22,7 @@ jobs:
       - name: setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -35,27 +34,14 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: build laravel backend (Linux/Docker)
-        if: matrix.platform == 'ubuntu-22.04'
         run: |
           cd app2BackEnd
-          docker build -t static-builder -f static-build.Dockerfile .
-          docker create --name temp-container static-builder
+          docker build -t laravel-builder -f static-build.Dockerfile .
+          docker create --name temp-builder laravel-builder
           mkdir -p ../app2FrontEnd/src-tauri/internal
-          docker cp temp-container:/go/src/app/frankenphp ../app2FrontEnd/src-tauri/internal/laravel-backend
-          docker rm temp-container
+          docker cp temp-builder:/go/src/app/frankenphp ../app2FrontEnd/src-tauri/internal/laravel-backend
+          docker rm temp-builder
 
-      - name: USE Linux backend for Windows (Cross-platform hack)
-        if: matrix.platform == 'windows-latest'
-        shell: bash
-        run: |
-          # Ideally, we would build the Windows backend on a Windows runner or cross-compile.
-          # Since you are using FrankenPHP static builder (Linux-based), 
-          # you would typically need a Windows binary here.
-          # For now, we assume you have the windows binary pre-uploaded or we use an Artifact.
-          mkdir -p app2FrontEnd/src-tauri/internal
-          # [TIP] If you have a pre-built Windows backend, download it here.
-          echo "Please ensure laravel-backend-windows.exe exists in internal folder"
-          
       - name: install frontend dependencies
         run: |
           cd app2FrontEnd
@@ -68,7 +54,7 @@ jobs:
         with:
           tagName: v__VERSION__ # the action will automatically replace this
           releaseName: "App v__VERSION__"
-          releaseBody: "Automated production build."
+          releaseBody: "Automated production build (Linux)."
           releaseDraft: true
           prerelease: false
           projectPath: "app2FrontEnd"
