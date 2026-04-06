@@ -46,6 +46,19 @@ jobs:
       - name: set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: 🧹 Cleanup Backend (Prevent 2GB Limit Error)
+        run: |
+          cd app2BackEnd
+          # Remove heavy files that aren't needed for the binary
+          # This prevents the Go 'embed' error (4GB > 2GB limit)
+          rm -f database/*.sqlite
+          rm -rf storage/logs/*
+          rm -rf storage/framework/views/*
+          rm -rf node_modules
+          # Print size to logs for verification
+          echo "Backend folder size after cleanup:"
+          du -sh .
+
       - name: build laravel backend binary
         uses: docker/build-push-action@v6
         with:
