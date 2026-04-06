@@ -1,15 +1,26 @@
-# 1. Composer Stage to get vendor dependencies without requiring user's machine to have it synced
+# Stage 1: Install Composer dependencies
 FROM composer:latest AS composer
 COPY . /app
-RUN cd /app && composer install --optimize-autoloader --no-dev --ignore-platform-reqs
+RUN cd /app && composer install \
+    --optimize-autoloader \
+    --no-dev \
+    --no-scripts \
+    --ignore-platform-reqs
 
-# 2. FrankenPHP Static Builder Stage
+# Stage 2: FrankenPHP Static Builder
+# Uses the GNU variant which is more compatible with GitHub Actions runners
 FROM dunglas/frankenphp:static-builder-gnu
 
-# Copy your prepared Laravel project with vendor/
+# Copy the prepared Laravel project (with vendor/) into the expected embed path
 COPY --from=composer /app /go/src/app/dist
 
-# Build the binary with minimalistic extensions (Laravel + SQLite) to avoid OOM / Timeouts on GitHub Actions
+# Build the static binary with a MINIMAL extension set.
+# Heavy extensions removed to stay within the ~7 GB RAM of free GitHub Actions runners:
+#   - intl  → compiles ICU from source (~500 MB peak RAM)
+#   - gd    → requires libpng/libjpeg compilation
+#   - xml*  → simplexml, xmlreader, xmlwriter pulled in via dom anyway
+#   - readline → not needed in production CLI
+# dom/libxml are implicitly included by core; zlib/openssl are statically linked.
 RUN EMBED=/go/src/app/dist \
-    PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,gd,hash,iconv,intl,mbstring,opcache,openssl,pcntl,pcre,pdo,pdo_sqlite,phar,posix,readline,session,simplexml,sockets,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib \
+    PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,sockets,sqlite3,tokenizer,zip,zlib \
     ./build-static.sh
