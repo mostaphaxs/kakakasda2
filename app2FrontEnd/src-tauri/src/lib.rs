@@ -77,6 +77,26 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755)).ok();
     }
 
+    // =========================================================================
+    // 🚀 NEW: AUTOMATED MIGRATIONS & SEEDING (PRODUCTION)
+    // =========================================================================
+    
+    // A. Run Migrations
+    let _ = Command::new(&bin_path)
+        .args(["php-server", "artisan", "migrate", "--force"])
+        .env("DB_DATABASE", db_path.to_str().unwrap())
+        .env("APP_ENV", "production")
+        .status();
+
+    // B. Run Seeders (For the default login)
+    let _ = Command::new(&bin_path)
+        .args(["php-server", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
+        .env("DB_DATABASE", db_path.to_str().unwrap())
+        .env("APP_ENV", "production")
+        .status();
+
+    // =========================================================================
+
     // 3. Spawn Backend with Persistence
     let mut cmd = Command::new(&bin_path);
     cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port)]);
@@ -95,6 +115,19 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         Ok(child) => (api_url, Some(child)),
         Err(e) => {
             eprintln!("⚠️ Backend embarqué invalide ({}) - Tentative de repli sur 'php -S'...", e);
+            
+            // 🚀 NEW: Run migrations on the DEV fallback too!
+            let _ = Command::new("php")
+                .args(["artisan", "migrate", "--force"])
+                .env("DB_DATABASE", db_path.to_str().unwrap())
+                .current_dir(app_handle.path().app_config_dir().unwrap().parent().unwrap().parent().unwrap().join("Desktop/APP2/app2BackEnd"))
+                .status();
+                
+            let _ = Command::new("php")
+                .args(["artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
+                .env("DB_DATABASE", db_path.to_str().unwrap())
+                .current_dir(app_handle.path().app_config_dir().unwrap().parent().unwrap().parent().unwrap().join("Desktop/APP2/app2BackEnd"))
+                .status();
             
             // DEV FALLBACK: Run the PHP built-in server directly for cleaner cleanup
             let mut fallback_cmd = Command::new("php");
