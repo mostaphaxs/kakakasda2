@@ -21,6 +21,7 @@ class DefaultUserSeeder extends Seeder
                 'email' => 'admin123@gmail.com',
                 'password' => Hash::make('admin123'),
             ]);
+            
         }
     }
 }
