@@ -9,13 +9,7 @@ jobs:
   publish-tauri:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: "ubuntu-22.04"
-
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -27,22 +21,44 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: install system dependencies (ubuntu)
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: build laravel backend (Linux/Docker)
+      - name: set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ hashFiles('app2BackEnd/static-build.Dockerfile') }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: build laravel backend binary
+        uses: docker/build-push-action@v6
+        with:
+          context: app2BackEnd
+          file: app2BackEnd/static-build.Dockerfile
+          tags: laravel-builder:latest
+          load: true
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: move cache (prevent cache growth)
         run: |
-          cd app2BackEnd
-          docker build -t laravel-builder -f static-build.Dockerfile .
-          # Use a unique name or force remove if it exists (though runner should be clean)
-          docker rm -f temp-builder || true
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: extract backend binary
+        run: |
+          mkdir -p app2FrontEnd/src-tauri/internal
           docker create --name temp-builder laravel-builder
-          mkdir -p ../app2FrontEnd/src-tauri/internal
-          docker cp temp-builder:/go/src/app/frankenphp ../app2FrontEnd/src-tauri/internal/laravel-backend
+          docker cp temp-builder:/go/src/app/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
           docker rm -f temp-builder
+          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend
 
       - name: install frontend dependencies
         run: |
@@ -54,7 +70,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__ # the action will automatically replace this
+          tagName: v__VERSION__
           releaseName: "App v__VERSION__"
           releaseBody: "Automated production build (Linux)."
           releaseDraft: true
