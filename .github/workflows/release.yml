@@ -37,10 +37,12 @@ jobs:
         run: |
           cd app2BackEnd
           docker build -t laravel-builder -f static-build.Dockerfile .
+          # Use a unique name or force remove if it exists (though runner should be clean)
+          docker rm -f temp-builder || true
           docker create --name temp-builder laravel-builder
           mkdir -p ../app2FrontEnd/src-tauri/internal
           docker cp temp-builder:/go/src/app/frankenphp ../app2FrontEnd/src-tauri/internal/laravel-backend
-          docker rm temp-builder
+          docker rm -f temp-builder
 
       - name: install frontend dependencies
         run: |
