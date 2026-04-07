@@ -16,13 +16,12 @@ RUN composer install \
 FROM dunglas/frankenphp:static-builder-gnu
 
 # 1. Prepare isolated app directory
-# We use /embed-root to keep the build context away from Go's 2GB limit
 RUN mkdir -p /embed-root/app
 COPY --from=composer /app /embed-root/app
 
-# 2. Build AND Clean
-# STRATEGY: We delete the pre-built libcurl.a because it has hardcoded LDAP references.
-# This forces 'static-php-cli' to recompile a "clean" Curl that respects SKIP_LIBS=ldap.
+# 2. THE SURGICAL STRIKE
+# We MUST delete the pre-built libcurl.a because it contains hardcoded LDAP references.
+# This forces 'static-php-cli' to rebuild a version that respects our SKIP settings.
 RUN rm -rf /go/src/app/dist/static-php-cli/buildroot/lib/libcurl.a \
            /go/src/app/dist/static-php-cli/buildroot/include/curl && \
     /bin/bash -c "EMBED=/embed-root/app \
@@ -34,5 +33,5 @@ RUN rm -rf /go/src/app/dist/static-php-cli/buildroot/lib/libcurl.a \
     rm -rf /go/src/app/static-php-cli/pkgroot && \
     rm -rf /embed-root/app/vendor/composer/cache"
 
-# 3. Final cleanup of the embedding source folder
+# 3. Final cleanup
 RUN rm -rf /embed-root
