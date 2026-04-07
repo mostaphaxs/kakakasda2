@@ -15,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\App\Http\Middleware\ForceCors::class);
         $middleware->append(\App\Http\Middleware\ParseFrenchDates::class);
     })
-    ->withRegistered(function ($app) {
+    ->registered(function ($app) {
         if ($app->environment('production')) {
             $storage = env('LARAVEL_STORAGE_PATH', '/tmp/myamical-storage');
             $app->useStoragePath($storage);
