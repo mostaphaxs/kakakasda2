@@ -18,11 +18,12 @@ RUN mkdir -p /embed-root/app
 COPY --from=composer /app /embed-root/app
 
 # 2. Build AND Clean in a single RUN command
-# This is the "Magic Fix". We run the build, then immediately 
-# wipe the heavy source tools so the Go compiler has "breathing room."
-RUN EMBED=/embed-root/app \
+# ADDED: SKIP_LIBS and SKIP_EXTS to fix the LDAP "ber_memvfree" error.
+RUN /bin/bash -c "EMBED=/embed-root/app \
+    SKIP_LIBS=ldap,libldap \
+    SKIP_EXTS=ldap \
     PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,sockets,sqlite3,tokenizer,zip,zlib \
-    /bin/bash -c "./build-static.sh && \
+    ./build-static.sh && \
     rm -rf /go/src/app/static-php-cli/buildroot && \
     rm -rf /go/src/app/static-php-cli/pkgroot && \
     rm -rf /embed-root/app/vendor/composer/cache"
