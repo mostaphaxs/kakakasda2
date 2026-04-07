@@ -9,40 +9,54 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # STEP 1: Build the "Brain" (Backend) once on Linux
-  build-backend:
+  # STEP 1: Renamed to match your Dockerfile naming logic
+  static-build:
     runs-on: ubuntu-22.04
-    outputs:
-      backend-name: laravel-backend
     steps:
       - uses: actions/checkout@v4
+
+      # 🚀 FIX: This frees up ~25GB of space so the static PHP build doesn't crash
+      - name: Maximize Build Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/lib/jvm
+          docker system prune -af
+          df -h
+
       - name: set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: build laravel backend binary
         uses: docker/build-push-action@v6
         with:
           context: app2BackEnd
-          file: app2BackEnd/static-build.Dockerfile
+          # Matches your static-build.dockerfile
+          file: app2BackEnd/static-build.dockerfile
           tags: laravel-builder:latest
           load: true
           build-args: |
             MAKE_JOBS=2
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
       - name: extract and upload
         run: |
           docker create --name temp-builder laravel-builder:latest
           docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
           docker rm -f temp-builder
-        # We save this so the next job can grab it
+
       - uses: actions/upload-artifact@v4
         with:
           name: backend-binary
           path: laravel-backend
 
-  # STEP 2: Package the App for Windows and Linux
+  # STEP 2: Package the App (Windows/Linux)
   publish-tauri:
-    needs: build-backend
+    # 🔗 Link this job to the new name above
+    needs: static-build 
     permissions:
       contents: write
     strategy:
@@ -73,7 +87,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      # DOWNLOAD THE REAL BACKEND (No more stubs!)
       - name: Download backend artifact
         uses: actions/download-artifact@v4
         with:
@@ -84,7 +97,6 @@ jobs:
         shell: bash
         run: |
           cd app2FrontEnd/src-tauri/internal
-          # Rename the downloaded file to match what Tauri expects for this specific OS
           mv laravel-backend laravel-backend-${{ matrix.target }}${{ matrix.suffix }}
           chmod +x laravel-backend-${{ matrix.target }}${{ matrix.suffix }} || true
 
