@@ -2,8 +2,8 @@
 FROM composer:latest AS composer
 WORKDIR /app
 COPY . .
-# We remove the .git and other junk here to ensure the "copy-from" is clean
-RUN rm -rf .git node_modules storage/logs/* database/*.sqlite
+# Aggressive pre-clean
+RUN rm -rf .git node_modules storage/logs/* database/*.sqlite tests/
 RUN composer install \
     --optimize-autoloader \
     --no-dev \
@@ -13,21 +13,19 @@ RUN composer install \
 # Stage 2: FrankenPHP Static Builder
 FROM dunglas/frankenphp:static-builder-gnu
 
-# 1. Create a dedicated, isolated directory for the app
+# 1. Prepare isolated app directory
 RUN mkdir -p /embed-root/app
-
-# 2. Copy ONLY the necessary files from the composer stage
-# This ensures we don't accidentally pull in build tools from the composer image
 COPY --from=composer /app /embed-root/app
 
-# 3. Build the static binary
-# CRITICAL: We point EMBED to /embed-root/app. 
-# Because this folder is isolated, FrankenPHP's build tools (which live in /go/src/app)
-# won't be accidentally sucked into the Go 'embed' directive.
+# 2. Build AND Clean in a single RUN command
+# This is the "Magic Fix". We run the build, then immediately 
+# wipe the heavy source tools so the Go compiler has "breathing room."
 RUN EMBED=/embed-root/app \
     PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,sockets,sqlite3,tokenizer,zip,zlib \
-    ./build-static.sh
+    /bin/bash -c "./build-static.sh && \
+    rm -rf /go/src/app/static-php-cli/buildroot && \
+    rm -rf /go/src/app/static-php-cli/pkgroot && \
+    rm -rf /embed-root/app/vendor/composer/cache"
 
-# 4. Clean up the massive build artifacts AFTER the binary is created 
-# but BEFORE the layer is finished, to keep the image size down.
-RUN rm -rf /embed-root /go/src/app/static-php-cli
+# 3. Final cleanup of the embedding source
+RUN rm -rf /embed-root
