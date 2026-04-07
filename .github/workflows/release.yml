@@ -90,8 +90,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "App ${{ github.ref_name }}"
+          releaseName: "Automated Windows build for the InternApp Client - ${{ github.ref_name }}"
           releaseBody: "Automated production build. Compiled on Ubuntu 22.04. Contact: asdas@gmail.com"
           releaseDraft: true
           prerelease: false
           projectPath: "app2FrontEnd"
+          overwrite: true
