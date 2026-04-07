@@ -34,7 +34,7 @@ jobs:
         with:
           context: app2BackEnd
           # Matches your static-build.dockerfile
-          file: app2BackEnd/static-build.dockerfile
+          file: app2BackEnd/static-build.Dockerfile
           tags: laravel-builder:latest
           load: true
           build-args: |
@@ -112,7 +112,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Automated Build - ${{ github.ref_name }}"
-          releaseBody: "Includes production backend sidecar. Contact: asdas@gmail.com"
+          releaseBody: "Includes production backend sidecar. Contact: mostaphaff123@gmail.com"
           releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
