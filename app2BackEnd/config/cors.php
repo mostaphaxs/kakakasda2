@@ -5,15 +5,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
-        'tauri://localhost',
-        'http://tauri.localhost',
-        'http://localhost:5173', // For Vite Dev
-    ],
+    'allowed_origins' => ['*'],
 
-    'allowed_origins_patterns' => [
-        '#^tauri://.*$#',
-    ],
+    'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
@@ -21,5 +15,5 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true,
+    'supports_credentials' => false,
 ];
