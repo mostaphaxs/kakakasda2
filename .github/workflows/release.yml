@@ -9,18 +9,56 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # STEP 1: Build the "Brain" (Backend) once on Linux
+  build-backend:
+    runs-on: ubuntu-22.04
+    outputs:
+      backend-name: laravel-backend
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: build laravel backend binary
+        uses: docker/build-push-action@v6
+        with:
+          context: app2BackEnd
+          file: app2BackEnd/static-build.Dockerfile
+          tags: laravel-builder:latest
+          load: true
+          build-args: |
+            MAKE_JOBS=2
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: extract and upload
+        run: |
+          docker create --name temp-builder laravel-builder:latest
+          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
+          docker rm -f temp-builder
+        # We save this so the next job can grab it
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-binary
+          path: laravel-backend
+
+  # STEP 2: Package the App for Windows and Linux
   publish-tauri:
+    needs: build-backend
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, windows-latest]
-
+        include:
+          - platform: "ubuntu-22.04"
+            target: "x86_64-unknown-linux-gnu"
+            suffix: ""
+          - platform: "windows-latest"
+            target: "x86_64-pc-windows-msvc"
+            suffix: ".exe"
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: setup node
         uses: actions/setup-node@v4
         with:
@@ -35,50 +73,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Free disk space & create swap (Linux only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          sudo swapoff -a || true
-          sudo rm -f /mnt/swapfile
-          sudo dd if=/dev/zero of=/mnt/swapfile bs=1M count=6144
-          sudo chmod 600 /mnt/swapfile
-          sudo mkswap /mnt/swapfile
-          sudo swapon /swapfile
-          free -h
+      # DOWNLOAD THE REAL BACKEND (No more stubs!)
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-binary
+          path: app2FrontEnd/src-tauri/internal
 
-      - name: Setup internal directory and stubs
+      - name: Prepare sidecar naming
         shell: bash
         run: |
-          mkdir -p app2FrontEnd/src-tauri/internal
-          # We create stubs so the Rust 'include_bytes!' macro doesn't fail on either platform
-          touch app2FrontEnd/src-tauri/internal/laravel-backend
-          touch app2FrontEnd/src-tauri/internal/laravel-backend.exe
-
-      - name: set up Docker Buildx (Linux only)
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: docker/setup-buildx-action@v3
-
-      - name: build laravel backend binary (Linux only)
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: docker/build-push-action@v6
-        with:
-          context: app2BackEnd
-          file: app2BackEnd/static-build.Dockerfile
-          tags: laravel-builder:latest
-          load: true
-          build-args: |
-            MAKE_JOBS=2
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: extract backend binary (Linux only)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: |
-          docker create --name temp-builder laravel-builder:latest
-          docker cp temp-builder:/go/src/app/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
-          docker rm -f temp-builder
-          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend
+          cd app2FrontEnd/src-tauri/internal
+          # Rename the downloaded file to match what Tauri expects for this specific OS
+          mv laravel-backend laravel-backend-${{ matrix.target }}${{ matrix.suffix }}
+          chmod +x laravel-backend-${{ matrix.target }}${{ matrix.suffix }} || true
 
       - name: install frontend dependencies
         run: |
@@ -90,9 +98,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v${{ github.ref_name }}
-          releaseName: "App Release - ${{ github.ref_name }}"
-          releaseBody: "Automated production build. Compiled for Windows and Linux."
-          releaseDraft: true
+          tagName: ${{ github.ref_name }}
+          releaseName: "Automated Build - ${{ github.ref_name }}"
+          releaseBody: "Includes production backend sidecar. Contact: asdas@gmail.com"
+          releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
+          overwrite: true
