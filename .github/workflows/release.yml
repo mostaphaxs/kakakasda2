@@ -8,14 +8,16 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+permissions:
+  contents: write
+
 jobs:
-  # STEP 1: Renamed to match your Dockerfile naming logic
+  # STEP 1: Build the Linux static binary
   static-build:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
-      # 🚀 FIX: This frees up ~25GB of space so the static PHP build doesn't crash
       - name: Maximize Build Space
         run: |
           sudo rm -rf /usr/share/dotnet
@@ -33,7 +35,6 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: app2BackEnd
-          # Matches your static-build.dockerfile
           file: app2BackEnd/static-build.Dockerfile
           tags: laravel-builder:latest
           load: true
@@ -44,9 +45,9 @@ jobs:
 
       - name: extract and upload
         run: |
-          docker create --name temp-builder laravel-builder:latest
-          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
-          docker rm -f temp-builder
+         docker create --name temp-builder laravel-builder:latest
+         docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
+         docker rm -f temp-builder
 
       - uses: actions/upload-artifact@v4
         with:
@@ -55,10 +56,7 @@ jobs:
 
   # STEP 2: Package the App (Windows/Linux)
   publish-tauri:
-    # 🔗 Link this job to the new name above
     needs: static-build 
-    permissions:
-      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -111,9 +109,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "Automated Build - ${{ github.ref_name }}"
-          releaseBody: "Includes production backend sidecar. Contact: mostaphaff123@gmail.com"
+          releaseName: "App Release - ${{ github.ref_name }}"
+          releaseBody: "Includes production sidecar. Contact: mostaphaff123@gmail.com"
           releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
-          overwrite: true
