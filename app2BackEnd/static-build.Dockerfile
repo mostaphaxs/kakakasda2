@@ -1,28 +1,33 @@
 # Stage 1: Install Composer dependencies
 FROM composer:latest AS composer
-COPY . /app
-RUN cd /app && composer install \
+WORKDIR /app
+COPY . .
+# We remove the .git and other junk here to ensure the "copy-from" is clean
+RUN rm -rf .git node_modules storage/logs/* database/*.sqlite
+RUN composer install \
     --optimize-autoloader \
     --no-dev \
     --no-scripts \
     --ignore-platform-reqs
 
 # Stage 2: FrankenPHP Static Builder
-# Uses the GNU variant which is more compatible with GitHub Actions runners
 FROM dunglas/frankenphp:static-builder-gnu
 
-# Copy the prepared Laravel project into a SEPARATE directory on the root
-# Do NOT use 'dist' as it conflicts with FrankenPHP's internal build tools
-COPY --from=composer /app /app-to-embed
+# 1. Create a dedicated, isolated directory for the app
+RUN mkdir -p /embed-root/app
 
-# Build the static binary with a MINIMAL extension set.
-# Heavy extensions removed to stay within the ~7 GB RAM of free GitHub Actions runners:
-#   - intl  → compiles ICU from source (~500 MB peak RAM)
-#   - gd    → requires libpng/libjpeg compilation
-#   - xml*  → simplexml, xmlreader, xmlwriter pulled in via dom anyway
-#   - readline → not needed in production CLI
-# dom/libxml are implicitly included by core; zlib/openssl are statically linked.
-# We point EMBED to the absolute path of our clean application folder.
-RUN EMBED=/app-to-embed \
+# 2. Copy ONLY the necessary files from the composer stage
+# This ensures we don't accidentally pull in build tools from the composer image
+COPY --from=composer /app /embed-root/app
+
+# 3. Build the static binary
+# CRITICAL: We point EMBED to /embed-root/app. 
+# Because this folder is isolated, FrankenPHP's build tools (which live in /go/src/app)
+# won't be accidentally sucked into the Go 'embed' directive.
+RUN EMBED=/embed-root/app \
     PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,sockets,sqlite3,tokenizer,zip,zlib \
     ./build-static.sh
+
+# 4. Clean up the massive build artifacts AFTER the binary is created 
+# but BEFORE the layer is finished, to keep the image size down.
+RUN rm -rf /embed-root /go/src/app/static-php-cli
