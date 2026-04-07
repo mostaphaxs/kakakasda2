@@ -48,20 +48,12 @@ jobs:
       - name: 🧹 Nuclear Cleanup (Force under 2GB)
         run: |
           cd app2BackEnd
-          # Remove heavy SQLite, logs, and vendor
           rm -f database/*.sqlite
           rm -rf storage/logs/*
           rm -rf storage/framework/views/*
           rm -rf node_modules
-          
-          # Remove any local FrankenPHP artifacts
-          rm -rf static-php-cli/
-          rm -rf buildroot/
-          rm -rf pkgroot/
-          
-          # CRITICAL: Delete .git history so it isn't embedded
+          rm -rf static-php-cli/ buildroot/ pkgroot/
           rm -rf .git
-          
           echo "Final folder size before Docker context:"
           du -sh .
 
@@ -72,7 +64,6 @@ jobs:
           file: app2BackEnd/static-build.Dockerfile
           tags: laravel-builder:latest
           load: true
-          # We limit parallel jobs to 2 to prevent RAM exhaustion (OOM)
           build-args: |
             MAKE_JOBS=2
           cache-from: type=gha
@@ -81,10 +72,12 @@ jobs:
       - name: extract backend binary
         run: |
           mkdir -p app2FrontEnd/src-tauri/internal
-          docker create --name temp-builder laravel-builder
-          docker cp temp-builder:/go/src/app/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
+          docker create --name temp-builder laravel-builder:latest
+          # Extraction from the correct static-php-cli path
+          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
           docker rm -f temp-builder
           chmod +x app2FrontEnd/src-tauri/internal/laravel-backend
+          ls -lh app2FrontEnd/src-tauri/internal/laravel-backend
 
       - name: install frontend dependencies
         run: |
@@ -96,8 +89,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: v__VERSION__
-          releaseName: "App v__VERSION__"
+          tagName: ${{ github.ref_name }}
+          releaseName: "App ${{ github.ref_name }}"
           releaseBody: "Automated production build. Compiled on Ubuntu 22.04. Contact: asdas@gmail.com"
           releaseDraft: true
           prerelease: false
