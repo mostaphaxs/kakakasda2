@@ -68,7 +68,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // 2. Determine Temp Binary Path (for extraction)
-    let temp_dir = std::env::temp_dir().join("com.mustapha.myAmical");
+    let temp_dir = std::env::temp_dir().join("com.mustapha.myamical");
     std::fs::create_dir_all(&temp_dir).ok();
     
     #[cfg(target_os = "windows")]
