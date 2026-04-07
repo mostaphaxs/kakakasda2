@@ -1,13 +1,19 @@
-
 <?php
+
 return [
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        'tauri://localhost',
+        'http://tauri.localhost',
+        'http://localhost:5173', // For Vite Dev
+    ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^tauri://.*$#',
+    ],
 
     'allowed_headers' => ['*'],
 
@@ -17,5 +23,3 @@ return [
 
     'supports_credentials' => true,
 ];
-
-?>
