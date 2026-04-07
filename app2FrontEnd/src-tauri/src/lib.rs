@@ -103,9 +103,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_ENV", "production")
         .env("APP_DEBUG", "true") 
-        .spawn()
-        .and_then(|mut child| child.wait())
-        .ok();
+        .status(); 
 
     // B. Run Seeders
     let _ = Command::new(&bin_path)
@@ -114,9 +112,8 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_ENV", "production")
         .env("APP_DEBUG", "true")
-        .spawn()
-        .and_then(|mut child| child.wait())
-        .ok();
+        .status(); 
+
 
     // =========================================================================
 

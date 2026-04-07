@@ -17,7 +17,14 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withRegistered(function ($app) {
         if ($app->environment('production')) {
-            $app->useStoragePath(env('LARAVEL_STORAGE_PATH', '/tmp/myamical-storage'));
+            $storage = env('LARAVEL_STORAGE_PATH', '/tmp/myamical-storage');
+            $app->useStoragePath($storage);
+            
+            // Force the DB path so migrations use the same file as the server
+            $dbPath = env('DB_DATABASE');
+            if ($dbPath) {
+                config(['database.connections.sqlite.database' => $dbPath]);
+            }
         }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
