@@ -73,11 +73,10 @@ jobs:
         run: |
           mkdir -p app2FrontEnd/src-tauri/internal
           docker create --name temp-builder laravel-builder:latest
-          # Extraction from the correct static-php-cli path
-          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
+          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
           docker rm -f temp-builder
-          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend
-          ls -lh app2FrontEnd/src-tauri/internal/laravel-backend
+          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
+          ls -lh app2FrontEnd/src-tauri/internal/
 
       - name: install frontend dependencies
         run: |
