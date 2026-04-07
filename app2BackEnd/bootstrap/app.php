@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(\App\Http\Middleware\ParseFrenchDates::class);
     })
+    ->withRegistered(function ($app) {
+        if ($app->environment('production')) {
+            $app->useStoragePath(env('LARAVEL_STORAGE_PATH', '/tmp/myamical-storage'));
+        }
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

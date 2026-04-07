@@ -52,12 +52,19 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     
     // 1. Determine Persistent Database Path
     let app_data_dir = app_handle.path().app_data_dir().expect("Failed to get AppData dir");
-    std::fs::create_dir_all(&app_data_dir).ok();
+    
+    // 🛡️ THE FIX: Robust Directory Creation & Permission Check
+    if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
+        eprintln!("❌ Failed to create AppData directory: {}", e);
+    }
+
     let db_path = app_data_dir.join("database.sqlite");
     
     // Create empty DB file if it doesn't exist
     if !db_path.exists() {
-        std::fs::write(&db_path, "").ok();
+        if let Err(e) = std::fs::write(&db_path, "") {
+            eprintln!("❌ Failed to initialize database file: {}", e);
+        }
     }
 
     // 2. Determine Temp Binary Path (for extraction)
@@ -78,33 +85,50 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755)).ok();
     }
 
+    // 3. Prepare Writable Storage (The "Senior" Fix for the 500 error)
+    // Bundled binaries are read-only, so we MUST use /tmp for sessions, views, and cache.
+    let storage_dir = std::env::temp_dir().join("myamical-storage");
+    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs"] {
+        std::fs::create_dir_all(storage_dir.join(subdir)).ok();
+    }
+
     // =========================================================================
-    // 🚀 NEW: AUTOMATED MIGRATIONS & SEEDING (PRODUCTION)
+    // 🚀 AUTOMATED MIGRATIONS & SEEDING (PRODUCTION)
     // =========================================================================
     
-    // A. Run Migrations
+    // A. Run Migrations (MUST use 'php', 'artisan' for CLI commands)
     let _ = Command::new(&bin_path)
-        .args(["php-server", "artisan", "migrate", "--force"])
+        .args(["php", "artisan", "migrate", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
+        .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_ENV", "production")
-        .status();
+        .env("APP_DEBUG", "true") 
+        .spawn()
+        .and_then(|mut child| child.wait())
+        .ok();
 
-    // B. Run Seeders (For the default login)
+    // B. Run Seeders
     let _ = Command::new(&bin_path)
-        .args(["php-server", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
+        .args(["php", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
+        .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_ENV", "production")
-        .status();
+        .env("APP_DEBUG", "true")
+        .spawn()
+        .and_then(|mut child| child.wait())
+        .ok();
 
     // =========================================================================
 
-    // 3. Spawn Backend with Persistence
+    // 4. Spawn Backend sidecar
     let mut cmd = Command::new(&bin_path);
     cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port)]);
     
-    // Inject the persistent DB path into the Laravel environment
+    // Inject the persistent DB and writable storage paths
     cmd.env("DB_DATABASE", db_path.to_str().unwrap());
-    cmd.env("APP_ENV", "production"); // Force production for performance
+    cmd.env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap());
+    cmd.env("APP_ENV", "production"); 
+    cmd.env("APP_DEBUG", "true"); // Temporarily true for troubleshooting
 
     #[cfg(target_os = "windows")]
     {
@@ -115,44 +139,8 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     match cmd.spawn() {
         Ok(child) => (api_url, Some(child)),
         Err(e) => {
-            eprintln!("⚠️ Backend embarqué invalide ({}) - Tentative de repli sur 'php -S'...", e);
-            
-            // 🚀 NEW: Run migrations on the DEV fallback too!
-            let _ = Command::new("php")
-                .args(["artisan", "migrate", "--force"])
-                .env("DB_DATABASE", db_path.to_str().unwrap())
-                .current_dir(app_handle.path().app_config_dir().unwrap().parent().unwrap().parent().unwrap().join("Desktop/APP2/app2BackEnd"))
-                .status();
-                
-            let _ = Command::new("php")
-                .args(["artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
-                .env("DB_DATABASE", db_path.to_str().unwrap())
-                .current_dir(app_handle.path().app_config_dir().unwrap().parent().unwrap().parent().unwrap().join("Desktop/APP2/app2BackEnd"))
-                .status();
-            
-            // DEV FALLBACK: Run the PHP built-in server directly for cleaner cleanup
-            let mut fallback_cmd = Command::new("php");
-            fallback_cmd.args(["-S", &format!("127.0.0.1:{}", port), "-t", "public"]);
-            
-            // ⚠️ CRITICAL: Ensure the dev fallback uses the same persistent DB path
-            fallback_cmd.env("DB_DATABASE", db_path.to_str().unwrap());
-            
-            // Get path to app2BackEnd (relative to src-tauri)
-            let backend_dir = app_handle.path().app_config_dir().unwrap()
-                .parent().unwrap() // .config
-                .parent().unwrap() // user
-                .join("Desktop/APP2/app2BackEnd");
-            
-            match fallback_cmd.current_dir(&backend_dir).spawn() {
-                Ok(child) => {
-                   println!("✅ Succès : Le backend a démarré via 'php -S' sur le port {}", port);
-                   (api_url, Some(child))
-                },
-                Err(err) => {
-                    eprintln!("❌ Échec critique : Impossible de démarrer le backend ({})", err);
-                    (api_url, None)
-                }
-            }
+            eprintln!("❌ Failed to start sidecar: {}", e);
+            (api_url, None)
         }
     }
 }

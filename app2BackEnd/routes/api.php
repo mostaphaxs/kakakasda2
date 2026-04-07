@@ -102,4 +102,5 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::get('/settings/pricing', [SettingController::class, 'getPricing']);
     Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
+    
 });
