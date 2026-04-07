@@ -96,20 +96,31 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     // 🚀 AUTOMATED MIGRATIONS & SEEDING (PRODUCTION)
     // =========================================================================
     
+    let app_key = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
+
     // A. Run Migrations (MUST use 'php', 'artisan' for CLI commands)
-    let _ = Command::new(&bin_path)
+    println!("🔄 Running migrations on: {:?}", db_path);
+    let migrate_status = Command::new(&bin_path)
         .args(["php", "artisan", "migrate", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
+        .env("APP_KEY", app_key)
         .env("APP_ENV", "production")
         .env("APP_DEBUG", "true") 
         .status(); 
+
+    match migrate_status {
+        Ok(s) if s.success() => println!("✅ Migrations completed successfully."),
+        Ok(s) => eprintln!("⚠️ Migrations failed with status: {}", s),
+        Err(e) => eprintln!("❌ Failed to execute migration command: {}", e),
+    }
 
     // B. Run Seeders
     let _ = Command::new(&bin_path)
         .args(["php", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
+        .env("APP_KEY", app_key)
         .env("APP_ENV", "production")
         .env("APP_DEBUG", "true")
         .status(); 
@@ -124,6 +135,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     // Inject the persistent DB and writable storage paths
     cmd.env("DB_DATABASE", db_path.to_str().unwrap());
     cmd.env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap());
+    cmd.env("APP_KEY", app_key);
     cmd.env("APP_ENV", "production"); 
     cmd.env("APP_DEBUG", "true"); // Temporarily true for troubleshooting
 
