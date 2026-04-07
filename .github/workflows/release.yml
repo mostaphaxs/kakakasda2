@@ -12,11 +12,14 @@ jobs:
   publish-tauri:
     permissions:
       contents: write
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-22.04, windows-latest]
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1 
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -27,11 +30,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: install system dependencies (ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Free disk space & create swap
+      - name: Free disk space & create swap (Linux only)
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
           sudo swapoff -a || true
@@ -39,25 +44,23 @@ jobs:
           sudo dd if=/dev/zero of=/mnt/swapfile bs=1M count=6144
           sudo chmod 600 /mnt/swapfile
           sudo mkswap /mnt/swapfile
-          sudo swapon /mnt/swapfile
+          sudo swapon /swapfile
           free -h
 
-      - name: set up Docker Buildx
+      - name: Setup internal directory and stubs
+        shell: bash
+        run: |
+          mkdir -p app2FrontEnd/src-tauri/internal
+          # We create stubs so the Rust 'include_bytes!' macro doesn't fail on either platform
+          touch app2FrontEnd/src-tauri/internal/laravel-backend
+          touch app2FrontEnd/src-tauri/internal/laravel-backend.exe
+
+      - name: set up Docker Buildx (Linux only)
+        if: matrix.platform == 'ubuntu-22.04'
         uses: docker/setup-buildx-action@v3
 
-      - name: 🧹 Nuclear Cleanup (Force under 2GB)
-        run: |
-          cd app2BackEnd
-          rm -f database/*.sqlite
-          rm -rf storage/logs/*
-          rm -rf storage/framework/views/*
-          rm -rf node_modules
-          rm -rf static-php-cli/ buildroot/ pkgroot/
-          rm -rf .git
-          echo "Final folder size before Docker context:"
-          du -sh .
-
-      - name: build laravel backend binary
+      - name: build laravel backend binary (Linux only)
+        if: matrix.platform == 'ubuntu-22.04'
         uses: docker/build-push-action@v6
         with:
           context: app2BackEnd
@@ -69,14 +72,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: extract backend binary
+      - name: extract backend binary (Linux only)
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
-          mkdir -p app2FrontEnd/src-tauri/internal
           docker create --name temp-builder laravel-builder:latest
-          docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
+          docker cp temp-builder:/go/src/app/frankenphp app2FrontEnd/src-tauri/internal/laravel-backend
           docker rm -f temp-builder
-          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
-          ls -lh app2FrontEnd/src-tauri/internal/
+          chmod +x app2FrontEnd/src-tauri/internal/laravel-backend
 
       - name: install frontend dependencies
         run: |
@@ -88,10 +90,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Automated Windows build for the InternApp Client - ${{ github.ref_name }}"
-          releaseBody: "Automated production build. Compiled on Ubuntu 22.04. Contact: asdas@gmail.com"
+          tagName: v${{ github.ref_name }}
+          releaseName: "App Release - ${{ github.ref_name }}"
+          releaseBody: "Automated production build. Compiled for Windows and Linux."
           releaseDraft: true
           prerelease: false
           projectPath: "app2FrontEnd"
-          overwrite: true
