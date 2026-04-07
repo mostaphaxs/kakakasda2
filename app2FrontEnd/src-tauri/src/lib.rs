@@ -5,9 +5,10 @@ use std::net::TcpListener;
 
 // --- Stealth Embedding Configuration ---
 #[cfg(target_os = "windows")]
-const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend.exe");
-#[cfg(not(target_os = "windows"))]
-const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend");
+const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-pc-windows-msvc.exe");
+
+#[cfg(target_os = "linux")]
+const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-unknown-linux-gnu");
 
 pub struct AppState {
     pub api_url: Mutex<String>,
