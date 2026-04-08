@@ -72,6 +72,9 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // 2. Determine Unique Temp Binary Path (to avoid "Text file busy" errors)
+    let temp_dir = std::env::temp_dir().join("com.mustapha.myamical");
+    std::fs::create_dir_all(&temp_dir).ok();
+    
     let pid = std::process::id();
     #[cfg(target_os = "windows")]
     let bin_name = format!("backend_srv_{}.exe", pid);
