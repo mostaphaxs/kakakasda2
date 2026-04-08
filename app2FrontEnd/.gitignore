@@ -6,12 +6,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+# Add this to your .gitignore
+app2BackEnd/app.phar
+app2BackEnd/micro.sfx
+app2FrontEnd/src-tauri/internal/laravel-backend-*
 node_modules/
 dist/
 dist
 dist-ssr
 *.local
+
 
 # Editor directories and files
 .vscode/*
