@@ -13,52 +13,8 @@ permissions:
   contents: write
 
 jobs:
-  # STEP 1: Build the Linux static binary
-  static-build:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Maximize Build Space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf /usr/lib/jvm
-          docker system prune -af
-          df -h
-
-      - name: set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: build laravel backend binary
-        uses: docker/build-push-action@v6
-        with:
-          context: app2BackEnd
-          file: app2BackEnd/static-build.Dockerfile
-          tags: laravel-builder:latest
-          load: true
-          build-args: |
-            MAKE_JOBS=2
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: extract and upload
-        run: |
-         docker create --name temp-builder laravel-builder:latest
-         docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
-         docker rm -f temp-builder
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: backend-binary
-          path: laravel-backend
-
-
-  # STEP 2: Package the App (Windows/Linux)
+  
   publish-tauri:
-    needs: static-build 
     permissions:
       contents: write
       actions: write
@@ -72,6 +28,7 @@ jobs:
           - platform: "windows-latest"
             target: "x86_64-pc-windows-msvc"
             suffix: ".exe"
+            
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -90,18 +47,30 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Download backend artifact
-        uses: actions/download-artifact@v4
+      - name: setup php
+        uses: shivammathur/setup-php@v2
         with:
-          name: backend-binary
-          path: app2FrontEnd/src-tauri/internal
+          php-version: '8.3'
+          extensions: phar, mbstring, openssl, curl
 
-      - name: Prepare sidecar naming
+      - name: build backend phar
+        run: |
+          cd app2BackEnd
+          composer install --no-dev --optimize-autoloader
+          php -d phar.readonly=0 build-phar.php
+
+      - name: download micro sfx and concatenate
         shell: bash
         run: |
-          cd app2FrontEnd/src-tauri/internal
-          mv laravel-backend laravel-backend-${{ matrix.target }}${{ matrix.suffix }}
-          chmod +x laravel-backend-${{ matrix.target }}${{ matrix.suffix }} || true
+          mkdir -p app2FrontEnd/src-tauri/internal
+          if [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
+            curl -L https://github.com/crazywhalecc/static-php-cli/releases/download/v2.1.0/micro_linux_x86_64.sfx -o micro.sfx
+            cat micro.sfx app2BackEnd/app.phar > app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
+            chmod +x app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
+          else
+            curl -L https://github.com/crazywhalecc/static-php-cli/releases/download/v2.1.0/micro_windows_x86_64.sfx -o micro_windows.sfx
+            cat micro_windows.sfx app2BackEnd/app.phar > app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-pc-windows-msvc.exe
+          fi
 
       - name: install frontend dependencies
         run: |

@@ -71,16 +71,16 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         }
     }
 
-    // 2. Determine Temp Binary Path (for extraction)
-    let temp_dir = std::env::temp_dir().join("com.mustapha.myamical");
-    std::fs::create_dir_all(&temp_dir).ok();
-    
+    // 2. Determine Unique Temp Binary Path (to avoid "Text file busy" errors)
+    let pid = std::process::id();
     #[cfg(target_os = "windows")]
-    let bin_name = "backend_srv.exe";
+    let bin_name = format!("backend_srv_{}.exe", pid);
     #[cfg(not(target_os = "windows"))]
-    let bin_name = "backend_srv";
+    let bin_name = format!("backend_srv_{}", pid);
     
     let bin_path = temp_dir.join(bin_name);
+    
+    // Extract binary if not already present (clean up after ourselves if possible but keep it simple)
     std::fs::write(&bin_path, BACKEND_BINARY).expect("Failed to extract backend binary");
     
     #[cfg(not(target_os = "windows"))]
