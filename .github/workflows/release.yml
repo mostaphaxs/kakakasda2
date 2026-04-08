@@ -59,18 +59,24 @@ jobs:
           composer install --no-dev --optimize-autoloader --ignore-platform-reqs
           php -d phar.readonly=0 build-phar.php
 
-      - name: download micro sfx and concatenate
+      - name: download micro sfx and build backend
         shell: bash
         run: |
           mkdir -p app2FrontEnd/src-tauri/internal
-          if [ "${{ matrix.platform }}" == "ubuntu-22.04" ]; then
+          if [ "${{ runner.os }}" == "Linux" ]; then
+            echo "Building for Linux..."
             curl -L https://github.com/crazywhalecc/static-php-cli/releases/download/v2.1.0/micro_linux_x86_64.sfx -o micro.sfx
             cat micro.sfx app2BackEnd/app.phar > app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
             chmod +x app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-unknown-linux-gnu
           else
+            echo "Building for Windows (Binary Safe)..."
             curl -L https://github.com/crazywhalecc/static-php-cli/releases/download/v2.1.0/micro_windows_x86_64.sfx -o micro_windows.sfx
-            cat micro_windows.sfx app2BackEnd/app.phar > app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-pc-windows-msvc.exe
+            # Use PowerShell for binary-safe concatenation
+            powershell -Command "[System.IO.File]::WriteAllBytes('app2FrontEnd/src-tauri/internal/laravel-backend-x86_64-pc-windows-msvc.exe', [System.IO.File]::ReadAllBytes('micro_windows.sfx') + [System.IO.File]::ReadAllBytes('app2BackEnd/app.phar'))"
           fi
+          
+          echo "Verification of generated binaries:"
+          ls -lh app2FrontEnd/src-tauri/internal/
 
       - name: install frontend dependencies
         run: |
