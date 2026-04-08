@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $storage = env('LARAVEL_STORAGE_PATH');
         if ($storage) {
             $app->useStoragePath($storage);
+            // Also update the config for all disks that depend on storage_path()
+            config(['filesystems.disks.public.root' => $storage . '/app/public']);
+            config(['filesystems.disks.local.root' => $storage . '/app/private']);
         }
         
         $dbPath = env('DB_DATABASE');
