@@ -14,8 +14,8 @@ $phar->startBuffering();
 // On ajoute tout le dossier actuel, en ignorant les trucs lourds/inutiles (surtout storage/app/public qui peut être énorme)
 $phar->buildFromDirectory(__DIR__, '/^(?!(.*\.git|.*node_modules|.*storage\/app\/public\/clients|.*storage\/framework\/.*|.*database\/.*\.sqlite|.*tests|.*public\/storage)).*$/');
 
-// Stub avec mapping de chemin explicite pour une compatibilité Wine/Windows totale
-$phar->setStub("<?php Phar::mapPhar('app.phar'); require 'phar://app.phar/public/index.php'; __HALT_COMPILER();");
+// Stub ultra-robuste pour micro engine : on utilise __FILE__ pour que le PHP s'auto-découvre dans l'EXE
+$phar->setStub("<?php require 'phar://' . __FILE__ . '/public/index.php'; __HALT_COMPILER();");
 
 $phar->stopBuffering();
 
