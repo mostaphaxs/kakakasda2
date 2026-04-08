@@ -263,7 +263,7 @@ const Navbar: React.FC = () => {
     };
 
     return (
-        <nav className="bg-white border-b border-gray-200 fixed w-full z-30 top-0">
+        <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl transition-all duration-500 h-[72px]">
             <div className="px-3 py-3 lg:px-5 lg:pl-3">
                 <div className="flex items-center justify-between">
 
@@ -271,15 +271,19 @@ const Navbar: React.FC = () => {
                     <div className="flex items-center justify-start">
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="p-2 text-gray-600 rounded cursor-pointer lg:hidden hover:bg-gray-100"
+                            className="p-2 text-white/60 rounded cursor-pointer lg:hidden hover:bg-white/10"
                         >
                             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                         </button>
 
-                        <div onClick={() => navigate('/home')} className="flex ml-2 md:mr-24 cursor-pointer group">
-                            <Building2 className="h-8 w-8 text-slate-900 mr-2 group-hover:scale-110 transition-transform" />
-                            <span className="self-center text-xl font-bold sm:text-2xl whitespace-nowrap text-gray-800">
-                                El <span className="text-slate-900 font-black">Ouaha</span>
+                        <div onClick={() => navigate('/home')} className="flex items-center ml-2 md:mr-12 cursor-pointer group">
+                            <img
+                                src="/assets/LogoNavbar.png"
+                                alt="Logo"
+                                className="h-10 w-auto mr-3 group-hover:scale-110 transition-transform"
+                            />
+                            <span className="self-center text-lg font-bold whitespace-nowrap text-white">
+                                Société les <span className="text-amber-500 font-black">cinq elements</span>
                             </span>
                         </div>
                     </div>
@@ -291,9 +295,9 @@ const Navbar: React.FC = () => {
                                 {/* Configuration Button */}
                                 <button
                                     onClick={() => navigate('/property-pricing')}
-                                    className="hidden lg:flex items-center gap-2 bg-slate-50 text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100 transition font-black text-xs uppercase tracking-widest border border-slate-200"
+                                    className="hidden lg:flex items-center gap-2 bg-white/5 text-white/80 px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition font-black text-xs uppercase tracking-widest border border-white/10"
                                 >
-                                    <Settings2 size={16} className="text-slate-900" />
+                                    <Settings2 size={16} className="text-amber-500" />
                                     <span>Configuration</span>
                                 </button>
 
@@ -301,9 +305,9 @@ const Navbar: React.FC = () => {
                                 <div className="relative hidden lg:block" ref={navDropdownRef}>
                                     <button
                                         onClick={() => setIsNavMenuOpen(prev => !prev)}
-                                        className="flex items-center gap-2 bg-slate-50 text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-100 transition font-black text-xs uppercase tracking-widest border border-slate-200"
+                                        className="flex items-center gap-2 bg-white/5 text-white/80 px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition font-black text-xs uppercase tracking-widest border border-white/10"
                                     >
-                                        <Layers size={16} className="text-slate-900" />
+                                        <Layers size={16} className="text-amber-500" />
                                         <span>Consulter</span>
                                         <ChevronDown
                                             size={14}
@@ -331,13 +335,13 @@ const Navbar: React.FC = () => {
                                 <div className="relative hidden md:block" ref={dropdownRef}>
                                     <button
                                         onClick={() => setIsAddMenuOpen(prev => !prev)}
-                                        className="flex items-center gap-2 bg-slate-900 text-white px-3 py-2 rounded-lg hover:bg-black transition font-black text-xs uppercase tracking-widest shadow-sm"
+                                        className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-900/20"
                                     >
                                         <Plus size={16} />
                                         <span>Nouveau</span>
                                         <ChevronDown
                                             size={14}
-                                            className={`transition-transform duration-200 ${isAddMenuOpen ? 'rotate-180' : ''}`}
+                                            className={`transition-transform duration-300 ${isAddMenuOpen ? 'rotate-180' : ''}`}
                                         />
                                     </button>
 
@@ -363,7 +367,7 @@ const Navbar: React.FC = () => {
                                 <div className="relative hidden md:block" ref={exportDropdownRef}>
                                     <button
                                         onClick={() => setIsExportMenuOpen(prev => !prev)}
-                                        className="flex items-center gap-2 bg-white text-slate-900 px-3 py-2 rounded-lg hover:bg-slate-50 transition font-black text-xs uppercase tracking-widest shadow-sm border border-slate-200"
+                                        className="flex items-center gap-2 bg-white/5 text-white/80 px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition font-black text-xs uppercase tracking-widest border border-white/10"
                                         title="Exporter les données"
                                     >
                                         <Download size={16} />
@@ -408,15 +412,14 @@ const Navbar: React.FC = () => {
                                         className="text-right mr-4 hidden sm:block cursor-pointer hover:opacity-75 transition-opacity group"
                                         title="Mon Profil"
                                     >
-                                        <p className="text-sm font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{user?.name || 'Utilisateur'}</p>
-                                        <p className="text-[11px] text-gray-400 font-mono">{user?.email || 'N/A'}</p>
+                                        <p className="text-sm font-bold text-white group-hover:text-amber-500 transition-colors">{user?.name || 'Utilisateur'}</p>
+                                        <p className="text-[11px] text-white/40 font-mono">{user?.email || 'N/A'}</p>
                                     </div>
                                     <button
                                         onClick={handleLogout}
-                                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                        title="Déconnexion"
+                                        className="flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-300 font-black text-xs uppercase tracking-widest bg-rose-50 text-rose-600 hover:bg-rose-100 shadow-sm border border-rose-100"
                                     >
-                                        <LogOut size={22} />
+                                        <LogOut size={16} />
                                     </button>
                                 </div>
                             </>
@@ -446,7 +449,7 @@ const Navbar: React.FC = () => {
                         ))}
                         <div className="border-t border-gray-100 my-1 py-1">
                             <button
-                                onClick={() => { setIsMobileMenuOpen(false); navigate('/property-pricing'); }}
+                                onClick={() => navigate('/property-pricing')}
                                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors border-l-4 border-slate-900"
                             >
                                 <Settings2 size={16} className="text-slate-900" />

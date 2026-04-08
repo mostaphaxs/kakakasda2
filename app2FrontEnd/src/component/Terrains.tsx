@@ -111,29 +111,29 @@ const Terrains = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                            <MapPin className="text-blue-600" />
+                        <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                            <MapPin className="text-blue-600" size={32} />
                             Gestion des Projets
                         </h2>
-                        <p className="text-gray-500 text-sm">Consultez et modifiez les informations de vos acquisitions foncières.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition font-bold"
+                            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest border border-slate-200 active:scale-[0.98]"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
-                            Excel
+                            Export Excel
                         </button>
 
                         <button
                             onClick={() => navigate('/add-terrain')}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition font-bold shadow-lg shadow-blue-100"
+                            className="flex items-center gap-2 bg-amber-600 text-white px-8 py-3.5 rounded-2xl hover:bg-amber-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98]"
                         >
                             <Plus size={18} />
                             Nouveau Projet
@@ -142,22 +142,21 @@ const Terrains = () => {
                 </div>
 
                 {/* Filter Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-4 border-t border-gray-50 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-6 border-t border-slate-100 items-end">
                     <div className="relative md:col-span-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold" size={16} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
-                            placeholder="Rechercher par Projet, TF..."
+                            placeholder="Recherche par Projet, TF..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-gray-300"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black uppercase tracking-tight text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none transition-all placeholder:text-slate-300"
                         />
                     </div>
 
-
                     <button
                         onClick={resetFilters}
-                        className="text-gray-400 hover:text-blue-600 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors h-10 border border-gray-100 rounded-xl"
+                        className="w-full text-slate-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-100 rounded-2xl py-3 hover:bg-slate-50"
                     >
                         <X size={14} />
                         Réinitialiser
@@ -165,7 +164,7 @@ const Terrains = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                         <tr>
@@ -325,8 +324,8 @@ const Terrains = () => {
 
                                                 </div>
                                             </div>
-                                            
-                                           
+
+
                                         </div>
                                     </div>
                                 </div>

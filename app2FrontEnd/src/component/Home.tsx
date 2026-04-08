@@ -42,7 +42,7 @@ const Home = () => {
             <div className="relative h-[500px] w-full rounded-[40px] overflow-hidden shadow-2xl group">
                 <img
                     src="/assets/hero.png"
-                    alt="El Ouahda Corporate"
+                    alt="Société les cinq elements"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex items-center p-12 md:p-20">
@@ -53,7 +53,7 @@ const Home = () => {
                         </div>
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-tight">
                             Bienvenue chez <br />
-                            <span className="text-white drop-shadow-lg">El Ouaha Group</span>
+                            <span className="text-amber-500 drop-shadow-lg">les cinq elements</span>
                         </h1>
                         <p className="text-lg text-slate-200 leading-relaxed font-medium">
                             Une vision moderne de la promotion immobilière. Nous bâtissons l'avenir avec rigueur, innovation et une passion inébranlable pour la qualité. Explorez notre portail de gestion centralisé pour piloter chaque aspect de vos projets.
@@ -61,7 +61,7 @@ const Home = () => {
                         <div className="flex gap-4 pt-4">
                             <button
                                 onClick={() => navigate('/clients')}
-                                className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 hover:bg-blue-50 transition-all hover:translate-y-[-2px]"
+                                className="px-8 py-4 bg-amber-600 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center gap-3 hover:bg-amber-700 transition-all hover:translate-y-[-2px] shadow-lg shadow-amber-900/20"
                             >
                                 Commencer
                                 <ArrowRight size={18} />

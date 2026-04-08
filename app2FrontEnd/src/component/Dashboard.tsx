@@ -140,7 +140,7 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-4">
         <Loader2 className="animate-spin text-blue-600" size={48} />
-        <p className="text-base font-medium text-gray-500">Chargement de votre tableau de bord...</p>
+        <p className="text-base font-black text-slate-500 uppercase tracking-widest">Initialisation...</p>
       </div>
     );
   }
@@ -169,43 +169,43 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto font-sans">
 
       {/* ── 1. En-tête (Header) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
             Bonjour, <span className="text-blue-600">{userName}</span>
           </h1>
-          <p className="text-gray-600 text-base mt-2">
-            Voici un résumé clair et détaillé de votre activité immobilière et financière.
+          <p className="text-slate-500 font-medium text-base mt-2">
+            Résumé détaillé de l'activité de <span className="text-slate-800 font-bold">Société les cinq elements</span>.
           </p>
         </div>
 
         <button
           onClick={toggleStats}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-base transition-colors shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 ${showStats
-            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-            : 'bg-blue-600 text-white hover:bg-blue-700'
+          className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-sm focus:ring-4 focus:ring-blue-100 ${showStats
+            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+            : 'bg-slate-900 text-white hover:bg-black active:scale-[0.98]'
             }`}
         >
           {showStats ? (
-            <><EyeOff size={20} /> Masquer les montants</>
+            <><EyeOff size={18} /> Masquer</>
           ) : (
-            <><Eye size={20} /> Afficher les montants</>
+            <><Eye size={18} /> Afficher les montants</>
           )}
         </button>
       </div>
 
       {/* ── 1.5. Scope Selector ── */}
       {apiStats?.terrains_stats && apiStats.terrains_stats.length > 0 && (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <MapPin className="text-gray-400" size={24} />
-            <label htmlFor="terrain-select" className="text-base font-bold text-gray-800">Périmètre des Statistiques :</label>
+            <MapPin className="text-blue-500" size={20} />
+            <label htmlFor="terrain-select" className="text-sm font-black text-slate-700 uppercase tracking-wider">Périmètre d'analyse :</label>
           </div>
           <select
             id="terrain-select"
             value={selectedTerrainId ?? ''}
             onChange={(e) => setSelectedTerrainId(e.target.value ? Number(e.target.value) : null)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[250px]"
+            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-blue-50/50 outline-none w-full sm:w-auto min-w-[300px]"
           >
             <option value="">Global (Tous les projets)</option>
             {apiStats.terrains_stats.map((t) => (
@@ -225,88 +225,59 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Row 1: CA, Encaissements, Reste */}
-          <div className="bg-white p-6 rounded-2xl border-2 border-indigo-100 shadow-md">
-            <div className="flex items-start justify-between">
+          <div className="bg-[#1a0f0a] p-8 rounded-[32px] shadow-xl shadow-slate-200 transition-transform hover:scale-[1.02] duration-300">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-base font-semibold text-gray-600">Chiffre d'Affaires</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Ventes et réservations</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Chiffre d'Affaires</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Ventes & Réservations</p>
               </div>
-              <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-                <Wallet size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.chiffre_affaires, "text-4xl", "text-indigo-900")}
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-600">Total Recouvert</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Paiements reçus</p>
-              </div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <div className="p-3 bg-white/10 text-white rounded-2xl">
                 <TrendingUp size={24} />
               </div>
             </div>
-            {renderAmount(stats.encaissements, "text-3xl", "text-emerald-700")}
+            {renderAmount(stats.chiffre_affaires, "text-4xl", "text-white")}
+          </div>
 
-            {/* Barre de progression simplifiée CA */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300">
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Recouvré</p>
+                <p className="text-[10px] text-emerald-500 font-bold uppercase mt-1">Paiements Reçus</p>
+              </div>
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+                <Wallet size={24} />
+              </div>
+            </div>
+            {renderAmount(stats.encaissements, "text-4xl", "text-slate-800")}
+
+            <div className="mt-8 pt-6 border-t border-slate-50">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-600">Sur le CA</span>
-                <span className={`text-sm font-bold ${showStats ? 'text-emerald-600' : 'text-gray-300'}`}>
+                <span className="text-[10px] font-black text-slate-400 uppercase">Taux de Recouvrement</span>
+                <span className={`text-xs font-black ${showStats ? 'text-emerald-500' : 'text-slate-200'}`}>
                   {showStats && stats.chiffre_affaires > 0 ? `${((stats.encaissements / stats.chiffre_affaires) * 100).toFixed(1)}%` : '••%'}
                 </span>
               </div>
-              <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className={`h-full bg-emerald-500 rounded-full transition-all duration-1000 ${!showStats ? 'opacity-20' : ''}`}
+                  className={`h-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]`}
                   style={{ width: `${showStats && stats.chiffre_affaires > 0 ? (stats.encaissements / stats.chiffre_affaires) * 100 : 0}%` }}
                 />
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] transition-transform hover:scale-[1.02] duration-300">
+            <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-base font-semibold text-gray-600">Reste à Recouvrer</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Créances clients</p>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Reste à Recouvrer</p>
+                <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">Créances Clients</p>
               </div>
-              <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
                 <Users size={24} />
               </div>
             </div>
-            {renderAmount(stats.reste_a_recouvrer, "text-3xl", "text-amber-700")}
+            {renderAmount(stats.reste_a_recouvrer, "text-4xl", "text-slate-800")}
           </div>
-
-          {/* Row 2: Investissement, Charges, Bénéfice */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-600">Investissement Fonciers</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Achat terrains & autorisations</p>
-              </div>
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                <MapPin size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.investissement, "text-3xl", "text-blue-700")}
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-base font-semibold text-gray-600">Total des Charges</p>
-                <p className="text-sm text-gray-400 mt-1 mb-4">Dépenses et travaux</p>
-              </div>
-              <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
-                <WalletCards size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.charges, "text-3xl", "text-rose-700")}
-          </div>
-
         </div>
       </section>
 
@@ -314,244 +285,186 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Détail des charges */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-gray-50 border-b border-gray-200 p-5">
-            <h3 className="text-lg font-bold text-gray-800">Répartition des Charges</h3>
-            <p className="text-sm text-gray-500">Où est dépensé l'argent exactement ?</p>
+        <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="bg-slate-50/50 border-b border-slate-100 p-6">
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Répartition des Charges</h3>
+            <p className="text-xs text-slate-500 font-medium">Analytique des dépenses par catégorie</p>
           </div>
-          <div className="p-5 space-y-3 flex-grow">
+          <div className="p-6 space-y-3 flex-grow">
             {[
-              { label: 'Entreprises de construction (Travaux)', value: stats.charges_details.contractors, icon: Home, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { label: 'Achats de Matériaux & Fournitures', value: stats.charges_details.achats, icon: ShoppingBag, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-              { label: 'Travaux Généraux & Entretien', value: stats.charges_details.general_works, icon: Paintbrush, color: 'text-rose-600', bg: 'bg-rose-50' },
-              { label: 'Intervenants Techniques (Notaires, Architectes...)', value: stats.charges_details.intervenants, icon: MapPin, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-              { label: 'Dépenses administratives & Bureau', value: stats.charges_details.bureau, icon: Users, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'Construction & Gros Œuvre', value: stats.charges_details.contractors, icon: Home, color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: 'Matériaux & Second Œuvre', value: stats.charges_details.achats, icon: ShoppingBag, color: 'text-slate-600', bg: 'bg-slate-50' },
+              { label: 'Aménagements & Finitions', value: stats.charges_details.general_works, icon: Paintbrush, color: 'text-rose-600', bg: 'bg-rose-50' },
+              { label: 'Frais Techniques & Honoraires', value: stats.charges_details.intervenants, icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50' },
+              { label: 'Gestion & Administration', value: stats.charges_details.bureau, icon: Users, color: 'text-slate-400', bg: 'bg-slate-50' },
             ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+              <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-slate-50 hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-lg ${item.bg} ${item.color}`}>
+                  <div className={`p-2 rounded-xl ${item.bg} ${item.color}`}>
                     <item.icon size={20} />
                   </div>
-                  <span className="text-base font-medium text-gray-700">{item.label}</span>
+                  <span className="text-sm font-bold text-slate-700">{item.label}</span>
                 </div>
                 <div>
-                  {renderAmount(item.value, "text-lg", "text-gray-800")}
+                  {renderAmount(item.value, "text-base", "text-slate-900")}
                 </div>
               </div>
             ))}
-          </div>
-          <div className="bg-blue-50/50 p-4 border-t border-blue-100 flex items-start gap-3">
-            <Info className="text-blue-500 shrink-0 mt-0.5" size={20} />
-            <p className="text-sm text-blue-800">Ces charges sont soustraites de vos encaissements pour calculer votre bénéfice réel.</p>
           </div>
         </section>
 
         {/* Commercial & Actions Rapides */}
         <div className="flex flex-col gap-6">
-          {/* Réservations */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex items-center gap-6">
-            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-6">
+            <div className="p-5 bg-amber-50 text-amber-600 rounded-[24px]">
               <Users size={32} />
             </div>
             <div>
-              <p className="text-base font-semibold text-gray-600">Clients & Réservations</p>
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Dossiers Clients</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-4xl font-bold text-indigo-900">{stats.reservations}</span>
-                <span className="text-base text-gray-500 font-medium">dossiers actifs</span>
+                <p className="text-2xl font-black text-slate-800">{stats.reservations}</p>
+                <span className="text-xs text-slate-400 font-bold uppercase italic">Actifs</span>
               </div>
             </div>
           </div>
 
-          {/* Boutons d'actions */}
-          <section className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex-grow">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Actions Rapides</h3>
+          <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex-grow">
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-6">Actions Rapides</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { title: 'Ajouter un Bien', desc: 'Créer un nouvel appartement/lot', path: '/add-property', icon: Home, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { title: 'Nouveau Client', desc: 'Enregistrer une réservation', path: '/add-client', icon: UserPlus, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-                { title: 'Ajouter un Terrain', desc: 'Acquisition foncière', path: '/add-terrain', icon: MapPin, color: 'text-amber-600', bg: 'bg-amber-50' },
-                { title: 'Saisir une Charge', desc: 'Dépenses administratives', path: '/charges', icon: WalletCards, color: 'text-rose-600', bg: 'bg-rose-50' },
+                { title: 'Ajouter Unité', desc: 'Appartement / Local', path: '/add-property', icon: Home, color: 'text-amber-600', bg: 'bg-amber-50/50' },
+                { title: 'Nouveau Client', desc: 'Réservation directe', path: '/add-client', icon: UserPlus, color: 'text-slate-800', bg: 'bg-slate-50' },
+                { title: 'Nouveau Projet', desc: 'Gestion foncière', path: '/add-terrain', icon: MapPin, color: 'text-slate-800', bg: 'bg-slate-50' },
+                { title: 'Charges', desc: 'Saisie comptable', path: '/charges', icon: WalletCards, color: 'text-rose-600', bg: 'bg-rose-50/50' },
               ].map((action, i) => (
                 <button
                   key={i}
                   onClick={() => navigate(action.path)}
-                  className="flex items-start gap-4 p-4 rounded-xl border border-gray-200 text-left hover:border-blue-300 hover:bg-blue-50/30 transition-all group"
+                  className="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 text-left hover:border-amber-200 hover:bg-amber-50/30 transition-all group"
                 >
-                  <div className={`p-2 rounded-lg ${action.bg} ${action.color} shrink-0`}>
-                    <action.icon size={24} />
+                  <div className={`p-2.5 rounded-xl ${action.bg} ${action.color} shrink-0`}>
+                    <action.icon size={22} />
                   </div>
-                  <div className="flex-grow">
-                    <h4 className="text-base font-bold text-gray-800 group-hover:text-blue-700">{action.title}</h4>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-1">{action.desc}</p>
+                  <div>
+                    <h4 className="text-sm font-black text-slate-800 group-hover:text-amber-700 transition-colors uppercase tracking-tight">{action.title}</h4>
+                    <p className="text-[11px] text-slate-400 mt-1 font-medium">{action.desc}</p>
                   </div>
                 </button>
               ))}
             </div>
           </section>
         </div>
-
       </div>
 
-      {/* ── 4. Nouvelles Sections Détachées (Détails) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-
-        {/* État du Parc Immobilier */}
-        <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-gray-50 border-b border-gray-200 p-5 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-gray-800">État du Parc Immobilier</h3>
-            <span className="px-3 py-1 bg-gray-200 text-gray-700 text-xs font-bold rounded-full">Statuts</span>
+      {/* ── 4. État du Parc ── */}
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">État du Parc Immobilier</h3>
+            <p className="text-xs text-slate-400 font-medium">Disponibilité brute et typologie</p>
           </div>
-          <div className="p-5 flex-grow space-y-4">
-            {stats.biens_status && Object.keys(stats.biens_status).length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-emerald-700 mb-1">Disponibles</p>
-                  <p className="text-3xl font-bold text-emerald-600">{stats.biens_status['Libre'] || 0}</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-blue-700 mb-1">Réservés</p>
-                  <p className="text-3xl font-bold text-blue-600">{stats.biens_status['Réservé'] || 0}</p>
-                </div>
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
-                  <p className="text-sm font-medium text-indigo-700 mb-1">Vendus</p>
-                  <p className="text-3xl font-bold text-indigo-600">{(stats.biens_status['Vendu'] || 0) + (stats.biens_status['Vendu Définitivement'] || 0)}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic text-center py-4">Aucune donnée sur le statut des biens.</p>
-            )}
-
-            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 mt-6 border-b border-gray-100 pb-2">Types de Biens (Actifs)</h4>
-            {stats.biens_types && Object.keys(stats.biens_types).length > 0 ? (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {Object.entries(stats.biens_types).map(([type, count]) => (
-                  <div key={type} className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-lg text-sm font-medium flex gap-2">
-                    <span>{type}</span>
-                    <span className="text-gray-500 bg-white px-1.5 rounded-md">{count as number}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 italic mt-3">Détails indisponibles.</p>
-            )}
-            <p className="text-sm text-gray-600 text-center mt-6 pt-4 border-t border-gray-100">
-              Ce tableau vous montre quels biens sont encore disponibles à la vente et la répartition par type.
-            </p>
+          <div className="flex gap-2">
+            <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase">Projets</p>
+              <p className="text-lg font-black text-slate-800">{apiStats.terrains_stats?.length || 0}</p>
+            </div>
+            <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
+              <p className="text-[10px] font-black text-slate-400 uppercase">Unités</p>
+              <p className="text-lg font-black text-slate-800">{Object.values(stats.biens_status).reduce((a, b) => a + b, 0)}</p>
+            </div>
           </div>
-        </section>
-
-      </div>
-
-      {/* ── 5. Dernières Activités (Full Width) ── */}
-      <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col mb-8">
-        <div className="bg-gray-50 border-b border-gray-200 p-5 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-gray-800">Dernières Activités</h3>
-          <Clock className="text-gray-400" size={20} />
         </div>
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Colonne 1: Paiements */}
-          <div>
-            <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-emerald-700 mb-4 border-b border-gray-100 pb-2">
-              <TrendingUp size={18} /> Derniers Paiements Reçus
-            </h4>
-            <div className="space-y-3">
-              {displayPayments.length > 0 ? (
-                displayPayments.map((payment: any, idx: number) => {
-                  return (
-                    <div key={idx} className="flex justify-between items-center p-3 sm:p-4 bg-gray-50/50 hover:bg-emerald-50/30 rounded-xl border border-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
-                          <Wallet size={16} />
-                        </div>
-                        <div>
-                          {payment.client ? (
-                            <p className="text-sm font-bold text-gray-900">{payment.client.prenom} {payment.client.nom}</p>
-                          ) : (
-                            <p className="text-sm font-bold text-gray-500 italic">Client inconnu</p>
-                          )}
-                        </div>
-                      </div>
-                      {renderAmount(payment.amount, "text-base sm:text-lg", "text-emerald-700")}
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl">
-                  <p className="text-sm text-gray-500 italic">Aucun paiement récent pour cet espace.</p>
-                </div>
-              )}
+        <div className="p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+            <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-[24px] text-center">
+              <p className="text-xs font-black text-emerald-800 uppercase mb-2">Libres</p>
+              <p className="text-4xl font-black text-emerald-600">{stats.biens_status['Libre'] || 0}</p>
+            </div>
+            <div className="p-6 bg-amber-50/50 border border-amber-100 rounded-[24px] text-center">
+              <p className="text-xs font-black text-amber-800 uppercase mb-2">Réservés</p>
+              <p className="text-4xl font-black text-amber-600">{stats.biens_status['Réservé'] || 0}</p>
+            </div>
+            <div className="p-6 bg-slate-50 border border-slate-100 rounded-[24px] text-center">
+              <p className="text-xs font-black text-slate-600 uppercase mb-2">Vendus</p>
+              <p className="text-4xl font-black text-slate-800">{(stats.biens_status['Vendu'] || 0) + (stats.biens_status['Vendu Définitivement'] || 0)}</p>
             </div>
           </div>
 
-          {/* Colonne 2: Clients */}
-          <div>
-            <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-indigo-700 mb-4 border-b border-gray-100 pb-2">
-              <UserPlus size={18} /> Dernières Réservations
-            </h4>
-            <div className="space-y-3">
-              {displayClients.length > 0 ? (
-                displayClients.map((client: any, idx: number) => {
-                  return (
-                    <div key={idx} className="flex justify-between items-center p-3 sm:p-4 bg-gray-50/50 hover:bg-indigo-50/30 rounded-xl border border-gray-100 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-100 text-indigo-700 rounded-lg">
-                          <Users size={16} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{client.prenom} {client.nom}</p>
-                          {client.biens && client.biens.length > 0 && (
-                            <p className="text-xs text-gray-600 font-medium">
-                              {client.biens[0].type_bien}
-                              {client.biens[0].immeuble ? ` - Imm. ${client.biens[0].immeuble}` : ''}
-                              {client.biens[0].num_appartement ? ` - N° ${client.biens[0].num_appartement}` : ''}
-                              {client.biens.length > 1 ? ` (+${client.biens.length - 1})` : ''}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl">
-                  <p className="text-sm text-gray-500 italic">Aucune réservation récente pour cet espace.</p>
-                </div>
-              )}
-            </div>
+          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Stock par Typologie</h4>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(stats.biens_types).map(([type, count]) => (
+              <div key={type} className="px-4 py-2 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-100 flex gap-3">
+                <span>{type}</span>
+                <span className="text-amber-600">{count as number}</span>
+              </div>
+            ))}
           </div>
-
-          {/* Colonne 3: Achats */}
-          <div>
-            <h4 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-rose-700 mb-4 border-b border-gray-100 pb-2">
-              <ShoppingBag size={18} /> Derniers Achats (Stock)
-            </h4>
-            <div className="space-y-3">
-              {displayPurchases.length > 0 ? (
-                displayPurchases.map((achat: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center p-3 sm:p-4 bg-gray-50/50 hover:bg-rose-50/30 rounded-xl border border-gray-100 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-rose-100 text-rose-700 rounded-lg">
-                        <ShoppingBag size={16} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{achat.supplier?.nom_societe || 'Fournisseur inconnu'}</p>
-                        <p className="text-[10px] text-gray-500 font-bold uppercase">{achat.invoice_no || 'SANS RÉF'}</p>
-                      </div>
-                    </div>
-                    {renderAmount(achat.total_ttc, "text-base", "text-rose-700")}
-                  </div>
-                ))
-              ) : (
-                <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl">
-                  <p className="text-sm text-gray-500 italic">Aucun achat récent.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
         </div>
       </section>
+
+      {/* ── 5. Activités Récentes ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        {/* Paiements */}
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+            <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-800">
+              <TrendingUp size={18} className="text-emerald-500" /> Flux Entrants
+            </h4>
+          </div>
+          <div className="p-6 space-y-3">
+            {displayPayments.length > 0 ? displayPayments.map((p, idx) => (
+              <div key={idx} className="flex justify-between items-center p-4 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 transition-colors group">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
+                    <Wallet size={16} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{p.client?.prenom} {p.client?.nom}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">{new Date(p.payment_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                {renderAmount(p.amount, "text-base", "text-emerald-600")}
+              </div>
+            )) : <p className="text-center py-10 text-slate-400 text-xs italic font-medium">Aucun flux récent</p>}
+          </div>
+        </div>
+
+        {/* Clients */}
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-50 bg-slate-50/30">
+            <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-800">
+              <UserPlus size={18} className="text-amber-500" /> Réservations
+            </h4>
+          </div>
+          <div className="p-6 space-y-3">
+            {displayClients.length > 0 ? displayClients.map((c, idx) => (
+              <div key={idx} className="flex flex-col p-4 bg-white hover:bg-slate-50 rounded-2xl border border-slate-100 transition-colors">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                      <Users size={16} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{c.prenom} {c.nom}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">{c.cin}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[11px] font-black text-amber-600 uppercase tracking-tighter">
+                      {c.biens?.[0]?.type_bien || 'N/A'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase">
+                      {c.biens?.[0]?.num_appartement ? `Unit. ${c.biens[0].num_appartement}` : 'Sans unité'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )) : <p className="text-center py-10 text-slate-400 text-xs italic font-medium">Aucune réservation récente</p>}
+          </div>
+        </div>
+
+      </div>
 
     </div>
   );

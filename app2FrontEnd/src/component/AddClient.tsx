@@ -34,9 +34,9 @@ interface ClientFormInputs {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const inputCls = (hasError?: boolean) =>
-    `w-full px-4 py-2.5 rounded-lg border text-sm text-slate-800 bg-white placeholder-slate-400
-   focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition
-   ${hasError ? 'border-red-400 focus:ring-red-400' : 'border-slate-300'}`;
+    `w-full px-4 py-3 rounded-2xl border text-sm text-slate-800 bg-slate-50/50 placeholder-slate-400
+   focus:ring-4 focus:ring-amber-100 focus:border-amber-400 focus:bg-white outline-none transition-all
+   ${hasError ? 'border-red-400 focus:ring-red-100' : 'border-slate-100'}`;
 
 const FieldWrapper = ({ label, error, fieldError, children }: {
     label: string; error?: string; fieldError?: string[]; children: React.ReactNode;
@@ -167,7 +167,7 @@ const AddClient: React.FC = () => {
 
             toast.success('Client ajouté avec succès !', {
                 icon: '👤',
-                style: { borderRadius: '10px', background: '#1e3a5f', color: '#fff' },
+                style: { borderRadius: '10px', background: '#3d2b1f', color: '#fff' },
             });
             navigate('/clients');
         } catch (err: any) {
@@ -209,7 +209,7 @@ const AddClient: React.FC = () => {
                         <ArrowLeft size={20} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <UserPlus className="text-blue-600" size={26} />
+                        <UserPlus className="text-amber-600" size={26} />
                         <div>
                             <h1 className="text-2xl font-bold text-gray-800">Nouveau Client</h1>
                             <p className="text-xs text-gray-400">Enregistrer un nouveau client</p>
@@ -226,7 +226,7 @@ const AddClient: React.FC = () => {
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
 
                         {/* ── Section: Identité ── */}
                         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
@@ -278,7 +278,7 @@ const AddClient: React.FC = () => {
                                             <button
                                                 type="button"
                                                 onClick={handleAutoFill}
-                                                className="px-3 py-1 bg-white border border-blue-200 text-blue-600 rounded text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-colors"
+                                                className="px-3 py-1 bg-white border border-amber-200 text-amber-600 rounded text-[10px] font-black uppercase hover:bg-amber-600 hover:text-white transition-colors"
                                             >
                                                 Utiliser
                                             </button>
@@ -422,7 +422,7 @@ const AddClient: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition"
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-100 transition"
                                     >
                                         <PlusCircle size={14} />
                                         Ajouter
@@ -487,7 +487,7 @@ const AddClient: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting || uploadingDocs}
-                                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition shadow-md hover:shadow-lg"
+                                className="flex items-center justify-center gap-2 px-8 py-3 rounded-2xl bg-amber-600 text-white text-sm font-black uppercase tracking-widest hover:bg-amber-700 disabled:bg-slate-300 transition-all shadow-lg shadow-amber-900/10 active:scale-[0.98]"
                             >
                                 {isSubmitting || uploadingDocs ? (
                                     <><Loader2 size={16} className="animate-spin" /> {uploadingDocs ? 'Envoi des fichiers…' : 'Enregistrement…'}</>

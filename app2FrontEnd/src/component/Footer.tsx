@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
     <footer className="bg-white rounded-lg shadow m-4 border border-gray-100">
       <div className="w-full mx-auto max-w-screen-xl p-4 md:flex md:items-center md:justify-between">
         <span className="text-sm text-gray-500 sm:text-center">
-          © {currentYear} <a href="#" className="hover:underline font-semibold">El Ouaha™</a>.
+          © {currentYear} <a href="#" className="hover:underline font-semibold">Société les cinq elements™</a>.
           Gestion Immobilière & Promotion.
         </span>
         <ul className="flex flex-wrap items-center mt-3 text-sm font-medium text-gray-500 sm:mt-0">

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
-import { Mail, Lock, Building2, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 
 // Define the shape of your form data
 type LoginFormInputs = {
@@ -42,27 +42,26 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Dynamic Background Elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100/30 rounded-full blur-[120px] animate-pulse"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-100/30 rounded-full blur-[120px] animate-pulse delay-700"></div>
+    <div className="min-h-screen bg-[#fafaf9] flex items-center justify-center p-6 relative overflow-hidden font-sans">
+      {/* Subtle Background Accent */}
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-amber-50/50 rounded-full blur-[120px]"></div>
 
-      <div className="max-w-[440px] w-full z-10 animate-in fade-in zoom-in-95 duration-500">
-        <div className="bg-white/70 backdrop-blur-xl rounded-[40px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white/80 p-10 md:p-12">
+      <div className="max-w-[460px] w-full z-10 animate-in fade-in zoom-in-95 duration-500">
+        <div className="bg-white rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-slate-100 p-10 md:p-14">
 
           {/* Brand Logo & Name */}
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-6 group transition-transform hover:scale-105 duration-300">
-              <Building2 className="text-white w-9 h-9" />
+          <div className="flex flex-col items-center mb-12 group">
+            <div className="mb-8 p-6 bg-slate-50 rounded-[40px] border border-slate-100 transition-all duration-500 group-hover:scale-105">
+              <img
+                src="/assets/logoLogin.png"
+                alt="Société les cinq elements"
+                className="h-32 w-auto"
+              />
             </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-              El <span className="text-blue-600">Ouahda</span>
-            </h1>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="h-[1px] w-4 bg-slate-200"></div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Portail de Gestion</p>
-              <div className="h-[1px] w-4 bg-slate-200"></div>
-            </div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center uppercase">
+              Les cinq <span className="text-amber-600">elements</span>
+            </h2>
+          
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -127,7 +126,7 @@ export default function Login() {
           </form>
 
           <div className="mt-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 El Ouahda Group. Tous droits réservés.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 Société les cinq elements. Tous droits réservés.</p>
           </div>
         </div>
       </div>

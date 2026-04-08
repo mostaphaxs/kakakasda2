@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye } from 'lucide-react';
+import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -210,54 +210,54 @@ const Properties = () => {
     };
 
     return (
-        <div className="space-y-4">
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-6">
+            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
-                        <h2 className="text-lg font-black text-gray-800 flex items-center gap-2 italic uppercase tracking-tighter">
-                            <Home className="text-indigo-600" size={18} />
+                        <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                            <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Gérez vos unités, appartements et locaux.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, appartements et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition font-bold text-xs uppercase tracking-widest"
+                            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest border border-slate-200 active:scale-[0.98]"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
-                            Excel
+                            Export Excel
                         </button>
 
                         <button
                             onClick={() => navigate('/add-property')}
-                            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-gray-200"
+                            className="flex items-center gap-2 bg-amber-600 text-white px-8 py-3.5 rounded-2xl hover:bg-amber-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98]"
                         >
-                            <Plus size={16} />
+                            <Plus size={18} />
                             Ajouter Unité
                         </button>
                     </div>
                 </div>
 
                 {/* Filter Controls */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-4 border-t border-gray-50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-6 border-t border-slate-100">
                     <div className="relative lg:col-span-1">
-                        <Layout className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold" size={14} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input
                             type="text"
-                            placeholder="Rechercher..."
+                            placeholder="Recherche..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-300"
+                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-tight text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none transition-all placeholder:text-slate-300"
                         />
                     </div>
 
                     <select
                         value={filterStatut}
                         onChange={(e) => setFilterStatut(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
                     >
                         <option value="all">Statut: Tous</option>
                         <option value="Libre">Libre</option>
@@ -268,7 +268,7 @@ const Properties = () => {
                     <select
                         value={filterTerrain}
                         onChange={(e) => setFilterTerrain(e.target.value)}
-                        className="px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-gray-700 font-medium"
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
                     >
                         <option value="all">Tous les projets</option>
                         {Array.from(new Set(biens.map(b => b.terrain_id).filter(Boolean))).map(tId => {
@@ -284,7 +284,7 @@ const Properties = () => {
                     <select
                         value={filterEtage}
                         onChange={(e) => setFilterEtage(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
                     >
                         <option value="all">Étage: Tous</option>
                         {Array.from(new Set(biens.map(b => b.etage)))
@@ -299,7 +299,7 @@ const Properties = () => {
 
                     <button
                         onClick={resetFilters}
-                        className="flex items-center justify-center gap-1 text-gray-400 hover:text-indigo-600 font-bold text-[10px] uppercase tracking-widest transition-colors border border-gray-50 rounded-xl h-10"
+                        className="w-full text-slate-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-100 rounded-2xl py-3 hover:bg-slate-50"
                     >
                         <X size={14} />
                         Réinitialiser
@@ -308,40 +308,40 @@ const Properties = () => {
             </div>
 
             {/* Stats Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg"><Layout size={20} /></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
+                    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Layout size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Unités</p>
-                        <p className="text-xl font-black text-gray-800">{biens.length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Unités</p>
+                        <p className="text-2xl font-black text-slate-800">{biens.length}</p>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg"><Check size={20} /></div>
+                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
+                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Check size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Vendus / Réservés</p>
-                        <p className="text-xl font-black text-gray-800">{biens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réservés</p>
+                        <p className="text-2xl font-black text-slate-800">{biens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-600 rounded-lg"><Boxes size={20} /></div>
+                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
+                    <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><Boxes size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Disponibles</p>
-                        <p className="text-xl font-black text-gray-800">{biens.filter(b => b.statut === 'Libre').length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Disponibles</p>
+                        <p className="text-2xl font-black text-slate-800">{biens.filter(b => b.statut === 'Libre').length}</p>
                     </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-rose-50 text-rose-600 rounded-lg"><Landmark size={20} /></div>
+                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
+                    <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl"><Landmark size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valeur Stock (Finition / Non Finition)</p>
-                        <p className="text-xl font-black text-gray-800">
-                            {formatNumber(biens.reduce((acc, b) => acc + Number(b.prix_global_finition), 0))} <span className="text-xs uppercase text-gray-400">/</span> {formatNumber(biens.reduce((acc, b) => acc + Number(b.prix_global_non_finition), 0))} <span className="text-xs uppercase">dh</span>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valeur Stock</p>
+                        <p className="text-xl font-black text-slate-800 tracking-tighter">
+                            {formatNumber(biens.reduce((acc, b) => acc + Number(b.prix_global_finition), 0))} <span className="text-xs text-slate-400">MAD</span>
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-400 uppercase font-black text-[10px] tracking-widest">
                         <tr>
