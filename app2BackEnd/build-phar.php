@@ -14,8 +14,8 @@ $phar->startBuffering();
 // On ajoute tout le dossier actuel, en ignorant les trucs lourds/inutiles
 $phar->buildFromDirectory(__DIR__, '/^(?!(.*\.git|.*node_modules|.*storage\/logs|.*database\/.*\.sqlite|.*tests)).*$/');
 
-// Le fichier par défaut qui se lancera quand le Sidecar démarre
-$phar->setStub($phar->createDefaultStub('public/index.php'));
+// Stub avec mapping de chemin explicite pour une compatibilité Wine/Windows totale
+$phar->setStub("<?php Phar::mapPhar('app.phar'); require 'phar://app.phar/public/index.php'; __HALT_COMPILER();");
 
 $phar->stopBuffering();
 
