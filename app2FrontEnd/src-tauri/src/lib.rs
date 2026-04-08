@@ -49,16 +49,20 @@ fn find_available_port(start_port: u16) -> u16 {
 fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let port = find_available_port(8000);
     let api_url = format!("http://127.0.0.1:{}/api", port);
-    
-    // 1. Determine Persistent Database Path
+
+    // 1. Determine Persistent AppData Path
     let app_data_dir = app_handle.path().app_data_dir().expect("Failed to get AppData dir");
-    
-    // 🛡️ THE FIX: Robust Directory Creation & Permission Check
     if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
         eprintln!("❌ Failed to create AppData directory: {}", e);
     }
 
-    let db_path = app_data_dir.join("database.sqlite");
+    // 🛡️ THE FIX: Differentiate between Dev and Production database
+    #[cfg(debug_assertions)]
+    let db_filename = "dev_database.sqlite";
+    #[cfg(not(debug_assertions))]
+    let db_filename = "database.sqlite";
+
+    let db_path = app_data_dir.join(db_filename);
     
     // Create empty DB file if it doesn't exist
     if !db_path.exists() {
@@ -85,10 +89,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755)).ok();
     }
 
-    // 3. Prepare Writable Storage (The "Senior" Fix for the 500 error)
-    // Bundled binaries are read-only, so we MUST use /tmp for sessions, views, and cache.
-    let storage_dir = std::env::temp_dir().join("myamical-storage");
-    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs"] {
+    // 3. Prepare Persistent Storage (Senior Fix for Sidecars)
+    // Bundled binaries are read-only, so we MUST redirect storage to a writable path.
+    let storage_dir = app_data_dir.join("storage");
+    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs", "app/public"] {
         std::fs::create_dir_all(storage_dir.join(subdir)).ok();
     }
 
@@ -98,10 +102,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     
     let app_key = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
 
-    // A. Run Migrations (MUST use 'php', 'artisan' for CLI commands)
+    // A. Run Migrations (MUST use 'php-cli', 'artisan' for CLI commands)
     println!("🔄 Running migrations on: {:?}", db_path);
     let migrate_status = Command::new(&bin_path)
-        .args(["php", "artisan", "migrate", "--force"])
+        .args(["php-cli", "artisan", "migrate", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_KEY", app_key)
@@ -117,7 +121,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // B. Run Seeders
     let _ = Command::new(&bin_path)
-        .args(["php", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
+        .args(["php-cli", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
         .env("DB_DATABASE", db_path.to_str().unwrap())
         .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
         .env("APP_KEY", app_key)

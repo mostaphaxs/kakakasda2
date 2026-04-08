@@ -31,7 +31,7 @@ RUN rm -rf /go/src/app/dist/static-php-cli/buildroot/lib/libcurl.a \
     /bin/bash -c "EMBED=/embed-root/app \
     SKIP_LIBS=ldap,libldap,zstd,libzstd \
     SKIP_EXTS=ldap \
-    PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,sockets,sqlite3,tokenizer,zip,zlib \
+    PHP_EXTENSIONS=bcmath,ctype,curl,dom,fileinfo,filter,hash,iconv,mbstring,mbregex,opcache,openssl,pcntl,pdo,pdo_sqlite,phar,posix,session,simplexml,sockets,sqlite3,tokenizer,xml,xmlreader,xmlwriter,zip,zlib \
     ./build-static.sh && \
     rm -rf /go/src/app/static-php-cli/buildroot && \
     rm -rf /go/src/app/static-php-cli/pkgroot && \
