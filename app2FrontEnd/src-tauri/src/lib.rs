@@ -135,16 +135,28 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // =========================================================================
 
-    // 4. Spawn Backend sidecar
+    // 4. Spawn Backend sidecar with Logging
+    let log_file_path = storage_dir.join("logs/sidecar.log");
+    let log_file = std::fs::File::create(&log_file_path).expect("Failed to create sidecar log file");
+    let log_file_err = log_file.try_clone().expect("Failed to clone log file handle");
+
+    println!("🚀 Starting sidecar. Logs: {:?}", log_file_path);
+
     let mut cmd = Command::new(&bin_path);
-    cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port)]);
+    // Use 'php-server' which is the micro engine's built-in web server
+    // We explicitly tell it to serve the 'public' folder inside the virtual PHAR
+    cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port), "-t", "phar://app.phar/public"]);
     
     // Inject the persistent DB and writable storage paths
     cmd.env("DB_DATABASE", db_path.to_str().unwrap());
     cmd.env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap());
     cmd.env("APP_KEY", app_key);
     cmd.env("APP_ENV", "production"); 
-    cmd.env("APP_DEBUG", "true"); // Temporarily true for troubleshooting
+    cmd.env("APP_DEBUG", "true"); 
+
+    // Redirect output to log file so we can debug prod issues
+    cmd.stdout(log_file);
+    cmd.stderr(log_file_err);
 
     #[cfg(target_os = "windows")]
     {
@@ -153,7 +165,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     match cmd.spawn() {
-        Ok(child) => (api_url, Some(child)),
+        Ok(child) => {
+            println!("✅ Sidecar started on port {}", port);
+            (api_url, Some(child))
+        },
         Err(e) => {
             eprintln!("❌ Failed to start sidecar: {}", e);
             (api_url, None)
