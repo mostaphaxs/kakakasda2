@@ -12,7 +12,8 @@ $phar = new Phar($pharFile);
 $phar->startBuffering();
 
 // On ajoute tout le dossier actuel, en ignorant les trucs lourds/inutiles (surtout storage/app/public qui peut être énorme)
-$phar->buildFromDirectory(__DIR__, '/^(?!(.*\.git|.*node_modules|.*storage\/app\/public\/clients|.*storage\/framework\/.*|.*database\/.*\.sqlite|.*tests|.*public\/storage)).*$/');
+// On ignore aussi explicitement .sfx et .phar pour éviter de s'inclure soi-même ou le moteur micro
+$phar->buildFromDirectory(__DIR__, '/^(?!(.*\.git|.*node_modules|.*storage\/app\/public\/clients|.*storage\/framework\/.*|.*database\/.*\.sqlite|.*tests|.*public\/storage|.*\.sfx|.*\.phar)).*$/');
 
 // Stub ultra-robuste pour micro engine : on utilise __FILE__ pour que le PHP s'auto-découvre dans l'EXE
 $phar->setStub("<?php require 'phar://' . __FILE__ . '/public/index.php'; __HALT_COMPILER();");
