@@ -1,7 +1,9 @@
 use tauri::Manager;
-use std::process::{Command, Child};
+use std::process::{Command, Child, Stdio};
 use std::sync::Mutex;
 use std::net::TcpListener;
+use std::io::{BufRead, BufReader};
+use log::{info, error, warn};
 
 // --- Stealth Embedding Configuration ---
 #[cfg(target_os = "windows")]
@@ -80,8 +82,22 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     #[cfg(not(target_os = "windows"))]
     let bin_name = "backend_srv";
     
-    let bin_path = temp_dir.join(bin_name);
-    std::fs::write(&bin_path, BACKEND_BINARY).expect("Failed to extract backend binary");
+    let mut bin_path = temp_dir.join(bin_name);
+    
+    // 🛡️ THE FIX: Handle locked files on Windows (Access Denied)
+    // If extraction fails because the file is locked by a previous instance,
+    // we try with a unique name to ensure the app can always start.
+    match std::fs::write(&bin_path, BACKEND_BINARY) {
+        Ok(_) => info!("✅ Backend binary extracted: {:?}", bin_path),
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
+            warn!("⚠️ Backend binary is locked, trying unique filename: {}", e);
+            let unique_bin_name = format!("backend_srv_{}.exe", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
+            bin_path = temp_dir.join(unique_bin_name);
+            std::fs::write(&bin_path, BACKEND_BINARY).expect("Failed to extract backend binary to unique path");
+            info!("✅ Backend binary extracted to unique path: {:?}", bin_path);
+        }
+        Err(e) => panic!("❌ Failed to extract backend binary: {}", e),
+    }
     
     #[cfg(not(target_os = "windows"))]
     {
@@ -102,46 +118,61 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     
     let app_key = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
 
-    // A. Run Migrations (MUST use 'php-cli', 'artisan' for CLI commands)
-    println!("🔄 Running migrations on: {:?}", db_path);
-    let migrate_status = Command::new(&bin_path)
-        .args(["php-cli", "artisan", "migrate", "--force"])
-        .env("DB_DATABASE", db_path.to_str().unwrap())
-        .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
+    // Normalise paths for Laravel (forward slashes work best even on Windows)
+    let db_str = db_path.to_string_lossy().replace("\\", "/");
+    let storage_str = storage_dir.to_string_lossy().replace("\\", "/");
+
+    // A. Run Migrations
+    info!("🔄 Running migrations on: {}", db_str);
+    let mut migrate_cmd = Command::new(&bin_path);
+    migrate_cmd.args(["php-cli", "artisan", "migrate", "--force"])
+        .env("DB_DATABASE", &db_str)
+        .env("LARAVEL_STORAGE_PATH", &storage_str)
         .env("APP_KEY", app_key)
         .env("APP_ENV", "production")
-        .env("APP_DEBUG", "true") 
-        .status(); 
+        .env("APP_DEBUG", "true");
 
-    match migrate_status {
-        Ok(s) if s.success() => println!("✅ Migrations completed successfully."),
-        Ok(s) => eprintln!("⚠️ Migrations failed with status: {}", s),
-        Err(e) => eprintln!("❌ Failed to execute migration command: {}", e),
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        migrate_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+
+    match migrate_cmd.status() {
+        Ok(s) if s.success() => info!("✅ Migrations completed successfully."),
+        Ok(s) => error!("⚠️ Migrations failed with status: {}", s),
+        Err(e) => error!("❌ Failed to execute migration command: {}", e),
     }
 
     // B. Run Seeders
-    let _ = Command::new(&bin_path)
-        .args(["php-cli", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
-        .env("DB_DATABASE", db_path.to_str().unwrap())
-        .env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap())
+    let mut seed_cmd = Command::new(&bin_path);
+    seed_cmd.args(["php-cli", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
+        .env("DB_DATABASE", &db_str)
+        .env("LARAVEL_STORAGE_PATH", &storage_str)
         .env("APP_KEY", app_key)
         .env("APP_ENV", "production")
-        .env("APP_DEBUG", "true")
-        .status(); 
+        .env("APP_DEBUG", "true");
 
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        seed_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    }
+    let _ = seed_cmd.status();
 
     // =========================================================================
 
     // 4. Spawn Backend sidecar
+    info!("🚀 Spawning backend sidecar on port {}", port);
     let mut cmd = Command::new(&bin_path);
     cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port)]);
     
     // Inject the persistent DB and writable storage paths
-    cmd.env("DB_DATABASE", db_path.to_str().unwrap());
-    cmd.env("LARAVEL_STORAGE_PATH", storage_dir.to_str().unwrap());
+    cmd.env("DB_DATABASE", &db_str);
+    cmd.env("LARAVEL_STORAGE_PATH", &storage_str);
     cmd.env("APP_KEY", app_key);
     cmd.env("APP_ENV", "production"); 
-    cmd.env("APP_DEBUG", "true"); // Temporarily true for troubleshooting
+    cmd.env("APP_DEBUG", "true");
 
     #[cfg(target_os = "windows")]
     {
@@ -149,10 +180,38 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
     }
 
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+
     match cmd.spawn() {
-        Ok(child) => (api_url, Some(child)),
+        Ok(mut child) => {
+            let stdout = child.stdout.take().unwrap();
+            let stderr = child.stderr.take().unwrap();
+
+            // Background thread to log stdout
+            std::thread::spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines() {
+                    if let Ok(l) = line {
+                        info!("[backend] {}", l);
+                    }
+                }
+            });
+
+            // Background thread to log stderr
+            std::thread::spawn(move || {
+                let reader = BufReader::new(stderr);
+                for line in reader.lines() {
+                    if let Ok(l) = line {
+                        warn!("[backend-err] {}", l);
+                    }
+                }
+            });
+
+            (api_url, Some(child))
+        }
         Err(e) => {
-            eprintln!("❌ Failed to start sidecar: {}", e);
+            error!("❌ Failed to start sidecar: {}", e);
             (api_url, None)
         }
     }
@@ -192,6 +251,14 @@ async fn export_database(app_handle: tauri::AppHandle, destination_path: String)
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_log::Builder::new()
+            .targets([
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: Some("app".to_string()) }),
+                tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Webview),
+            ])
+            .level(log::LevelFilter::Info)
+            .build())
         .setup(|app| {
             let (api_url, child) = setup_backend(app.handle());
             app.manage(AppState {

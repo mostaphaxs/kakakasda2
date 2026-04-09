@@ -1,0 +1,14 @@
+{
+    "chmod": "0755",
+    "main": "public/index.php",
+    "output": "app.phar",
+    "directories": ["app", "bootstrap", "config", "database", "public", "resources", "routes", "vendor", "storage"],
+    "files": ["artisan"],
+    "dump-autoload": false,
+    "blacklist": [
+        "node_modules",
+        "tests",
+        "storage/logs/*.log",
+        ".git"
+    ]
+}
