@@ -16,19 +16,32 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\ParseFrenchDates::class);
     })
     ->registered(function ($app) {
-        // 🐘 SIDE-CAR FIX (V4): Always prioritize side-car injected paths
-        $storage = env('LARAVEL_STORAGE_PATH');
-        if ($storage) {
-            $app->useStoragePath($storage);
-            // Also update the config for all disks that depend on storage_path()
-            config(['filesystems.disks.public.root' => $storage . '/app/public']);
-            config(['filesystems.disks.local.root' => $storage . '/app/private']);
+        // =====================================================================
+        // SIDECAR PATH FIX
+        // When running as a bundled binary, ALL writable paths must be
+        // redirected to the system's app_data_dir (passed via env vars by Tauri).
+        // =====================================================================
+        $storagePath = env('LARAVEL_STORAGE_PATH');
+        if ($storagePath) {
+            $storagePath = rtrim($storagePath, '/\\');
+            $app->useStoragePath($storagePath);
+
+            // Force filesystem disk roots to point to the writable storage
+            config(['filesystems.disks.public.root' => $storagePath . '/app/public']);
+            config(['filesystems.disks.local.root'  => $storagePath . '/app/private']);
+
+            // Also update the URL so Storage::url() returns the correct address
+            config(['filesystems.disks.public.url' => env('APP_URL', 'http://127.0.0.1:8000') . '/storage']);
         }
-        
+
+        // =====================================================================
+        // DATABASE PATH FIX
+        // Tauri injects the absolute path to the SQLite file.
+        // =====================================================================
         $dbPath = env('DB_DATABASE');
         if ($dbPath) {
-            // Set both the config and the env to be sure
             config(['database.connections.sqlite.database' => $dbPath]);
+            // Belt-and-suspenders: also set env for any package that reads it directly
             $_ENV['DB_DATABASE'] = $dbPath;
             putenv("DB_DATABASE={$dbPath}");
         }
