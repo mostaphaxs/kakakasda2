@@ -49,18 +49,14 @@ jobs:
           php-version: '8.3'
           extensions: phar, mbstring, openssl, curl, fileinfo, zip
 
-      # Build the backend PHAR
-      - name: Build backend PHAR
+      - name: Build standalone backend binary
         shell: bash
         run: |
           cd app2BackEnd
-          php build-phar.php
-          
-          mkdir -p ../app2FrontEnd/src-tauri/internal
-          cp app.phar ../app2FrontEnd/src-tauri/internal/app.phar
+          php build-standalone.php
 
           echo ""
-          echo "=== Generated PHAR ==="
+          echo "=== Generated binaries ==="
           ls -lh ../app2FrontEnd/src-tauri/internal/
 
       - name: Install frontend dependencies
