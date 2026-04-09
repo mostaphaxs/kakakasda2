@@ -6,9 +6,17 @@ use std::io::{BufRead, BufReader};
 use std::fs::OpenOptions;
 
 // --- Stealth Embedding ---
-// Bake the Laravel PHAR backend directly into the Tauri binary,
+// Bake the standalone executable backend directly into the Tauri binary,
 // keeping the source code completely hidden from end users.
-const BACKEND_PHAR: &[u8] = include_bytes!("../internal/app.phar");
+#[cfg(target_os = "windows")]
+const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-pc-windows-msvc.exe");
+
+#[cfg(target_os = "linux")]
+const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-unknown-linux-gnu");
+
+// Fallback for macOS dev builds
+#[cfg(not(any(target_os = "windows", target_os = "linux")))]
+const BACKEND_BINARY: &[u8] = &[];
 
 pub struct AppState {
     pub api_url: Mutex<String>,
@@ -45,17 +53,17 @@ fn append_log(path: &std::path::Path, msg: &str) {
 }
 
 fn run_artisan(
-    phar_path:   &std::path::Path,
+    bin_path:    &std::path::Path,
     artisan_args: &[&str],
     db_path:      &str,
     storage_dir:  &str,
     app_key:      &str,
     log_path:     &std::path::Path,
 ) -> bool {
-    let mut full_args = vec![phar_path.to_str().unwrap(), "php-cli", "artisan"];
+    let mut full_args = vec!["php-cli", "artisan"];
     full_args.extend_from_slice(artisan_args);
 
-    let result = Command::new("php")
+    let result = Command::new(bin_path)
         .args(&full_args)
         .env("DB_DATABASE",         db_path)
         .env("LARAVEL_STORAGE_PATH", storage_dir)
@@ -128,17 +136,28 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     ));
 
     // ── 2. Stealth Extraction ────────────────────────────────────────────────
-    // Extracts the PHAR to a temporary hidden path at runtime. The user cannot
-    // see the source code in their installation directory.
+    // Extracts the compiled binary executable to a temp path for runtime security/obfuscation
     let temp_dir = std::env::temp_dir().join("com.mustapha.myamical");
     std::fs::create_dir_all(&temp_dir).ok();
 
-    let phar_path = temp_dir.join("backend.phar");
-    if let Err(e) = std::fs::write(&phar_path, BACKEND_PHAR) {
-        let err = format!("❌ Failed to extract backend PHAR: {}\n", e);
+    #[cfg(target_os = "windows")]
+    let bin_name = "backend_srv.exe";
+    #[cfg(not(target_os = "windows"))]
+    let bin_name = "backend_srv";
+
+    let bin_path = temp_dir.join(bin_name);
+
+    if let Err(e) = std::fs::write(&bin_path, BACKEND_BINARY) {
+        let err = format!("❌ Failed to extract backend executable: {}\nMake sure you run build-standalone.php before building the app.", e);
         eprintln!("{}", err);
         append_log(&log_path, &err);
         return (api_url, None);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755)).ok();
     }
 
     // ── 3. Migrations & Seeding ───────────────────────────────────────────────
@@ -146,9 +165,9 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let db_str      = db_path.to_str().unwrap_or("");
     let storage_str = storage_dir.to_str().unwrap_or("");
 
-    append_log(&log_path, "🔄 Running migrations via System PHP...\n");
+    append_log(&log_path, "🔄 Running migrations via Executable...\n");
     let migrated = run_artisan(
-        &phar_path,
+        &bin_path,
         &["migrate", "--force"],
         db_str, storage_str, app_key, &log_path,
     );
@@ -159,7 +178,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         if db_size < 100_000 {
             append_log(&log_path, "🌱 Running seeders...\n");
             run_artisan(
-                &phar_path,
+                &bin_path,
                 &["db:seed", "--class=DefaultUserSeeder", "--force"],
                 db_str, storage_str, app_key, &log_path,
             );
@@ -169,11 +188,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // ── 4. Spawn Web Server ───────────────────────────────────────────────────
-    append_log(&log_path, &format!("🚀 Starting PHP sidecar server on port {}...\n", port));
+    append_log(&log_path, &format!("🚀 Starting standalone PHP sidecar server on port {}...\n", port));
 
-    let mut cmd = Command::new("php");
+    let mut cmd = Command::new(&bin_path);
     cmd.args([
-        phar_path.to_str().unwrap(),
         "php-server",
         "-l",
         &format!("127.0.0.1:{}", port)

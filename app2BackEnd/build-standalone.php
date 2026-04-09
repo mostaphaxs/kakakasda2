@@ -40,35 +40,8 @@ if ($pharCode !== 0 || !file_exists('app.phar')) {
 }
 
 // 2. Fetch micro engine
-echo "\n📥 2. Fetching native PHP micro engine...\n";
+echo "\n📥 2. Using local native PHP micro engine...\n";
 $microSfx      = 'micro.sfx';
-$archiveName   = "php-{$phpVersion}-micro-{$platformLabel}.{$archiveExt}";
-$downloadUrl   = "https://dl.static-php.dev/static-php-cli/bulk/{$archiveName}";
-
-// We download version 8.3.16 which is stable for micro extraction
-if (!file_exists($microSfx) || filesize($microSfx) < 1_000_000) {
-    if (file_exists($microSfx)) unlink($microSfx);
-    echo "   Downloading: {$downloadUrl}\n";
-    passthru("curl -fL --retry 3 " . escapeshellarg($downloadUrl) . " -o " . escapeshellarg($archiveName), $curlCode);
-
-    if ($curlCode !== 0 || !file_exists($archiveName)) {
-        die("❌ Download failed.\n");
-    }
-
-    echo "   Extracting...\n";
-    if ($archiveExt === 'tar.gz') {
-        passthru("tar -xzf " . escapeshellarg($archiveName));
-        foreach (['micro.sfx', 'php'] as $candidate) {
-            if (file_exists($candidate)) { rename($candidate, $microSfx); break; }
-        }
-    } else {
-        passthru('powershell -NoProfile -Command "Expand-Archive -Path ' . escapeshellarg($archiveName) . ' -DestinationPath . -Force"');
-        foreach (['php.exe', 'micro.sfx', 'php-win.exe'] as $candidate) {
-            if (file_exists($candidate)) { rename($candidate, $microSfx); break; }
-        }
-    }
-    if (file_exists($archiveName)) unlink($archiveName);
-}
 
 if (!file_exists($microSfx)) die("❌ micro.sfx not found.\n");
 
