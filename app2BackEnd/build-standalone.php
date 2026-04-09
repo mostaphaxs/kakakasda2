@@ -27,15 +27,56 @@ if (!file_exists('app.phar')) {
     die("❌ Error: app.phar was not generated!\n");
 }
 
-echo "📥 2. Checking micro engine...\n";
+echo "📥 2. Fetching native micro engine...\n";
+$phpVersion = '8.3.30';
 $microSfx = 'micro.sfx';
 
 if (!file_exists($microSfx)) {
-    die("❌ Error: micro.sfx not found in " . __DIR__ . "\n👉 Please ensure the micro engine binary is placed in the backend folder.\n");
+    $arch = (php_uname('m') === 'x86_64') ? 'x86_64' : 'aarch64';
+    $osName = ($os === 'Windows') ? 'win' : (($os === 'Darwin') ? 'macos' : 'linux');
+    $extension = ($os === 'Windows') ? 'zip' : 'tar.gz';
+    
+    // Naming convention on dl.static-php.dev: php-<version>-micro-<os>-<arch>.<ext>
+    // Note: Windows uses 'win-x64' or similar, let's adjust
+    $platformLabel = ($os === 'Windows') ? 'win-x64' : "{$osName}-{$arch}";
+    $archiveName = "php-{$phpVersion}-micro-{$platformLabel}.{$extension}";
+    $url = "https://dl.static-php.dev/static-php-cli/bulk/{$archiveName}";
+
+    echo "Downloading native engine: {$archiveName}...\n";
+    $curlCmd = "curl -L {$url} -o " . escapeshellarg($archiveName);
+    passthru($curlCmd, $resultCode);
+
+    if ($resultCode !== 0 || !file_exists($archiveName)) {
+        die("❌ Error: Failed to download native engine from {$url}\n");
+    }
+
+    echo "📦 Extracting engine...\n";
+    if ($extension === 'tar.gz') {
+        passthru("tar -xzf " . escapeshellarg($archiveName));
+        // The binary inside the tar is usually named 'php' or 'micro.sfx'
+        if (file_exists('micro.sfx')) {
+            // Good
+        } elseif (file_exists('php')) {
+            rename('php', 'micro.sfx');
+        }
+    } else {
+        // Windows extraction
+        passthru("powershell -Command \"Expand-Archive -Path " . escapeshellarg($archiveName) . " -DestinationPath . -Force\"");
+        if (file_exists('php.exe')) {
+            rename('php.exe', 'micro.sfx');
+        }
+    }
+    
+    // Cleanup archive
+    unlink($archiveName);
 }
 
-// Check size to ensure it's not a corrupted 9-byte error file
-if (filesize($microSfx) < 1000000) { // Should be at least 1MB
+if (!file_exists($microSfx)) {
+    die("❌ Error: Failed to obtain micro.sfx correctly.\n");
+}
+
+// Check size to ensure it's not a corrupted download
+if (filesize($microSfx) < 1000000) { 
     die("❌ Error: micro.sfx file is too small or corrupted. Size: " . filesize($microSfx) . " bytes\n");
 }
 

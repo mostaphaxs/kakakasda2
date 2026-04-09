@@ -15,8 +15,30 @@ $phar->startBuffering();
 // On ignore aussi explicitement .sfx et .phar pour éviter de s'inclure soi-même ou le moteur micro
 $phar->buildFromDirectory(__DIR__, '/^(?!(.*\.git|.*node_modules|.*storage\/app\/public\/clients|.*storage\/framework\/.*|.*database\/.*\.sqlite|.*tests|.*public\/storage|.*\.sfx|.*\.phar)).*$/');
 
-// Stub ultra-robuste pour micro engine : on utilise __FILE__ pour que le PHP s'auto-découvre dans l'EXE
-$phar->setStub("<?php require 'phar://' . __FILE__ . '/public/index.php'; __HALT_COMPILER();");
+// Stub intelligent pour micro engine : il bascule entre 'artisan' (CLI) et 'index.php' (Web) selon l'usage
+$stub = <<<'PHP'
+<?php
+if (php_sapi_name() === 'cli' || php_sapi_name() === 'micro') {
+    // Si on passe 'artisan' en premier argument, on le lance
+    if (isset($argv[1]) && $argv[1] === 'artisan') {
+        array_shift($argv);
+        require 'phar://' . __FILE__ . '/artisan';
+    } elseif (count($argv) > 1 && $argv[1] === 'php-cli') {
+        // Support pour l'appel actuel de Tauri : ["php-cli", "artisan", ...]
+        array_shift($argv);
+        if (isset($argv[1]) && $argv[1] === 'artisan') {
+            array_shift($argv);
+        }
+        require 'phar://' . __FILE__ . '/artisan';
+    } else {
+        require 'phar://' . __FILE__ . '/public/index.php';
+    }
+} else {
+    require 'phar://' . __FILE__ . '/public/index.php';
+}
+__HALT_COMPILER();
+PHP;
+$phar->setStub($stub);
 
 $phar->stopBuffering();
 
