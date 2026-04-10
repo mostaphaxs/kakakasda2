@@ -12,110 +12,109 @@ permissions:
   contents: write
 
 jobs:
-  # STEP 1: Build the Linux static binary
-  static-build:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Maximize Build Space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf /usr/lib/jvm
-          docker system prune -af
-          df -h
-
-      - name: set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: build laravel backend binary
-        uses: docker/build-push-action@v6
-        with:
-          context: app2BackEnd
-          file: app2BackEnd/static-build.Dockerfile
-          tags: laravel-builder:latest
-          load: true
-          build-args: |
-            MAKE_JOBS=2
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: extract and upload
-        run: |
-         docker create --name temp-builder laravel-builder:latest
-         docker cp temp-builder:/go/src/app/dist/static-php-cli/buildroot/bin/frankenphp ./laravel-backend
-         docker rm -f temp-builder
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: backend-binary
-          path: laravel-backend
-
-  # STEP 2: Package the App (Windows/Linux)
   publish-tauri:
-    needs: static-build 
     permissions:
       contents: write
-      actions: write
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: "ubuntu-22.04"
             target: "x86_64-unknown-linux-gnu"
-            suffix: ""
           - platform: "windows-latest"
             target: "x86_64-pc-windows-msvc"
-            suffix: ".exe"
+
     runs-on: ${{ matrix.platform }}
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: setup node
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install system dependencies (ubuntu)
+      - name: Install system dependencies (Ubuntu)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Download backend artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-binary
-          path: app2FrontEnd/src-tauri/internal
-
-      - name: Prepare sidecar naming
+      # ─── Bundle the Laravel backend ──────────────────────────────────────────
+      # We copy the backend source into src-tauri/backend so it gets bundled
+      # as a Tauri resource. vendor/ was pre-committed; composer install is
+      # run here to make sure it's fresh and platform-clean.
+      - name: Prepare Laravel backend resources
         shell: bash
         run: |
-          cd app2FrontEnd/src-tauri/internal
-          mv laravel-backend laravel-backend-${{ matrix.target }}${{ matrix.suffix }}
-          chmod +x laravel-backend-${{ matrix.target }}${{ matrix.suffix }} || true
+          mkdir -p app2FrontEnd/src-tauri/backend
+          cp -r app2BackEnd/app \
+                app2BackEnd/bootstrap \
+                app2BackEnd/config \
+                app2BackEnd/database \
+                app2BackEnd/public \
+                app2BackEnd/routes \
+                app2BackEnd/artisan \
+                app2FrontEnd/src-tauri/backend/
+          # Copy .env for production defaults (APP_KEY etc are injected at runtime)
+          cp app2BackEnd/.env app2FrontEnd/src-tauri/backend/.env || true
 
-      - name: install frontend dependencies
+      - name: Install Composer dependencies
+        shell: bash
+        working-directory: app2FrontEnd/src-tauri/backend
+        run: |
+          curl -sS https://getcomposer.org/installer | php
+          php composer.phar install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
+          rm composer.phar
+
+      # ─── Create storage skeleton (writable dirs are created at runtime) ──────
+      - name: Create storage skeleton
+        shell: bash
+        run: |
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/sessions
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/views
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/cache
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/logs
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/app/public
+
+      # ─── Linux: create sidecar symlink to system PHP ─────────────────────────
+      - name: Prepare PHP sidecar (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get install -y php-cli php-sqlite3 php-mbstring php-xml php-curl
+          PHP_BIN=$(which php)
+          cp "$PHP_BIN" "app2FrontEnd/src-tauri/binaries/php/php-x86_64-unknown-linux-gnu"
+          chmod +x "app2FrontEnd/src-tauri/binaries/php/php-x86_64-unknown-linux-gnu"
+
+      # ─── Windows: PHP binaries already committed; verify they exist ──────────
+      - name: Verify PHP sidecar (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: |
+          $bin = "app2FrontEnd\src-tauri\binaries\php\php-x86_64-pc-windows-msvc.exe"
+          if (-Not (Test-Path $bin)) {
+            Write-Error "❌ Missing: $bin"
+            exit 1
+          }
+          Write-Host "✅ PHP sidecar present: $bin"
+
+      - name: Install frontend dependencies
         run: |
           cd app2FrontEnd
           npm install
 
-          
-          
-      - name: build tauri app
+      - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "App Release - ${{ github.ref_name }}"
-          releaseBody: "Includes production sidecar. Contact: mostaphaff123@gmail.com"
+          releaseName: "MyAmical ${{ github.ref_name }}"
+          releaseBody: "Windows & Linux release. Contact: mostaphaff123@gmail.com"
           releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
+          args: "--target ${{ matrix.target }}"
