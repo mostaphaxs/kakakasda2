@@ -46,11 +46,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": {
-      "binaries/php/php.ini": "binaries/php/php.ini",
-      "binaries/php/*.dll": "binaries/php/",
-      "binaries/php/ext/**/*": "binaries/php/ext/",
-      "backend/**/*": "backend/"
-    }
+    "resources": [
+      "binaries/php/php.ini",
+      "binaries/php/*.dll",
+      "binaries/php/ext/**/*",
+      "backend/**/*"
+    ]
   }
 }

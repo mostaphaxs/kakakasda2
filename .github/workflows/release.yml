@@ -41,7 +41,9 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
+            php-cli php-sqlite3 php-mbstring php-xml php-curl
 
       # ─── Bundle the Laravel backend ──────────────────────────────────────────
       - name: Install Composer dependencies (in app2BackEnd)
@@ -65,40 +67,34 @@ jobs:
                 app2BackEnd/artisan \
                 app2BackEnd/vendor \
                 app2FrontEnd/src-tauri/backend/
-          # Copy .env for production defaults
           cp app2BackEnd/.env app2FrontEnd/src-tauri/backend/.env || true
+          # Create writable storage skeleton
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/{sessions,views,cache}
+          mkdir -p app2FrontEnd/src-tauri/backend/storage/{logs,app/public}
 
-      - name: Create storage skeleton
-        shell: bash
-        run: |
-          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/sessions
-          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/views
-          mkdir -p app2FrontEnd/src-tauri/backend/storage/framework/cache
-          mkdir -p app2FrontEnd/src-tauri/backend/storage/logs
-          mkdir -p app2FrontEnd/src-tauri/backend/storage/app/public
-
-      # ─── Linux: create sidecar symlink to system PHP ─────────────────────────
+      # ─── Linux: copy system PHP as sidecar binary ────────────────────────────
       - name: Prepare PHP sidecar (Linux)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
-          sudo apt-get install -y php-cli php-sqlite3 php-mbstring php-xml php-curl
           PHP_BIN=$(which php)
+          echo "Using PHP: $PHP_BIN"
           cp "$PHP_BIN" "app2FrontEnd/src-tauri/binaries/php/php-x86_64-unknown-linux-gnu"
           chmod +x "app2FrontEnd/src-tauri/binaries/php/php-x86_64-unknown-linux-gnu"
 
-      # ─── Windows: PHP binaries already committed; verify they exist ──────────
+      # ─── Windows: PHP binaries committed to repo — verify ────────────────────
       - name: Verify PHP sidecar (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $bin = "app2FrontEnd\src-tauri\binaries\php\php-x86_64-pc-windows-msvc.exe"
           if (-Not (Test-Path $bin)) {
-            Write-Error "❌ Missing: $bin"
+            Write-Error "❌ Missing Windows PHP sidecar: $bin"
             exit 1
           }
-          Write-Host "✅ PHP sidecar present: $bin"
+          Write-Host "✅ PHP sidecar found: $bin"
 
       - name: Install frontend dependencies
+        shell: bash
         run: |
           cd app2FrontEnd
           npm install
@@ -114,4 +110,4 @@ jobs:
           releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
-          args: "--target ${{ matrix.target }}"
+          args: "--target ${{ matrix.target }} --verbose"
