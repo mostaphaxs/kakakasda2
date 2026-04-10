@@ -44,10 +44,15 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       # ─── Bundle the Laravel backend ──────────────────────────────────────────
-      # We copy the backend source into src-tauri/backend so it gets bundled
-      # as a Tauri resource. vendor/ was pre-committed; composer install is
-      # run here to make sure it's fresh and platform-clean.
-      - name: Prepare Laravel backend resources
+      - name: Install Composer dependencies (in app2BackEnd)
+        shell: bash
+        working-directory: app2BackEnd
+        run: |
+          curl -sS https://getcomposer.org/installer | php
+          php composer.phar install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
+          rm composer.phar
+
+      - name: Copy Laravel backend into Tauri resources
         shell: bash
         run: |
           mkdir -p app2FrontEnd/src-tauri/backend
@@ -58,19 +63,11 @@ jobs:
                 app2BackEnd/public \
                 app2BackEnd/routes \
                 app2BackEnd/artisan \
+                app2BackEnd/vendor \
                 app2FrontEnd/src-tauri/backend/
-          # Copy .env for production defaults (APP_KEY etc are injected at runtime)
+          # Copy .env for production defaults
           cp app2BackEnd/.env app2FrontEnd/src-tauri/backend/.env || true
 
-      - name: Install Composer dependencies
-        shell: bash
-        working-directory: app2FrontEnd/src-tauri/backend
-        run: |
-          curl -sS https://getcomposer.org/installer | php
-          php composer.phar install --no-dev --optimize-autoloader --no-scripts --ignore-platform-reqs
-          rm composer.phar
-
-      # ─── Create storage skeleton (writable dirs are created at runtime) ──────
       - name: Create storage skeleton
         shell: bash
         run: |
