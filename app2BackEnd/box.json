@@ -1,10 +1,23 @@
 {
     "chmod": "0755",
-    "main": "public/index.php",
+    "main": "artisan",
     "output": "app.phar",
-    "directories": ["app", "bootstrap", "config", "database", "public", "resources", "routes", "vendor", "storage"],
-    "files": ["artisan"],
-    "dump-autoload": false,
+    "directories": [
+        "app", 
+        "bootstrap", 
+        "config", 
+        "database", 
+        "public", 
+        "resources", 
+        "routes", 
+        "vendor", 
+        "storage"
+    ],
+    "files": [
+        ".env.example"
+    ],
+    "dump-autoload": true,
+    "intercept": true,
     "blacklist": [
         "node_modules",
         "tests",

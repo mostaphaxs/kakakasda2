@@ -1,5 +1,14 @@
 <?php
 
+ini_set('memory_limit', '1G');
+
+// 🛠️ POLYFILL: Manque l'extension mbstring dans le binaire micro.sfx
+if (!function_exists('mb_split')) {
+    function mb_split($pattern, $string, $limit = -1) {
+        return preg_split('/' . $pattern . '/u', $string, $limit);
+    }
+}
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,14 +29,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $storage = env('LARAVEL_STORAGE_PATH');
         if ($storage) {
             $app->useStoragePath($storage);
-            // Also update the config for all disks that depend on storage_path()
             config(['filesystems.disks.public.root' => $storage . '/app/public']);
             config(['filesystems.disks.local.root' => $storage . '/app/private']);
         }
         
         $dbPath = env('DB_DATABASE');
         if ($dbPath) {
-            // Set both the config and the env to be sure
             config(['database.connections.sqlite.database' => $dbPath]);
             $_ENV['DB_DATABASE'] = $dbPath;
             putenv("DB_DATABASE={$dbPath}");
