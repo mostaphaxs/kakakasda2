@@ -29,9 +29,6 @@
   },
   "bundle": {
     "active": true,
-    "externalBin": [
-      "binaries/php/php"
-    ],
     "targets": [
       "msi",
       "nsis",
@@ -47,9 +44,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "binaries/php/php.ini",
-      "binaries/php/*.dll",
-      "binaries/php/ext/**/*",
+      "binaries/php/**/*",
       "backend/**/*"
     ]
   }

@@ -1,15 +1,13 @@
 use tauri::Manager;
 use tauri::path::BaseDirectory;
-use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandChild;
-use std::process::Command as StdCommand;
+use std::process::{Child, Command as StdCommand};
 use std::sync::Mutex;
 use std::net::TcpListener;
 use log::{info, error, warn};
 
 pub struct AppState {
     pub api_url: Mutex<String>,
-    pub child: Mutex<Option<CommandChild>>,
+    pub child: Mutex<Option<Child>>,
 }
 
 #[tauri::command]
@@ -91,7 +89,7 @@ fn system_php() -> std::path::PathBuf {
     std::path::PathBuf::from("php")
 }
 
-fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<CommandChild>) {
+fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let port = find_available_port(8000);
     let api_url = format!("http://127.0.0.1:{}/api", port);
 
@@ -186,11 +184,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<CommandChild>
     { use std::os::windows::process::CommandExt; seed.creation_flags(0x08000000); }
     let _ = seed.status();
 
-    // ── 7. Web server (long-running Tauri sidecar) ──────────────────────────
+    // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
-    let serve = app_handle.shell()
-        .sidecar("binaries/php/php")
-        .unwrap()
+    let mut serve = StdCommand::new(&php_bin);
+    serve
         .args([artisan.to_str().unwrap(), "serve",
                "--host", "127.0.0.1", "--port", &port.to_string()])
         .current_dir(&backend_path)
@@ -201,9 +198,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<CommandChild>
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
         .env("PATH",                 &new_path);
+        
+    #[cfg(target_os = "windows")]
+    { use std::os::windows::process::CommandExt; serve.creation_flags(0x08000000); }
 
     match serve.spawn() {
-        Ok((_rx, child)) => (api_url, Some(child)),
+        Ok(child) => (api_url, Some(child)),
         Err(e) => {
             error!("❌ Failed to start PHP server: {}", e);
             (api_url, None)
