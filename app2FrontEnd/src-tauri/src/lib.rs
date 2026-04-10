@@ -89,6 +89,17 @@ fn system_php() -> std::path::PathBuf {
     std::path::PathBuf::from("php")
 }
 
+fn to_laravel_path(path: &std::path::Path) -> String {
+    let s = path.to_string_lossy().to_string();
+    // Strip Windows UNC prefix (\?\) to fix Laravel absolute path detection
+    let s = if s.starts_with(r"\\?\") {
+        s[4..].to_string()
+    } else {
+        s
+    };
+    s.replace('\\', "/")
+}
+
 fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let port = find_available_port(8000);
     let api_url = format!("http://127.0.0.1:{}/api", port);
@@ -134,10 +145,11 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // ── 4. Common environment ───────────────────────────────────────────────
-    let db_str   = db_path.to_string_lossy().replace('\\', "/");
-    let stor_str = storage_dir.to_string_lossy().replace('\\', "/");
-    let app_key  = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
-    let php_dir_s = php_dir.to_string_lossy().to_string();
+    let db_str    = to_laravel_path(&db_path);
+    let stor_str  = to_laravel_path(&storage_dir);
+    let app_key   = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
+    let php_dir_s = to_laravel_path(&php_dir);
+    let php_ext_dir_s = to_laravel_path(&php_dir.join("ext"));
 
     let sys_path = std::env::var("PATH").unwrap_or_default();
     #[cfg(target_os = "windows")]
@@ -159,7 +171,13 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PHP_EXTENSION_DIR",    &php_ext_dir_s)
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; migrate.creation_flags(0x08000000); }
     match migrate.status() {
@@ -179,7 +197,13 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PHP_EXTENSION_DIR",    &php_ext_dir_s)
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; seed.creation_flags(0x08000000); }
     let _ = seed.status();
@@ -188,8 +212,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
     let mut serve = StdCommand::new(&php_bin);
     serve
-        .args([artisan.to_str().unwrap(), "serve",
-               "--host", "127.0.0.1", "--port", &port.to_string()])
+        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public"])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
@@ -197,7 +220,13 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PHP_EXTENSION_DIR",    &php_ext_dir_s)
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
         
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; serve.creation_flags(0x08000000); }
