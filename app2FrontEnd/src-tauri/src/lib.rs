@@ -254,7 +254,7 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 let state = app_handle.state::<AppState>();
                 let mut child_lock = state.child.lock().unwrap();
-                if let Some(child) = child_lock.take() {
+                if let Some(mut child) = child_lock.take() {
                     let _ = child.kill();
                 }
             }
