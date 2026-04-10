@@ -89,6 +89,17 @@ fn system_php() -> std::path::PathBuf {
     std::path::PathBuf::from("php")
 }
 
+fn to_laravel_path(path: &std::path::Path) -> String {
+    let s = path.to_string_lossy().to_string();
+    // Strip Windows UNC prefix if present (e.g. \\?\C:\... -> C:\...)
+    let s = if s.starts_with(r"\\?\") {
+        s[4..].to_string()
+    } else {
+        s
+    };
+    s.replace('\\', "/")
+}
+
 fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let port = find_available_port(8000);
     let api_url = format!("http://127.0.0.1:{}/api", port);
@@ -134,10 +145,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // ── 4. Common environment ───────────────────────────────────────────────
-    let db_str   = db_path.to_string_lossy().replace('\\', "/");
-    let stor_str = storage_dir.to_string_lossy().replace('\\', "/");
-    let app_key  = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
-    let php_dir_s = php_dir.to_string_lossy().to_string();
+    let db_str    = to_laravel_path(&db_path);
+    let stor_str  = to_laravel_path(&storage_dir);
+    let app_key   = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
+    let php_dir_s = to_laravel_path(&php_dir);
 
     let sys_path = std::env::var("PATH").unwrap_or_default();
     #[cfg(target_os = "windows")]
