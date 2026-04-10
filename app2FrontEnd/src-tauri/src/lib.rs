@@ -109,7 +109,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // ── 2. Persistent writable storage ─────────────────────────────────────
     let storage_dir = app_data_dir.join("storage");
-    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs", "app/public"] {
+    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs", "app/public", "bootstrap/cache"] {
         std::fs::create_dir_all(storage_dir.join(subdir)).ok();
     }
 
@@ -159,7 +159,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; migrate.creation_flags(0x08000000); }
     match migrate.status() {
@@ -179,7 +184,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; seed.creation_flags(0x08000000); }
     let _ = seed.status();
@@ -197,7 +207,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
         .env("APP_ENV",              "production")
         .env("APP_DEBUG",            "false")
         .env("PHPRC",                &php_dir_s)
-        .env("PATH",                 &new_path);
+        .env("PATH",                 &new_path)
+        .env("APP_CONFIG_CACHE",     format!("{}/bootstrap/cache/config.php", stor_str))
+        .env("APP_EVENTS_CACHE",     format!("{}/bootstrap/cache/events.php", stor_str))
+        .env("APP_PACKAGES_CACHE",   format!("{}/bootstrap/cache/packages.php", stor_str))
+        .env("APP_ROUTES_CACHE",     format!("{}/bootstrap/cache/routes-v7.php", stor_str))
+        .env("APP_SERVICES_CACHE",   format!("{}/bootstrap/cache/services.php", stor_str));
         
     #[cfg(target_os = "windows")]
     { use std::os::windows::process::CommandExt; serve.creation_flags(0x08000000); }
