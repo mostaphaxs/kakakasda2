@@ -211,10 +211,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
+    
+    // Built-in PHP server is more robust for sidecars than 'artisan serve'
+    // as it doesn't spawn nested processes.
     let mut serve = StdCommand::new(&php_bin);
     serve
-        .args([&artisan_s, "serve",
-               "--host", "127.0.0.1", "--port", &port.to_string()])
+        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public"])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
