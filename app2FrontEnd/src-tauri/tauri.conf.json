@@ -1,5 +1,4 @@
 {
-  
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "MyAmical",
   "version": "0.1.0",
@@ -30,9 +29,10 @@
   },
   "bundle": {
     "active": true,
-     "externalBin": [
-    "internal/laravel-backend" 
-  ],
+    "externalBin": [
+      "binaries/php/php",
+      "binaries/php/php-win"
+    ],
     "targets": [
       "msi",
       "nsis",
@@ -48,7 +48,10 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "icons/**/*"
+      "icons/**/*",
+      "binaries/php/php.ini",
+      "binaries/php/php8ts.dll",
+      "binaries/php/ext/**/*"
     ]
   }
 }
