@@ -34,8 +34,8 @@ export async function initializeApiConfig() {
             STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
             console.log(`[api] Dynamic configuration loaded: ${API_BASE}`);
         }
-    } catch (error) {
-        console.warn("[api] Failed to fetch dynamic config from Tauri, using .env fallback:", error);
+    } catch (error: any) {
+        console.warn("[api] Failed to fetch dynamic config from Tauri, using .env fallback:", error?.message || error);
     }
 }
 
