@@ -137,11 +137,15 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     let php_bin = resolve_php_binary(app_handle);
     let php_dir = php_bin.parent().unwrap_or(&php_bin).to_path_buf();
 
-    info!("🐘 PHP binary  : {:?}", php_bin);
-    info!("📁 Backend path: {:?}", backend_path);
+    let backend_path_s = to_laravel_path(&backend_path);
+    let artisan_s      = to_laravel_path(&backend_path.join("artisan"));
+
+    info!("🐘 PHP binary   : {:?}", php_bin);
+    info!("📁 Backend path  : {}", backend_path_s);
+    info!("📜 Artisan script: {}", artisan_s);
 
     if !backend_path.exists() {
-        error!("❌ Backend path does not exist: {:?}", backend_path);
+        error!("❌ Backend path does not exist: {}", backend_path_s);
     }
 
     // ── 4. Common environment ───────────────────────────────────────────────
@@ -162,7 +166,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     info!("🔄 Running migrations on: {}", db_str);
     let mut migrate = StdCommand::new(&php_bin);
     migrate
-        .arg(&artisan).arg("migrate").arg("--force")
+        .arg(&artisan_s).arg("migrate").arg("--force")
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
@@ -187,7 +191,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     // ── 6. Seeders (blocking) ───────────────────────────────────────────────
     let mut seed = StdCommand::new(&php_bin);
     seed
-        .arg(&artisan).arg("db:seed").arg("--class=DefaultUserSeeder").arg("--force")
+        .arg(&artisan_s).arg("db:seed").arg("--class=DefaultUserSeeder").arg("--force")
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
@@ -209,7 +213,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
     let mut serve = StdCommand::new(&php_bin);
     serve
-        .args([artisan.to_str().unwrap(), "serve",
+        .args([&artisan_s, "serve",
                "--host", "127.0.0.1", "--port", &port.to_string()])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
