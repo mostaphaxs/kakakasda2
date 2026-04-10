@@ -1,18 +1,24 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
+  "$schema": "../gen/schemas/desktop-capability.schema.json",
   "identifier": "default",
-  "description": "enables the default permissions",
+  "description": "Capability for the main window",
   "windows": [
     "main"
   ],
   "permissions": [
     "core:default",
-    "allow-open-url",
-    "dialog:allow-open",
-    "dialog:allow-save",
-    "core:event:default",
-    "allow-get-api-config",
-    "allow-import-database",
-    "allow-export-database"
+    "log:default",
+    "dialog:default",
+    "shell:default",
+    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/php/php",
+          "sidecar": true
+        }
+      ]
+    }
   ]
 }

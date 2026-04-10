@@ -30,8 +30,7 @@
   "bundle": {
     "active": true,
     "externalBin": [
-      "binaries/php/php",
-      "binaries/php/php-win"
+      "binaries/php/php"
     ],
     "targets": [
       "msi",
@@ -47,11 +46,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": [
-      "icons/**/*",
-      "binaries/php/php.ini",
-      "binaries/php/php8ts.dll",
-      "binaries/php/ext/**/*"
-    ]
+    "resources": {
+      "binaries/php/php.ini": "binaries/php/php.ini",
+      "binaries/php/*.dll": "binaries/php/",
+      "binaries/php/ext/**/*": "binaries/php/ext/",
+      "backend/**/*": "backend/"
+    }
   }
 }

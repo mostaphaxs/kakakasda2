@@ -1,20 +1,15 @@
 use tauri::Manager;
-use std::process::{Command, Child, Stdio};
+use tauri::path::BaseDirectory;
+use tauri_plugin_shell::ShellExt;
+use tauri_plugin_shell::process::CommandChild;
+use std::process::Command as StdCommand;
 use std::sync::Mutex;
 use std::net::TcpListener;
-use std::io::{BufRead, BufReader};
 use log::{info, error, warn};
-
-// --- Stealth Embedding Configuration ---
-#[cfg(target_os = "windows")]
-const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-pc-windows-msvc.exe");
-
-#[cfg(target_os = "linux")]
-const BACKEND_BINARY: &[u8] = include_bytes!("../internal/laravel-backend-x86_64-unknown-linux-gnu");
 
 pub struct AppState {
     pub api_url: Mutex<String>,
-    pub child: Mutex<Option<Child>>,
+    pub child: Mutex<Option<CommandChild>>,
 }
 
 #[tauri::command]
@@ -26,15 +21,15 @@ async fn get_api_config(state: tauri::State<'_, AppState>) -> Result<String, Str
 fn open_url(url: String) -> Result<(), String> {
     #[cfg(target_os = "linux")]
     {
-        Command::new("xdg-open").arg(url).spawn().map_err(|e| e.to_string())?;
+        StdCommand::new("xdg-open").arg(&url).spawn().map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "windows")]
     {
-        Command::new("cmd").args(["/C", "start", "", &url]).spawn().map_err(|e| e.to_string())?;
+        StdCommand::new("cmd").args(["/C", "start", "", &url]).spawn().map_err(|e| e.to_string())?;
     }
     #[cfg(target_os = "macos")]
     {
-        Command::new("open").arg(url).spawn().map_err(|e| e.to_string())?;
+        StdCommand::new("open").arg(&url).spawn().map_err(|e| e.to_string())?;
     }
     Ok(())
 }
@@ -48,170 +43,169 @@ fn find_available_port(start_port: u16) -> u16 {
     8000
 }
 
-fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
+/// Returns the path to the bundled php binary for the current platform.
+/// In production: resource dir / binaries/php/php-<triple>[.exe]
+/// In dev: falls back to src-tauri/binaries/php/<file>, then system PHP.
+fn resolve_php_binary(app_handle: &tauri::AppHandle) -> std::path::PathBuf {
+    #[cfg(target_os = "windows")]
+    let sidecar_name = "binaries/php/php-x86_64-pc-windows-msvc.exe";
+    #[cfg(target_os = "linux")]
+    let sidecar_name = "binaries/php/php-x86_64-unknown-linux-gnu";
+    #[cfg(target_os = "macos")]
+    let sidecar_name = "binaries/php/php-aarch64-apple-darwin";
+
+    // 1. Production path (installed app resource dir)
+    if let Ok(path) = app_handle.path().resolve(sidecar_name, BaseDirectory::Resource) {
+        if path.exists() {
+            return path;
+        }
+    }
+
+    // 2. Dev path (src-tauri/binaries/php/)
+    let manifest = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let dev_path = manifest.join(sidecar_name);
+    if dev_path.exists() {
+        return dev_path;
+    }
+
+    // 3. System PHP fallback (supports both Linux `which` and Windows `where`)
+    system_php()
+}
+
+fn system_php() -> std::path::PathBuf {
+    #[cfg(target_os = "windows")]
+    let finder = "where";
+    #[cfg(not(target_os = "windows"))]
+    let finder = "which";
+
+    if let Ok(out) = StdCommand::new(finder).arg("php").output() {
+        let path = String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .next()
+            .map(|l| l.trim().to_string())
+            .unwrap_or_default();
+        if !path.is_empty() {
+            return std::path::PathBuf::from(path);
+        }
+    }
+    std::path::PathBuf::from("php")
+}
+
+fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<CommandChild>) {
     let port = find_available_port(8000);
     let api_url = format!("http://127.0.0.1:{}/api", port);
 
-    // 1. Determine Persistent AppData Path
+    // ── 1. Persistent AppData directory ──────────────────────────────────────
     let app_data_dir = app_handle.path().app_data_dir().expect("Failed to get AppData dir");
-    if let Err(e) = std::fs::create_dir_all(&app_data_dir) {
-        eprintln!("❌ Failed to create AppData directory: {}", e);
-    }
+    std::fs::create_dir_all(&app_data_dir).ok();
 
-    // 🛡️ THE FIX: Differentiate between Dev and Production database
     #[cfg(debug_assertions)]
     let db_filename = "dev_database.sqlite";
     #[cfg(not(debug_assertions))]
     let db_filename = "database.sqlite";
 
     let db_path = app_data_dir.join(db_filename);
-    
-    // Create empty DB file if it doesn't exist
     if !db_path.exists() {
-        if let Err(e) = std::fs::write(&db_path, "") {
-            eprintln!("❌ Failed to initialize database file: {}", e);
-        }
+        std::fs::write(&db_path, "").ok();
     }
 
-    // 2. Determine Temp Binary Path (for extraction)
-    let temp_dir = std::env::temp_dir().join("com.mustapha.myamical");
-    std::fs::create_dir_all(&temp_dir).ok();
-    
-    #[cfg(target_os = "windows")]
-    let bin_name = "backend_srv.exe";
-    #[cfg(not(target_os = "windows"))]
-    let bin_name = "backend_srv";
-    
-    let mut bin_path = temp_dir.join(bin_name);
-    
-    // 🛡️ THE FIX: Handle locked files on Windows (Access Denied)
-    // If extraction fails because the file is locked by a previous instance,
-    // we try with a unique name to ensure the app can always start.
-    match std::fs::write(&bin_path, BACKEND_BINARY) {
-        Ok(_) => info!("✅ Backend binary extracted: {:?}", bin_path),
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            warn!("⚠️ Backend binary is locked, trying unique filename: {}", e);
-            let unique_bin_name = format!("backend_srv_{}.exe", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs());
-            bin_path = temp_dir.join(unique_bin_name);
-            std::fs::write(&bin_path, BACKEND_BINARY).expect("Failed to extract backend binary to unique path");
-            info!("✅ Backend binary extracted to unique path: {:?}", bin_path);
-        }
-        Err(e) => panic!("❌ Failed to extract backend binary: {}", e),
-    }
-    
-    #[cfg(not(target_os = "windows"))]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&bin_path, std::fs::Permissions::from_mode(0o755)).ok();
-    }
-
-    // 3. Prepare Persistent Storage (Senior Fix for Sidecars)
-    // Bundled binaries are read-only, so we MUST redirect storage to a writable path.
+    // ── 2. Persistent writable storage ─────────────────────────────────────
     let storage_dir = app_data_dir.join("storage");
     for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs", "app/public"] {
         std::fs::create_dir_all(storage_dir.join(subdir)).ok();
     }
 
-    // =========================================================================
-    // 🚀 AUTOMATED MIGRATIONS & SEEDING (PRODUCTION)
-    // =========================================================================
-    
-    let app_key = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
+    // ── 3. Resolve bundled backend & PHP paths ──────────────────────────────
+    let backend_path = {
+        // Production: Tauri copies resources next to the binary
+        let resource = app_handle.path().resolve("backend", BaseDirectory::Resource).ok();
+        resource.filter(|p| p.exists()).unwrap_or_else(|| {
+            // Dev: use the backend folder inside src-tauri
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("backend")
+        })
+    };
 
-    // Normalise paths for Laravel (forward slashes work best even on Windows)
-    let db_str = db_path.to_string_lossy().replace("\\", "/");
-    let storage_str = storage_dir.to_string_lossy().replace("\\", "/");
+    let php_bin = resolve_php_binary(app_handle);
+    let php_dir = php_bin.parent().unwrap_or(&php_bin).to_path_buf();
 
-    // A. Run Migrations
+    info!("🐘 PHP binary  : {:?}", php_bin);
+    info!("📁 Backend path: {:?}", backend_path);
+
+    if !backend_path.exists() {
+        error!("❌ Backend path does not exist: {:?}", backend_path);
+    }
+
+    // ── 4. Common environment ───────────────────────────────────────────────
+    let db_str   = db_path.to_string_lossy().replace('\\', "/");
+    let stor_str = storage_dir.to_string_lossy().replace('\\', "/");
+    let app_key  = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
+    let php_dir_s = php_dir.to_string_lossy().to_string();
+
+    let sys_path = std::env::var("PATH").unwrap_or_default();
+    #[cfg(target_os = "windows")]
+    let new_path = format!("{};{}", php_dir_s, sys_path);
+    #[cfg(not(target_os = "windows"))]
+    let new_path = format!("{}:{}", php_dir_s, sys_path);
+
+    let artisan = backend_path.join("artisan");
+
+    // ── 5. Migrations (blocking) ────────────────────────────────────────────
     info!("🔄 Running migrations on: {}", db_str);
-    let mut migrate_cmd = Command::new(&bin_path);
-    migrate_cmd.args(["php-cli", "artisan", "migrate", "--force"])
-        .env("DB_DATABASE", &db_str)
-        .env("LARAVEL_STORAGE_PATH", &storage_str)
-        .env("APP_KEY", app_key)
-        .env("APP_ENV", "production")
-        .env("APP_DEBUG", "true");
-
+    let mut migrate = StdCommand::new(&php_bin);
+    migrate
+        .arg(&artisan).arg("migrate").arg("--force")
+        .current_dir(&backend_path)
+        .env("DB_DATABASE",          &db_str)
+        .env("LARAVEL_STORAGE_PATH", &stor_str)
+        .env("APP_KEY",              app_key)
+        .env("APP_ENV",              "production")
+        .env("APP_DEBUG",            "false")
+        .env("PHPRC",                &php_dir_s)
+        .env("PATH",                 &new_path);
     #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        migrate_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+    { use std::os::windows::process::CommandExt; migrate.creation_flags(0x08000000); }
+    match migrate.status() {
+        Ok(s) if s.success() => info!("✅ Migrations done."),
+        Ok(s) => warn!("⚠️ Migrations exited: {}", s),
+        Err(e) => error!("❌ Migration error: {}", e),
     }
 
-    match migrate_cmd.status() {
-        Ok(s) if s.success() => info!("✅ Migrations completed successfully."),
-        Ok(s) => error!("⚠️ Migrations failed with status: {}", s),
-        Err(e) => error!("❌ Failed to execute migration command: {}", e),
-    }
-
-    // B. Run Seeders
-    let mut seed_cmd = Command::new(&bin_path);
-    seed_cmd.args(["php-cli", "artisan", "db:seed", "--class=DefaultUserSeeder", "--force"])
-        .env("DB_DATABASE", &db_str)
-        .env("LARAVEL_STORAGE_PATH", &storage_str)
-        .env("APP_KEY", app_key)
-        .env("APP_ENV", "production")
-        .env("APP_DEBUG", "true");
-
+    // ── 6. Seeders (blocking) ───────────────────────────────────────────────
+    let mut seed = StdCommand::new(&php_bin);
+    seed
+        .arg(&artisan).arg("db:seed").arg("--class=DefaultUserSeeder").arg("--force")
+        .current_dir(&backend_path)
+        .env("DB_DATABASE",          &db_str)
+        .env("LARAVEL_STORAGE_PATH", &stor_str)
+        .env("APP_KEY",              app_key)
+        .env("APP_ENV",              "production")
+        .env("APP_DEBUG",            "false")
+        .env("PHPRC",                &php_dir_s)
+        .env("PATH",                 &new_path);
     #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        seed_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    }
-    let _ = seed_cmd.status();
+    { use std::os::windows::process::CommandExt; seed.creation_flags(0x08000000); }
+    let _ = seed.status();
 
-    // =========================================================================
+    // ── 7. Web server (long-running Tauri sidecar) ──────────────────────────
+    info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
+    let serve = app_handle.shell()
+        .sidecar("binaries/php/php")
+        .unwrap()
+        .args([artisan.to_str().unwrap(), "serve",
+               "--host", "127.0.0.1", "--port", &port.to_string()])
+        .current_dir(&backend_path)
+        .env("DB_DATABASE",          &db_str)
+        .env("LARAVEL_STORAGE_PATH", &stor_str)
+        .env("APP_KEY",              app_key)
+        .env("APP_ENV",              "production")
+        .env("APP_DEBUG",            "false")
+        .env("PHPRC",                &php_dir_s)
+        .env("PATH",                 &new_path);
 
-    // 4. Spawn Backend sidecar
-    info!("🚀 Spawning backend sidecar on port {}", port);
-    let mut cmd = Command::new(&bin_path);
-    cmd.args(["php-server", "-l", &format!("127.0.0.1:{}", port)]);
-    
-    // Inject the persistent DB and writable storage paths
-    cmd.env("DB_DATABASE", &db_str);
-    cmd.env("LARAVEL_STORAGE_PATH", &storage_str);
-    cmd.env("APP_KEY", app_key);
-    cmd.env("APP_ENV", "production"); 
-    cmd.env("APP_DEBUG", "true");
-
-    #[cfg(target_os = "windows")]
-    {
-        use std::os::windows::process::CommandExt;
-        cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-    }
-
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-
-    match cmd.spawn() {
-        Ok(mut child) => {
-            let stdout = child.stdout.take().unwrap();
-            let stderr = child.stderr.take().unwrap();
-
-            // Background thread to log stdout
-            std::thread::spawn(move || {
-                let reader = BufReader::new(stdout);
-                for line in reader.lines() {
-                    if let Ok(l) = line {
-                        info!("[backend] {}", l);
-                    }
-                }
-            });
-
-            // Background thread to log stderr
-            std::thread::spawn(move || {
-                let reader = BufReader::new(stderr);
-                for line in reader.lines() {
-                    if let Ok(l) = line {
-                        warn!("[backend-err] {}", l);
-                    }
-                }
-            });
-
-            (api_url, Some(child))
-        }
+    match serve.spawn() {
+        Ok((_rx, child)) => (api_url, Some(child)),
         Err(e) => {
-            error!("❌ Failed to start sidecar: {}", e);
+            error!("❌ Failed to start PHP server: {}", e);
             (api_url, None)
         }
     }
@@ -219,34 +213,21 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
 #[tauri::command]
 async fn import_database(app_handle: tauri::AppHandle, source_path: String) -> Result<String, String> {
-    let app_data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("database.sqlite");
-    
+    let db_path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?.join("database.sqlite");
     let source = std::path::PathBuf::from(source_path);
-    if !source.exists() {
-        return Err("Le fichier source n'existe pas.".to_string());
-    }
-    
-    // Copy and overwrite the existing database
+    if !source.exists() { return Err("Le fichier source n'existe pas.".to_string()); }
     std::fs::copy(&source, &db_path).map_err(|e| format!("Erreur lors de la copie : {}", e))?;
-    
-    Ok("Base de données importée avec succès. Veuillez redémarrer l'application pour appliquer les changements.".to_string())
-}
-#[tauri::command]
-async fn export_database(app_handle: tauri::AppHandle, destination_path: String) -> Result<String, String> {
-    let app_data_dir = app_handle.path().app_data_dir().map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("database.sqlite");
-    
-    if !db_path.exists() {
-        return Err("La base de données actuelle n'existe pas.".to_string());
-    }
-    
-    let destination = std::path::PathBuf::from(destination_path);
-    std::fs::copy(&db_path, &destination).map_err(|e| format!("Erreur lors de l'exportation : {}", e))?;
-    
-    Ok("Base de données exportée avec succès.".to_string())
+    Ok("Base de données importée avec succès. Veuillez redémarrer l'application.".to_string())
 }
 
+#[tauri::command]
+async fn export_database(app_handle: tauri::AppHandle, destination_path: String) -> Result<String, String> {
+    let db_path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?.join("database.sqlite");
+    if !db_path.exists() { return Err("La base de données actuelle n'existe pas.".to_string()); }
+    let dest = std::path::PathBuf::from(destination_path);
+    std::fs::copy(&db_path, &dest).map_err(|e| format!("Erreur lors de l'exportation : {}", e))?;
+    Ok("Base de données exportée avec succès.".to_string())
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -259,26 +240,21 @@ pub fn run() {
             ])
             .level(log::LevelFilter::Info)
             .build())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let (api_url, child) = setup_backend(app.handle());
-            app.manage(AppState {
-                api_url: Mutex::new(api_url),
-                child: Mutex::new(child),
-            });
+            app.manage(AppState { api_url: Mutex::new(api_url), child: Mutex::new(child) });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![open_url, get_api_config, import_database, export_database])
-        .plugin(tauri_plugin_dialog::init())
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
             if let tauri::RunEvent::Exit = event {
                 let state = app_handle.state::<AppState>();
-                {
-                    let mut child_lock = state.child.lock().unwrap();
-                    if let Some(mut child) = child_lock.take() {
-                        let _ = child.kill();
-                    }
+                if let Some(child) = state.child.lock().unwrap().take() {
+                    let _ = child.kill();
                 }
             }
         });
