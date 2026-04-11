@@ -145,8 +145,16 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // ── 4. Common environment ───────────────────────────────────────────────
+    let storage_root = storage_dir.join("storage");
+    let _ = std::fs::create_dir_all(storage_root.join("framework/sessions"));
+    let _ = std::fs::create_dir_all(storage_root.join("framework/views"));
+    let _ = std::fs::create_dir_all(storage_root.join("framework/cache"));
+    let _ = std::fs::create_dir_all(storage_root.join("logs"));
+    let _ = std::fs::create_dir_all(storage_root.join("app/public"));
+    let _ = std::fs::create_dir_all(storage_root.join("app/private"));
+
     let db_str    = to_laravel_path(&db_path);
-    let stor_str  = to_laravel_path(&storage_dir);
+    let stor_str  = to_laravel_path(&storage_root);
     let app_key   = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
     let php_dir_s = to_laravel_path(&php_dir);
     let php_ext_dir_s = to_laravel_path(&php_dir.join("ext"));
@@ -212,9 +220,15 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
     
-    // In Laravel 11, the server.php router is located in the vendor framework.
-    // Without this router, the built-in server won't route missing files (like /storage) to index.php.
-    let router_script_path = backend_path.join("vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php");
+    // Create a local router script to ensure fallback to index.php and serving static files
+    let router_content = "<?php
+$publicPath = getcwd().DIRECTORY_SEPARATOR.'public';
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+if ($uri !== '/' && file_exists($publicPath.$uri)) return false;
+require_once $publicPath.DIRECTORY_SEPARATOR.'index.php';";
+    
+    let router_script_path = backend_path.join("server.php");
+    let _ = std::fs::write(&router_script_path, router_content);
     let router_script = to_laravel_path(&router_script_path);
 
     let mut serve = StdCommand::new(&php_bin);
