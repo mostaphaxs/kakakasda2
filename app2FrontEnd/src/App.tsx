@@ -20,6 +20,8 @@ import Clients from './component/Clients.tsx'
 import Profile from './component/Profile.tsx'
 import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import { Toaster } from 'react-hot-toast';
+import GlobalPreview from './component/GlobalPreview.tsx';
+
 
 // Procurement Components
 import Articles from './component/procurement/Articles';
@@ -47,7 +49,9 @@ const App: React.FC = () => {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Router>
         <Toaster position="top-right" reverseOrder={false} />
+        <GlobalPreview />
         <NavBar />
+
 
         <div className="flex-grow pt-20 px-4 pb-10">
           <div className="max-w-7xl mx-auto">
