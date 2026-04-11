@@ -8,44 +8,64 @@ Route::get('/', function () {
 });
 
 // 🛡️ THE FIX: Serve storage files manually for sidecars (since storage:link fails)
-// 🛡️ THE FIX: Serve storage files manually for sidecars (guarantees AppData access)
+// 🛡️ THE FIX: Exhaustive "Search and Serve" logic for sidecars
 Route::get('/storage/{path}', function ($path) {
     $storageBase = env('LARAVEL_STORAGE_PATH', storage_path());
     $storageBase = str_replace('\\', '/', $storageBase);
-    $fullPath = rtrim($storageBase, '/') . '/app/public/' . $path;
+    
+    // We try multiple common patterns to find the file
+    $candidates = [
+        // 1. Direct AppData path (Standard)
+        rtrim($storageBase, '/') . '/app/public/' . $path,
+        // 2. Double public check (in case DB path includes "public/")
+        rtrim($storageBase, '/') . '/app/' . $path,
+        // 3. Fallback to local storage
+        storage_path('app/public/' . $path),
+        // 4. Case-insensitive attempt (less common but safe on Win)
+        rtrim($storageBase, '/') . '/app/PUBLIC/' . $path,
+    ];
 
-    if (!file_exists($fullPath)) {
+    $foundPath = null;
+    foreach ($candidates as $c) {
+        if (file_exists($c) && !is_dir($c)) {
+            $foundPath = $c;
+            break;
+        }
+    }
+
+    if (!$foundPath) {
         return response()->json([
-            'error' => 'File not found',
-            'attempted_path' => $fullPath,
-            'env_storage' => env('LARAVEL_STORAGE_PATH'),
-            'storage_path' => storage_path(),
-            'cwd' => getcwd()
+            'error' => 'File not found at any location',
+            'requested_path' => $path,
+            'attempted_full_paths' => $candidates,
+            'env_storage_path' => $storageBase,
+            'real_storage_path' => storage_path(),
         ], 404);
     }
 
-    $mime = \Illuminate\Support\Facades\File::mimeType($fullPath);
-    return response()->file($fullPath, [
+    $mime = \Illuminate\Support\Facades\File::mimeType($foundPath);
+    return response()->file($foundPath, [
         'Content-Type' => $mime,
         'Access-Control-Allow-Origin' => '*',
+        'X-Found-At' => basename($foundPath),
     ]);
 })->where('path', '.*')->middleware([\Illuminate\Http\Middleware\HandleCors::class]);
 
-// 🔍 DIAGNOSTIC ENDPOINT: Help us see what the PHP process sees
+// 🔍 DIAGNOSTIC ENDPOINT
 Route::get('/api/debug-storage', function() {
     $storage = env('LARAVEL_STORAGE_PATH');
-    $path = $storage . '/app/public';
+    $publicPath = rtrim($storage, '/') . '/app/public';
     return response()->json([
-        'LARAVEL_STORAGE_PATH' => $storage,
-        'storage_path()' => storage_path(),
-        'disk_public_root' => config('filesystems.disks.public.root'),
-        'cwd' => getcwd(),
-        'public_exists' => is_dir($path),
-        'public_contents' => is_dir($path) ? array_diff(scandir($path), ['.', '..']) : 'N/A',
-        'php_version' => PHP_VERSION,
-        'server_addr' => $_SERVER['SERVER_ADDR'] ?? 'N/A',
+        'ENV_STORAGE' => $storage,
+        'STORAGE_PATH_FUNC' => storage_path(),
+        'PUBLIC_DIR' => $publicPath,
+        'IS_DIR' => is_dir($publicPath),
+        'SCAN' => is_dir($publicPath) ? array_diff(scandir($publicPath), ['.', '..']) : 'N/A',
+        'RECEIPTS_SCAN' => is_dir($publicPath.'/receipts') ? array_diff(scandir($publicPath.'/receipts'), ['.', '..']) : 'N/A',
+        'CWD' => getcwd(),
     ]);
 })->middleware([\Illuminate\Http\Middleware\HandleCors::class]);
+
 
 
 
