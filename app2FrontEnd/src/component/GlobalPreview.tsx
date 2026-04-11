@@ -50,19 +50,21 @@ const GlobalPreview = () => {
                 </div>
                 <div className="flex-1 bg-gray-100 overflow-auto p-4 flex items-center justify-center">
                     {previewUrl.toLowerCase().endsWith('.pdf') ? (
-                        <embed src={previewUrl} type="application/pdf" className="w-full h-full rounded-lg" />
+                        <embed src={`${previewUrl}?v=${Date.now()}`} type="application/pdf" className="w-full h-full rounded-lg" />
                     ) : (
                         <img
-                            src={previewUrl}
+                            src={`${previewUrl}?v=${Date.now()}`}
                             alt="Aperçu"
                             className="max-w-full max-h-full object-contain shadow-sm rounded-lg"
                             onError={(e) => {
+                                console.error('[GlobalPreview] Image load failed for URL:', previewUrl);
                                 const target = e.target as HTMLImageElement;
-                                target.src = 'https://placehold.co/600x400?text=Format+non+supporté';
+                                target.src = 'https://placehold.co/600x400?text=Format+non+supporté+ou+Erreur+404';
                             }}
                         />
                     )}
                 </div>
+
             </div>
         </div>
     );
