@@ -208,6 +208,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     { use std::os::windows::process::CommandExt; seed.creation_flags(0x08000000); }
     let _ = seed.status();
 
+    
     // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
     
