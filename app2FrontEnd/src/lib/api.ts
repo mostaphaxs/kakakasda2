@@ -19,7 +19,8 @@ const GET_VITE_URL = () => {
 const DEFAULT_URL = GET_VITE_URL() || 'http://127.0.0.1:8000/api';
 
 export let API_BASE = DEFAULT_URL.replace(/\/+$/, '');
-export let STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
+export let STORAGE_BASE = API_BASE + '/sidecar-serve';
+
 
 /**
  * Initializes the API configuration by fetching the dynamic port/URL from Tauri.

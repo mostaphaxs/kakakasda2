@@ -104,3 +104,46 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
     
 });
+
+// 🖼️ UNIVERSAL DOCUMENT SERVE (Bypass web.php)
+Route::get('/sidecar-serve/{path}', function ($path) {
+    $storage = env('LARAVEL_STORAGE_PATH', storage_path());
+    $storage = str_replace('\\', '/', $storage);
+    
+    $candidates = [
+        rtrim($storage, '/') . '/app/public/' . $path,
+        rtrim($storage, '/') . '/app/' . $path,
+        storage_path('app/public/' . $path),
+    ];
+
+    foreach ($candidates as $c) {
+        if (file_exists($c) && !is_dir($c)) {
+            $mime = \Illuminate\Support\Facades\File::mimeType($c);
+            return response()->file($c, [
+                'Content-Type' => $mime,
+                'Access-Control-Allow-Origin' => '*',
+                'Cache-Control' => 'no-cache, must-revalidate',
+            ]);
+        }
+    }
+
+    return response()->json([
+        'error' => 'File not found after exhaustive search',
+        'requested' => $path,
+        'checked' => $candidates,
+        'env_storage' => $storage
+    ], 404);
+})->where('path', '.*');
+
+// 🔍 DIAGNOSTIC
+Route::get('/debug-sidecar', function() {
+    $storage = env('LARAVEL_STORAGE_PATH');
+    $path = rtrim($storage, '/') . '/app/public';
+    return response()->json([
+        'STORAGE' => $storage,
+        'PUB_DIR' => $path,
+        'PUB_EXISTS' => is_dir($path),
+        'PUB_FILES' => is_dir($path) ? array_diff(scandir($path), ['.', '..']) : [],
+    ]);
+});
+

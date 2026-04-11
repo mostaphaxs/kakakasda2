@@ -15,8 +15,9 @@ export function registerPreviewHandler(handler: PreviewHandler) {
  */
 export async function openExternal(url: string): Promise<void> {
     // 1. Check if it's a document/receipt from our storage
-    const isDoc = url.includes('/storage/') && (
+    const isDoc = (url.includes('/storage/') || url.includes('/sidecar-serve/')) && (
         url.toLowerCase().endsWith('.pdf') ||
+
         url.toLowerCase().endsWith('.png') ||
         url.toLowerCase().endsWith('.jpg') ||
         url.toLowerCase().endsWith('.jpeg') ||
