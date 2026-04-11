@@ -120,7 +120,8 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // ── 2. Persistent writable storage ─────────────────────────────────────
     let storage_dir = app_data_dir.join("storage");
-    for subdir in &["framework/sessions", "framework/views", "framework/cache", "logs", "app/public"] {
+    // 🐘 FIX (V6): Must include bootstrap/cache or Laravel PackageManifest fails!
+    for subdir in &["bootstrap/cache", "framework/sessions", "framework/views", "framework/cache", "logs", "app/public", "app/private"] {
         std::fs::create_dir_all(storage_dir.join(subdir)).ok();
     }
 
@@ -145,16 +146,8 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     }
 
     // ── 4. Common environment ───────────────────────────────────────────────
-    let storage_root = storage_dir.join("storage");
-    let _ = std::fs::create_dir_all(storage_root.join("framework/sessions"));
-    let _ = std::fs::create_dir_all(storage_root.join("framework/views"));
-    let _ = std::fs::create_dir_all(storage_root.join("framework/cache"));
-    let _ = std::fs::create_dir_all(storage_root.join("logs"));
-    let _ = std::fs::create_dir_all(storage_root.join("app/public"));
-    let _ = std::fs::create_dir_all(storage_root.join("app/private"));
-
     let db_str    = to_laravel_path(&db_path);
-    let stor_str  = to_laravel_path(&storage_root);
+    let stor_str  = to_laravel_path(&storage_dir);
     let app_key   = "base64:nYxGffEkIMcHQtDKIHFfULBbh4k8qicojvv59QIi6lM=";
     let php_dir_s = to_laravel_path(&php_dir);
     let php_ext_dir_s = to_laravel_path(&php_dir.join("ext"));
@@ -220,6 +213,10 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
     
+    // PHP SERVER LOGGING FIX (V5): Redirect output to a file for debugging
+    let php_log_path = storage_dir.join("logs/php_server.log");
+    let php_log_file = std::fs::File::create(&php_log_path).ok();
+    
     // Create a local router script to ensure fallback to index.php and serving static files
     let router_content = "<?php
 $publicPath = getcwd().DIRECTORY_SEPARATOR.'public';
@@ -232,6 +229,10 @@ require_once $publicPath.DIRECTORY_SEPARATOR.'index.php';";
     let router_script = to_laravel_path(&router_script_path);
 
     let mut serve = StdCommand::new(&php_bin);
+    if let Some(log) = php_log_file {
+        serve.stdout(log.try_clone().unwrap()).stderr(log);
+    }
+    
     serve
         .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public", &router_script])
         .current_dir(&backend_path)
