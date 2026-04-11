@@ -1022,8 +1022,14 @@ const Clients = () => {
                                             type="text" required
                                             value={editFormData.cin || ''}
                                             onChange={e => setEditFormData({ ...editFormData, cin: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase`}
                                         />
+                                        {fieldErrors.cin && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.cin[0]}</p>}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone Sec.</label>
                                         <input
                                             type="text"
@@ -1032,20 +1038,6 @@ const Clients = () => {
                                             className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.tel_2 ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
                                         />
                                         {fieldErrors.tel_2 && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel_2[0]}</p>}
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">CIN *</label>
-                                        <input
-                                            type="text"
-                                            value={editFormData.cin || ''}
-                                            onChange={e => setEditFormData({ ...editFormData, cin: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase`}
-                                            placeholder="AB123456"
-                                        />
-                                        {fieldErrors.cin && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.cin[0]}</p>}
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">E-mail (Optionnel)</label>
@@ -1062,11 +1054,11 @@ const Clients = () => {
 
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse (Optionnel)</label>
-                                    <input
-                                        type="text"
+                                    <textarea
                                         value={editFormData.adresse || ''}
                                         onChange={e => setEditFormData({ ...editFormData, adresse: e.target.value })}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                        dir="auto"
+                                        className={`w-full h-28 p-4 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
                                         placeholder="123 Avenue Mohammed V..."
                                     />
                                     {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}

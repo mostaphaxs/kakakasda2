@@ -8,7 +8,6 @@ Route::get('/', function () {
 });
 
 // 🛡️ THE FIX: Serve storage files manually for sidecars (since storage:link fails)
-// 🛡️ THE FIX: Serve storage files manually for sidecars (since storage:link fails)
 Route::get('/storage/{path}', function ($path) {
     if (!Storage::disk('public')->exists($path)) {
         \Illuminate\Support\Facades\Log::error("Storage 404: Path not found in public disk", [

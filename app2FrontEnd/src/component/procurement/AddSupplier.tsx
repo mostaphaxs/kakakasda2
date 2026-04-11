@@ -122,7 +122,8 @@ const AddSupplier: React.FC = () => {
                             </label>
                             <textarea
                                 {...register('adresse')}
-                                className="w-full p-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm shadow-sm outline-none h-20 resize-none"
+                                dir="auto"
+                                className="w-full p-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm shadow-sm outline-none h-32 resize-none"
                             />
                         </div>
 

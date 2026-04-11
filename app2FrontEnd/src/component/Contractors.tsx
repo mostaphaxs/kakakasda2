@@ -584,7 +584,13 @@ const Contractors = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse Siège</label>
-                                    <textarea required value={formData.adresse} onChange={e => setFormData({ ...formData, adresse: e.target.value })} className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none h-16 resize-none text-sm`} />
+                                    <textarea
+                                        required
+                                        value={formData.adresse}
+                                        onChange={e => setFormData({ ...formData, adresse: e.target.value })}
+                                        dir="auto"
+                                        className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none h-32 resize-none text-sm`}
+                                    />
                                     {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
                                 </div>
                                 <div>

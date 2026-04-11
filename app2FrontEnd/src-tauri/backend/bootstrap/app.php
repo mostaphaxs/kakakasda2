@@ -13,7 +13,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-return Application::configure(basePath: dirname(__DIR__))
+$app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
@@ -43,3 +43,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
+
+// 🐘 SIDE-CAR FIX (V4.1): Tell Laravel that Windows drive letters are absolute paths
+// so it doesn't try to prepend the base_path to our custom cache directories.
+$storage = env('LARAVEL_STORAGE_PATH');
+if ($storage && preg_match('/^([a-zA-Z]:)/', $storage, $matches)) {
+    $app->addAbsoluteCachePathPrefix($matches[1]);
+}
+
+return $app;

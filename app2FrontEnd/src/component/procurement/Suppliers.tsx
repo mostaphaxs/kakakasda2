@@ -287,7 +287,12 @@ const Suppliers: React.FC = () => {
                                     </div>
                                     <div className="md:col-span-2">
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><MapPin size={12} className="mr-2" /> Adresse</label>
-                                        <input {...register('adresse')} className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm outline-none shadow-sm" />
+                                        <textarea
+                                            {...register('adresse')}
+                                            dir="auto"
+                                            className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm outline-none h-32 resize-none shadow-sm"
+                                            placeholder="Adresse complète"
+                                        />
                                     </div>
                                     <div className="grid grid-cols-3 gap-4 md:col-span-2">
                                         <div>

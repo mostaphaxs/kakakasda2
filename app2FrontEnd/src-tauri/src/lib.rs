@@ -214,11 +214,12 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
     
     // In Laravel 11, the server.php router is located in the vendor framework.
     // Without this router, the built-in server won't route missing files (like /storage) to index.php.
-    let router_script = backend_path.join("vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php");
-    
+    let router_script_path = backend_path.join("vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php");
+    let router_script = to_laravel_path(&router_script_path);
+
     let mut serve = StdCommand::new(&php_bin);
     serve
-        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public", router_script.to_str().unwrap()])
+        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public", &router_script])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)

@@ -317,9 +317,7 @@ const AddClient: React.FC = () => {
                                     placeholder="Ex: +212 7 12 34 56 78"
                                 />
                             </FieldWrapper>
-                        </div>
 
-                        <div className="px-6 grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
                             <FieldWrapper label="E-mail / Gmail (Optionnel)" error={errors.email?.message} fieldError={fieldErrors.email}>
                                 <div className="relative">
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -338,15 +336,18 @@ const AddClient: React.FC = () => {
                                 </div>
                             </FieldWrapper>
 
-                            <FieldWrapper label="Adresse de Localisation (Optionnel)" error={errors.adresse?.message} fieldError={fieldErrors.adresse}>
-                                <input
-                                    {...register('adresse', {
-                                        maxLength: { value: 255, message: 'Max 255 caractères.' },
-                                    })}
-                                    className={inputCls(!!errors.adresse)}
-                                    placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
-                                />
-                            </FieldWrapper>
+                            <div className="sm:col-span-2">
+                                <FieldWrapper label="Adresse de Localisation (Optionnel)" error={errors.adresse?.message} fieldError={fieldErrors.adresse}>
+                                    <textarea
+                                        {...register('adresse', {
+                                            maxLength: { value: 255, message: 'Max 255 caractères.' },
+                                        })}
+                                        dir="auto"
+                                        className={inputCls(!!errors.adresse) + " h-32 py-4 resize-none"}
+                                        placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
+                                    />
+                                </FieldWrapper>
+                            </div>
                         </div>
 
                         {/* ── Section: Réservation ── */}
