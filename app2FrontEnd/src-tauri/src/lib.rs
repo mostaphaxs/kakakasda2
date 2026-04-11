@@ -210,9 +210,14 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     // ── 7. Web server (long-running process) ────────────────────────────────
     info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
+    
+    // In Laravel 11, the server.php router is located in the vendor framework.
+    // Without this router, the built-in server won't route missing files (like /storage) to index.php.
+    let router_script = backend_path.join("vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php");
+    
     let mut serve = StdCommand::new(&php_bin);
     serve
-        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public"])
+        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public", router_script.to_str().unwrap()])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
