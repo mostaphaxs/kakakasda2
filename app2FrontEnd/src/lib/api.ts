@@ -32,8 +32,10 @@ export async function initializeApiConfig() {
         const tauriUrl = await invoke<string>('get_api_config');
         if (tauriUrl && tauriUrl.startsWith('http')) {
             API_BASE = tauriUrl.replace(/\/+$/, '');
-            STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage';
-            console.log(`[api] Dynamic configuration loaded: ${API_BASE}`);
+            STORAGE_BASE = API_BASE + '/sidecar-serve';
+            console.log(`[api] Dynamic configuration loaded:`);
+            console.log(`      API_BASE:     ${API_BASE}`);
+            console.log(`      STORAGE_BASE: ${STORAGE_BASE}`);
         }
     } catch (error: any) {
         console.warn("[api] Failed to fetch dynamic config from Tauri, using .env fallback:", error?.message || error);

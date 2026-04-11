@@ -107,32 +107,48 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // 🖼️ UNIVERSAL DOCUMENT SERVE (Bypass web.php)
 Route::get('/sidecar-serve/{path}', function ($path) {
-    $storage = env('LARAVEL_STORAGE_PATH', storage_path());
-    $storage = str_replace('\\', '/', $storage);
+    $path = ltrim($path, '/');
+    $storage = env('LARAVEL_STORAGE_PATH');
+    
+    // 🔥 EMERGENCY FALLBACK: If env is missing, try to reconstruct it from AppData
+    if (!$storage && PHP_OS_FAMILY === 'Windows') {
+        $appData = $_SERVER['APPDATA'] ?? null;
+        if ($appData) {
+            $storage = str_replace('\\', '/', $appData) . '/com.mustapha.myamical/storage';
+        }
+    }
+    
+    $storage = str_replace('\\', '/', $storage ?: storage_path());
     
     $candidates = [
         rtrim($storage, '/') . '/app/public/' . $path,
         rtrim($storage, '/') . '/app/' . $path,
+        rtrim($storage, '/') . '/' . $path, // In case it's absolute
         storage_path('app/public/' . $path),
     ];
 
     foreach ($candidates as $c) {
         if (file_exists($c) && !is_dir($c)) {
-            $mime = \Illuminate\Support\Facades\File::mimeType($c);
+            $mime = 'application/octet-stream';
+            try { $mime = \Illuminate\Support\Facades\File::mimeType($c); } catch(\Exception $e){}
+            
             return response()->file($c, [
                 'Content-Type' => $mime,
                 'Access-Control-Allow-Origin' => '*',
                 'Cache-Control' => 'no-cache, must-revalidate',
+                'X-Sidecar-Found' => 'true'
             ]);
         }
     }
 
     return response()->json([
         'error' => 'File not found after exhaustive search',
-        'requested' => $path,
-        'checked' => $candidates,
-        'env_storage' => $storage
+        'requested_path' => $path,
+        'candidates_tried' => $candidates,
+        'env_storage' => env('LARAVEL_STORAGE_PATH'),
+        'resolved_storage' => $storage,
     ], 404);
+
 })->where('path', '.*');
 
 // 🔍 DIAGNOSTIC
