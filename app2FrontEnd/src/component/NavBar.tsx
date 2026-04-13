@@ -56,10 +56,10 @@ const Navbar: React.FC = () => {
     };
 
     const quickAddItems = [
-        { icon: Home, label: 'Nouveau Bien', path: '/add-property', color: 'text-slate-900' },
         { icon: MapPin, label: 'Nouveau Projet', path: '/add-terrain', color: 'text-slate-900' },
-        { icon: UserPlus, label: 'Nouveau Client', path: '/add-client', color: 'text-slate-900' },
         { icon: Users, label: 'Nouveau Intervenant', path: '/intervenants', color: 'text-slate-900' },
+        { icon: Home, label: 'Nouveau Bien', path: '/add-property', color: 'text-slate-900' },
+        { icon: UserPlus, label: 'Nouveau Client', path: '/add-client', color: 'text-slate-900' },
         { icon: HardHat, label: 'Construction', path: '/contractors', color: 'text-slate-900' },
         { icon: WalletCards, label: 'Nouvelle Charge', path: '/charges', color: 'text-slate-900' },
     ];
