@@ -46,6 +46,11 @@
     "resources": [
       "binaries/php/**/*",
       "backend/**/*"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
   }
 }
