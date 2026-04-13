@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
+import MarkdownText from './common/MarkdownText';
 
 
 interface Bien {
@@ -714,7 +715,7 @@ const Clients = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-xs text-slate-600 font-medium">{c.tel}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold uppercase">{c.cin}</div>
+                                                <div className="text-[10px] text-slate-400 font-medium uppercase"><MarkdownText text={c.cin} /></div>
                                             </td>
                                             <td className="px-6 py-4 font-bold text-slate-700">
                                                 {c.biens && c.biens.length > 0
@@ -1328,7 +1329,7 @@ const Clients = () => {
                                             )}
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-400">CIN:</span>
-                                                <span className="font-bold text-gray-700 uppercase">{detailClient.cin}</span>
+                                                <span className="font-bold text-gray-700 uppercase"><MarkdownText text={detailClient.cin} /></span>
                                             </div>
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-400">Date Réservation:</span>
@@ -1339,7 +1340,7 @@ const Clients = () => {
                                                     <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailClient.statut === 'Annulé' ? 'text-rose-400' : 'text-blue-400'}`}>
                                                         {detailClient.statut === 'Annulé' ? 'Motif de l\'Annulation' : 'Observations / Notes'}
                                                     </p>
-                                                    <p className="text-xs text-gray-600 leading-relaxed italic">{detailClient.observation}</p>
+                                                    <p className="text-xs text-gray-600 leading-relaxed italic"><MarkdownText text={detailClient.observation} /></p>
                                                 </div>
                                             )}
                                         </div>

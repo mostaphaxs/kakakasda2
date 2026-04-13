@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { UserPlus, ArrowLeft, Save, Loader2, Upload, X, FileText, PlusCircle, Mail } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import { Controller } from 'react-hook-form';
+import EnhancedInput from './common/EnhancedInput';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -70,6 +72,7 @@ const AddClient: React.FC = () => {
         watch,
         formState: { errors, isSubmitting },
         setValue,
+        control,
     } = useForm<ClientFormInputs>({
         defaultValues: {
             bien_id: '',
@@ -270,18 +273,29 @@ const AddClient: React.FC = () => {
                             </FieldWrapper>
 
                             <FieldWrapper label="CIN *" error={errors.cin?.message} fieldError={fieldErrors.cin}>
-                                <input
-                                    {...register('cin', {
+                                <Controller
+                                    name="cin"
+                                    control={control}
+                                    rules={{
                                         required: 'Le CIN est requis.',
-                                        maxLength: { value: 20, message: 'Max 20 caractères.' },
-                                        pattern: {
-                                            value: /^[A-Za-z]{1,2}[0-9]{4,9}$/,
-                                            message: 'Format invalide (ex: AB123456).',
-                                        },
-                                    })}
-                                    className={inputCls(!!errors.cin)}
-                                    placeholder="Ex: AB123456"
-                                    style={{ textTransform: 'uppercase' }}
+                                        maxLength: { value: 30, message: 'Max 30 caractères.' },
+                                        validate: (val) => {
+                                            const cleanVal = (val || '').replace(/\*\*/g, '');
+                                            if (!cleanVal) return 'Le CIN est requis.';
+                                            if (!/^[A-Za-z]{1,2}[0-9]{4,9}$/.test(cleanVal)) {
+                                                return 'Format invalide (ex: AB123456).';
+                                            }
+                                            return true;
+                                        }
+                                    }}
+                                    render={({ field }) => (
+                                        <EnhancedInput
+                                            value={field.value || ''}
+                                            onChange={(val) => field.onChange(val.toUpperCase())}
+                                            className={inputCls(!!errors.cin)}
+                                            placeholder="Ex: AB123456"
+                                        />
+                                    )}
                                 />
                                 {existingClient && (
                                     <div className="mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -427,11 +441,20 @@ const AddClient: React.FC = () => {
                             {/* Observation */}
                             <div className="sm:col-span-2 mt-4">
                                 <FieldWrapper label="Observations / Notes" error={errors.observation?.message} fieldError={fieldErrors.observation}>
-                                    <textarea
-                                        {...register('observation', { maxLength: { value: 2000, message: 'Max 2000 caractères.' } })}
-                                        rows={3}
-                                        className={`${inputCls(!!errors.observation)} resize-none`}
-                                        placeholder="Notes ou détails supplémentaires sur ce client..."
+                                    <Controller
+                                        name="observation"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <EnhancedInput
+                                                type="textarea"
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.observation)}
+                                                placeholder="Notes ou détails supplémentaires sur ce client..."
+                                                showPolite={true}
+                                                rows={3}
+                                            />
+                                        )}
                                     />
                                 </FieldWrapper>
                             </div>
