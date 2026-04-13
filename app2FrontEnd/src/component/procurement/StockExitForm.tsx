@@ -17,6 +17,7 @@ interface Bien {
     num_appartement: string;
     type_bien: string;
     nom?: string;
+    immeuble?: string;
 }
 
 interface StockExitFormProps {
@@ -37,8 +38,18 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                     apiFetch<Article[]>('/articles'),
                     apiFetch<Bien[]>('/biens')
                 ]);
+                const sortedBiens = biensData.sort((a, b) => {
+                    const immA = a.immeuble || '';
+                    const immB = b.immeuble || '';
+                    if (immA !== immB) return immA.localeCompare(immB);
+
+                    const valA = parseInt(a.num_appartement || '');
+                    const valB = parseInt(b.num_appartement || '');
+                    if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
+                    return (a.num_appartement || '').localeCompare(b.num_appartement || '');
+                });
                 setArticles(articlesData);
-                setBiens(biensData);
+                setBiens(sortedBiens);
             } catch (error) {
                 console.error('Error loading data:', error);
                 toast.error('Erreur lors du chargement des données.');
@@ -80,7 +91,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Affectation Sortie</h2>
-                        <p className="text-gray-400 text-sm font-medium">Déduisez du stock pour un appartement ou villa.</p>
+                        <p className="text-gray-400 text-sm font-medium">Déduisez du stock pour un bloc ou villa.</p>
                     </div>
                 </div>
 
@@ -123,7 +134,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                         <div>
                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
                                 <Building2 className="h-4 w-4 mr-2 text-gray-400" />
-                                Destination (Villa/Appartement)
+                                Destination (Villa/Bloc)
                             </label>
                             <select
                                 {...register('destination_id', { required: 'Ce champ est obligatoire' })}
@@ -132,7 +143,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                                 <option value="">Sélectionner une destination</option>
                                 {biens.map(bien => (
                                     <option key={bien.id} value={bien.id}>
-                                        {bien.nom ? bien.nom : `${bien.type_bien} - ${bien.num_appartement}`}
+                                        {bien.nom ? bien.nom : `${bien.type_bien === 'Appartement' ? 'Bloc' : bien.type_bien} - ${bien.num_appartement}`}
                                     </option>
                                 ))}
                             </select>

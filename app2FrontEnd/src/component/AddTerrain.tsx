@@ -24,7 +24,9 @@ interface TerrainFormInputs {
     frais_pompier: number;
     frais_intermediaire: number;
     total: number;
+    description?: string;
 }
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -313,6 +315,18 @@ const AddTerrain: React.FC = () => {
                                     placeholder="0"
                                 />
                             </FieldWrapper>
+
+                            <div className="sm:col-span-2">
+                                <FieldWrapper label="Observations / Description" error={errors.description?.message} fieldError={fieldErrors.description}>
+                                    <textarea
+                                        {...register('description')}
+                                        rows={3}
+                                        className={`${inputCls(!!errors.description)} resize-none`}
+                                        placeholder="Notez ici les détails particuliers du projet..."
+                                    />
+                                </FieldWrapper>
+                            </div>
+
 
                             {/* Total – read-only auto-calc */}
                             <div className="sm:col-span-2 mt-4 pt-4 border-t border-gray-100">

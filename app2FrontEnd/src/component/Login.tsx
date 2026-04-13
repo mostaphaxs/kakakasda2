@@ -51,18 +51,21 @@ export default function Login() {
 
           {/* Brand Logo & Name */}
           <div className="flex flex-col items-center mb-12 group">
-            <div className="mb-8 p-6 bg-slate-50 rounded-[40px] border border-slate-100 transition-all duration-500 group-hover:scale-105">
+            <div className="mb-8 p-8 bg-slate-900 rounded-[50px] border border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 group-hover:scale-110">
               <img
-                src="/assets/logoLogin.png"
+                src="/assets/LogoNavbar.png"
                 alt="Société les cinq elements"
-                className="h-32 w-auto"
+                className="h-40 w-auto"
               />
             </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight text-center uppercase">
-              Les cinq <span className="text-amber-600">elements</span>
-            </h2>
-          
+            <div className="flex flex-col items-center">
+              <h2 className="text-4xl font-black text-slate-900 tracking-tighter text-center uppercase leading-none">
+                LES CINQ <span className="text-amber-500">ELEMENTS</span>
+              </h2>
+              <p className="mt-3 text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] text-center">Gestion Immobilière & Travaux</p>
+            </div>
           </div>
+
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {serverError && (

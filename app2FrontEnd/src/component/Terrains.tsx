@@ -21,8 +21,10 @@ interface Terrain {
     autorisation_equipement: number;
     frais_pompier: number;
     total: number;
+    description?: string;
     created_at: string;
 }
+
 
 const Terrains = () => {
     const navigate = useNavigate();
@@ -298,7 +300,17 @@ const Terrains = () => {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {selectedTerrain.description && (
+                                            <div className="mt-4">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Observations / Description</label>
+                                                <div className="p-4 bg-gray-50 rounded-2xl">
+                                                    <p className="text-xs text-gray-600 leading-relaxed italic">{selectedTerrain.description}</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
+
 
                                     <div className="space-y-6">
                                         <div>

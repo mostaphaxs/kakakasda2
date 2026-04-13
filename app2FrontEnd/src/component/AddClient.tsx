@@ -29,7 +29,9 @@ interface ClientFormInputs {
     bien_id: string;
     date_reservation: string;
     avec_finition: boolean;
+    observation?: string;
 }
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -114,7 +116,17 @@ const AddClient: React.FC = () => {
         const fetchBiens = async () => {
             try {
                 const data = await apiFetch<Bien[]>('/biens');
-                setBiens(data);
+                const sorted = data.sort((a, b) => {
+                    const immA = a.immeuble || '';
+                    const immB = b.immeuble || '';
+                    if (immA !== immB) return immA.localeCompare(immB);
+
+                    const valA = parseInt(a.num_appartement || '');
+                    const valB = parseInt(b.num_appartement || '');
+                    if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
+                    return (a.num_appartement || '').localeCompare(b.num_appartement || '');
+                });
+                setBiens(sorted);
             } catch (err: any) {
                 toast.error(err.message || 'Erreur de chargement des biens.');
             } finally {
@@ -141,6 +153,7 @@ const AddClient: React.FC = () => {
                     bien_id: data.bien_id ? Number(data.bien_id) : null,
                     date_reservation: data.date_reservation || null,
                     avec_finition: data.avec_finition || false,
+                    observation: data.observation || null,
                 }),
             });
 
@@ -375,7 +388,7 @@ const AddClient: React.FC = () => {
                                                     value={b.id}
                                                     disabled={b.statut !== 'Libre'}
                                                 >
-                                                    {b.type_bien} {b.immeuble ? `(Imm. ${b.immeuble})` : ''} {b.num_appartement ? `(N° ${b.num_appartement})` : ''} · {b.etage === 0 ? 'RDC' : `Étage ${b.etage}`} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                                    {b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} {b.immeuble ? `(Imm. ${b.immeuble})` : ''} {b.num_appartement ? `(Bloc ${b.num_appartement})` : ''} · {b.etage === 0 ? 'RDC' : `Étage ${b.etage}`} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
                                                 </option>
                                             ))}
                                         </select>
@@ -410,7 +423,20 @@ const AddClient: React.FC = () => {
                                     placeholder="JJ/MM/AAAA"
                                 />
                             </FieldWrapper>
+
+                            {/* Observation */}
+                            <div className="sm:col-span-2 mt-4">
+                                <FieldWrapper label="Observations / Notes" error={errors.observation?.message} fieldError={fieldErrors.observation}>
+                                    <textarea
+                                        {...register('observation', { maxLength: { value: 2000, message: 'Max 2000 caractères.' } })}
+                                        rows={3}
+                                        className={`${inputCls(!!errors.observation)} resize-none`}
+                                        placeholder="Notes ou détails supplémentaires sur ce client..."
+                                    />
+                                </FieldWrapper>
+                            </div>
                         </div>
+
 
                         {/* ── Section: Documents ── */}
                         <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">

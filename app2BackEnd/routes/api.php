@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::put('/clients/{client}', [ClientController::class, 'update']);
+    Route::post('/clients/{client}/cancel', [ClientController::class, 'cancel']);
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::post('/clients/{client}/documents', [ClientController::class, 'uploadDocument']);
     Route::delete('/clients/{client}/documents/{documentIndex}', [ClientController::class, 'deleteDocument']);

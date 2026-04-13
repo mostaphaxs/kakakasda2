@@ -24,7 +24,9 @@ interface TerrainFormInputs {
     frais_pompier: number;
     frais_autorisation_intermediaire: number;
     total: number;
+    description?: string;
 }
+
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -96,7 +98,9 @@ const EditTerrain: React.FC = () => {
                     frais_pompier: formatNumber(data.frais_pompier || 0) as any,
                     frais_autorisation_intermediaire: formatNumber(data.frais_autorisation_intermediaire || 0) as any,
                     total: data.total,
+                    description: data.description || '',
                 });
+
             } catch (err: any) {
                 toast.error('Erreur lors du chargement du terrain');
                 navigate('/terrains');
@@ -353,6 +357,18 @@ const EditTerrain: React.FC = () => {
                                     placeholder="0"
                                 />
                             </FieldWrapper>
+
+                            <div className="sm:col-span-2">
+                                <FieldWrapper label="Observations / Description" error={errors.description?.message} fieldError={fieldErrors.description}>
+                                    <textarea
+                                        {...register('description')}
+                                        rows={3}
+                                        className={`${inputCls(!!errors.description)} resize-none`}
+                                        placeholder="Notez ici les détails particuliers du projet..."
+                                    />
+                                </FieldWrapper>
+                            </div>
+
 
                             {/* Total – read-only auto-calc */}
                             <div className="sm:col-span-2 mt-4 pt-4 border-t border-gray-100">

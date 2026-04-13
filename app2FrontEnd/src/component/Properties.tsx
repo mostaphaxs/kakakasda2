@@ -20,7 +20,7 @@ interface Bien {
     terrain_id: number;
     type_bien: string;
     nom?: string;
-    num_appartement: string;
+    num_appartement: string; // Internal field name remains same for DB, but label will be "Bloc"
     groupe_habitation?: string;
     immeuble?: string;
     etage: number;
@@ -178,6 +178,22 @@ const Properties = () => {
         if (filterEtage !== 'all' && b.etage?.toString() !== filterEtage) return false;
 
         return true;
+    }).sort((a, b) => {
+        // 1. Sort by Project Name
+        const terrainA = a.terrain?.nom_projet || '';
+        const terrainB = b.terrain?.nom_projet || '';
+        if (terrainA !== terrainB) return terrainA.localeCompare(terrainB);
+
+        // 2. Sort by Immeuble
+        const immA = a.immeuble || '';
+        const immB = b.immeuble || '';
+        if (immA !== immB) return immA.localeCompare(immB);
+
+        // 3. Sort by N° Bloc (numerical if possible)
+        const valA = parseInt(a.num_appartement);
+        const valB = parseInt(b.num_appartement);
+        if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
+        return (a.num_appartement || '').localeCompare(b.num_appartement || '');
     });
 
     const resetFilters = () => {
@@ -195,7 +211,7 @@ const Properties = () => {
 
         const dataToExport = filteredBiens.map(p => ({
             'ID': p.id,
-            'RÉF UNITÉ': p.num_appartement?.toUpperCase(),
+            'RÉF BLOC': p.num_appartement?.toUpperCase(),
             'TYPE DE BIEN': p.type_bien?.toUpperCase(),
             'ÉTAGE': p.etage || 'RDC',
             'SURFACE (M²)': p.surface_m2,
@@ -218,7 +234,7 @@ const Properties = () => {
                             <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, appartements et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -368,14 +384,14 @@ const Properties = () => {
                                                 {b.nom ? (
                                                     <span className="text-indigo-600 mr-2">{b.nom}</span>
                                                 ) : (
-                                                    b.type_bien
+                                                    b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien
                                                 )}
                                                 {b.groupe_habitation ? ` - ${b.groupe_habitation}` : ''}
                                                 {b.immeuble ? ` - Imm. ${b.immeuble}` : ''}
                                                 {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
-                                                {b.num_appartement ? ` - N° ${b.num_appartement}` : ''}
+                                                {b.num_appartement ? ` - Bloc ${b.num_appartement}` : ''}
                                             </span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien})` : ''}</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
@@ -472,7 +488,7 @@ const Properties = () => {
                                     <Layers className="text-indigo-600" />
                                     Unités Annexes
                                 </h3>
-                                <p className="text-[10px] font-bold text-indigo-600">POUR BIEN {selectedBien?.type_bien} #{selectedBien?.num_appartement}</p>
+                                <p className="text-[10px] font-bold text-indigo-600">POUR BLOC {selectedBien?.num_appartement ? `#${selectedBien.num_appartement}` : ''}</p>
                             </div>
                             <button onClick={() => setIsAnnexModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                                 <X size={20} />
@@ -570,14 +586,14 @@ const Properties = () => {
             {/* Details Modal */}
             {isDetailsModalOpen && selectedBien && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
                             <div>
                                 <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
-                                    {selectedBien.nom ? selectedBien.nom : `Détails Unité ${selectedBien.num_appartement}`}
+                                    {selectedBien.nom ? selectedBien.nom : `Détails Bloc ${selectedBien.num_appartement}`}
                                 </h3>
                                 <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
-                                    {selectedBien.type_bien} {selectedBien.nom ? `(${selectedBien.num_appartement})` : ''} • ID #{selectedBien.id}
+                                    {selectedBien.type_bien === 'Appartement' ? 'Bloc' : selectedBien.type_bien} {selectedBien.nom ? `(${selectedBien.num_appartement})` : ''} • ID #{selectedBien.id}
                                 </p>
                             </div>
                             <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -585,7 +601,7 @@ const Properties = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
                             {/* Key Stats */}
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">

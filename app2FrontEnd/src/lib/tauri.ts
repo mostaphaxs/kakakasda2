@@ -15,16 +15,19 @@ export function registerPreviewHandler(handler: PreviewHandler) {
  */
 export async function openExternal(url: string): Promise<void> {
     // 1. Check if it's a document/receipt from our storage
+    const cleanUrl = url.split('?')[0].toLowerCase();
     const isDoc = (url.includes('/storage/') || url.includes('/sidecar-serve/')) && (
-        url.toLowerCase().endsWith('.pdf') ||
-
-        url.toLowerCase().endsWith('.png') ||
-        url.toLowerCase().endsWith('.jpg') ||
-        url.toLowerCase().endsWith('.jpeg') ||
-        url.toLowerCase().endsWith('.webp') ||
+        cleanUrl.endsWith('.pdf') ||
+        cleanUrl.endsWith('.png') ||
+        cleanUrl.endsWith('.jpg') ||
+        cleanUrl.endsWith('.jpeg') ||
+        cleanUrl.endsWith('.webp') ||
+        cleanUrl.endsWith('.jfif') ||
         url.includes('/scanned_docs/') ||
-        url.includes('/receipts/')
+        url.includes('/receipts/') ||
+        url.includes('/clients/')
     );
+
 
     // 2. If it's a document and the handler is ready, show internal preview
     if (isDoc && previewHandler) {

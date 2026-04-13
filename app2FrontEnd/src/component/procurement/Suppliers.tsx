@@ -27,7 +27,10 @@ const Suppliers: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [contractFile, setContractFile] = useState<File | null>(null);
+
 
     const { register, handleSubmit, reset } = useForm();
 
@@ -79,6 +82,12 @@ const Suppliers: React.FC = () => {
         });
         setIsEditModalOpen(true);
     };
+
+    const handleOpenDetails = (supplier: Supplier) => {
+        setSelectedSupplier(supplier);
+        setIsDetailsModalOpen(true);
+    };
+
 
     const onSubmitUpdate = async (data: any) => {
         if (!editingSupplier) return;
@@ -198,14 +207,18 @@ const Suppliers: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleEdit(s)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shadow-sm bg-white border border-indigo-100">
+                                        <button onClick={() => handleOpenDetails(s)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shadow-sm bg-white border border-blue-100" title="Détails">
+                                            <Eye size={16} />
+                                        </button>
+                                        <button onClick={() => handleEdit(s)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors shadow-sm bg-white border border-indigo-100" title="Modifier">
                                             <Edit2 size={16} />
                                         </button>
-                                        <button onClick={() => handleDelete(s.id)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                        <button onClick={() => handleDelete(s.id)} className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Supprimer">
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </td>
+
                             </tr>
                         ))}
                     </tbody>
@@ -294,7 +307,17 @@ const Suppliers: React.FC = () => {
                                             placeholder="Adresse complète"
                                         />
                                     </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><FileText size={12} className="mr-2" /> Observations</label>
+                                        <textarea
+                                            {...register('description')}
+                                            className="w-full p-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm outline-none h-20 resize-none shadow-sm"
+                                            placeholder="Notes sur le fournisseur..."
+                                        />
+                                    </div>
+
                                     <div className="grid grid-cols-3 gap-4 md:col-span-2">
+
                                         <div>
                                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">ICE</label>
                                             <input {...register('ice')} className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-mono text-xs outline-none shadow-sm" />
@@ -315,7 +338,84 @@ const Suppliers: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Details Modal */}
+            {isDetailsModalOpen && selectedSupplier && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div>
+                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
+                                    {selectedSupplier.nom_societe}
+                                </h3>
+                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
+                                    Détails du Partenaire • ID #{selectedSupplier.id}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Gérant / Contact</label>
+                                    <p className="text-sm font-bold text-gray-700">{selectedSupplier.nom_gerant || 'Non spécifié'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Téléphone</label>
+                                    <p className="text-sm font-bold text-gray-700">{selectedSupplier.tel || 'Non spécifié'}</p>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Adresse</label>
+                                    <p className="text-sm font-bold text-gray-700 whitespace-pre-wrap">{selectedSupplier.adresse || 'Non spécifiée'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">ICE / I.F / R.C</label>
+                                    <p className="text-xs font-mono text-gray-500">
+                                        {selectedSupplier.ice || '-'} / {selectedSupplier.if || '-'} / {selectedSupplier.rc || '-'}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Contrat</label>
+                                    {selectedSupplier.scan_contrat ? (
+                                        <button onClick={() => handleViewContract(selectedSupplier.scan_contrat!)} className="text-[10px] font-black text-indigo-600 uppercase hover:underline">Voir le document</button>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 italic">Aucun document</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100">
+                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Observations / Description</label>
+                                <div className="p-4 bg-gray-50 rounded-2xl min-h-[80px]">
+                                    <p className="text-xs text-gray-600 italic leading-relaxed">
+                                        {selectedSupplier.description || 'Aucune observation particulière.'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
+                            <button
+                                onClick={() => {
+                                    setIsDetailsModalOpen(false);
+                                    handleEdit(selectedSupplier);
+                                }}
+                                className="flex-1 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                            >
+                                Modifier
+                            </button>
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-colors">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
+
     );
 };
 

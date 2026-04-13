@@ -29,7 +29,7 @@ const Home = () => {
         },
         {
             title: "Inventaire des Biens",
-            description: "Vue d'ensemble sur les appartements, locaux et bureaux.",
+            description: "Vue d'ensemble sur les blocs, locaux et bureaux.",
             icon: <Building2 className="text-slate-900" size={24} />,
             path: "/properties",
             color: "slate"
@@ -47,17 +47,12 @@ const Home = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex items-center p-12 md:p-20">
                     <div className="max-w-2xl space-y-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900/40 backdrop-blur-md border border-white/20 rounded-full text-white text-xs font-black uppercase tracking-[0.2em]">
-                            <ShieldCheck size={14} />
-                            Partenaire d'Excellence
-                        </div>
+
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-tight">
                             Bienvenue chez <br />
                             <span className="text-amber-500 drop-shadow-lg">les cinq elements</span>
                         </h1>
-                        <p className="text-lg text-slate-200 leading-relaxed font-medium">
-                            Une vision moderne de la promotion immobilière. Nous bâtissons l'avenir avec rigueur, innovation et une passion inébranlable pour la qualité. Explorez notre portail de gestion centralisé pour piloter chaque aspect de vos projets.
-                        </p>
+
                         <div className="flex gap-4 pt-4">
                             <button
                                 onClick={() => navigate('/clients')}
@@ -96,38 +91,6 @@ const Home = () => {
                     </div>
                 ))}
             </div>
-
-            {/* Quick Access Modules */}
-            <div className="space-y-8">
-                <div className="flex flex-col items-center text-center space-y-2">
-                    <h2 className="text-3xl font-black text-slate-800 italic">Modules de Gestion</h2>
-                    <p className="text-slate-400 font-medium max-w-xl">Accédez rapidement aux outils essentiels pour piloter votre activité immobilière au quotidien.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {modules.map((module, i) => (
-                        <div
-                            key={i}
-                            onClick={() => navigate(module.path)}
-                            className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl hover:translate-y-[-8px] transition-all cursor-pointer group"
-                        >
-                            <div className={`w-16 h-16 bg-${module.color}-50 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500`}>
-                                {module.icon}
-                            </div>
-                            <h3 className="text-xl font-black text-slate-800 mb-4">{module.title}</h3>
-                            <p className="text-slate-500 text-sm leading-relaxed mb-8">
-                                {module.description}
-                            </p>
-                            <div className={`flex items-center gap-2 text-slate-900 font-black text-xs uppercase tracking-widest`}>
-                                Accéder au module
-                                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-
         </div>
     );
 };

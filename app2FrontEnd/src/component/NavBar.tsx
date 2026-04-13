@@ -115,7 +115,7 @@ const Navbar: React.FC = () => {
             case '/biens':
                 return data.map(b => ({
                     'ID': b.id,
-                    'RÉF UNITÉ': b.num_appartement?.toUpperCase(),
+                    'RÉF BLOC': b.num_appartement?.toUpperCase(),
                     'CATÉGORIE': b.type_bien?.toUpperCase(),
                     'PROJET ID': b.terrain_id,
                     'ÉTAGE': b.etage || 'RDC',
@@ -136,7 +136,7 @@ const Navbar: React.FC = () => {
                         'CIN': c.cin?.toUpperCase(),
                         'DATE SIGNATURE': c.date_reservation ? new Date(c.date_reservation).toLocaleDateString('fr-MA') : 'N/A',
                         'BIEN ASSIGNÉ': c.bien?.type_bien || 'N/A',
-                        'UNITÉ': c.bien?.num_appartement || 'N/A',
+                        'BLOC': c.bien?.num_appartement || 'N/A',
                         'PRIX VENTE (DH)': prixGlobal,
                         'TOTAL VERSÉ (DH)': totalVerse,
                         'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
@@ -263,8 +263,10 @@ const Navbar: React.FC = () => {
     };
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl transition-all duration-500 h-[72px]">
-            <div className="px-3 py-3 lg:px-5 lg:pl-3">
+        <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl transition-all duration-500 h-[60px]">
+
+            <div className="px-3 py-1.5 lg:px-5 lg:pl-3">
+
                 <div className="flex items-center justify-between">
 
                     {/* LEFT: Logo & Mobile Toggle */}
@@ -280,7 +282,8 @@ const Navbar: React.FC = () => {
                             <img
                                 src="/assets/LogoNavbar.png"
                                 alt="Logo"
-                                className="h-10 w-auto mr-3 group-hover:scale-110 transition-transform"
+                                className="h-8 w-auto mr-3 group-hover:scale-110 transition-transform"
+
                             />
                             <span className="self-center text-lg font-bold whitespace-nowrap text-white">
                                 Société les <span className="text-amber-500 font-black">cinq elements</span>

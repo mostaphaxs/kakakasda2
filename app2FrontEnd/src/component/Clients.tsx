@@ -1,6 +1,6 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Mail, MapPin } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -60,7 +60,10 @@ interface Client {
     biens?: Bien[];
     payments?: (Payment & { receipt_path?: string })[];
     scanned_docs?: ScannedDoc[];
+    observation?: string;
+    statut?: string;
 }
+
 
 const Clients = () => {
     const navigate = useNavigate();
@@ -100,6 +103,13 @@ const Clients = () => {
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
     const [editBienId, setEditBienId] = useState<string>('');
 
+    // Client Cancellation State
+    const [isClientCancelModalOpen, setIsClientCancelModalOpen] = useState(false);
+    const [clientToCancel, setClientToCancel] = useState<Client | null>(null);
+    const [clientRefundAmount, setClientRefundAmount] = useState('');
+    const [clientCancelNotes, setClientCancelNotes] = useState('');
+    const [isSubmittingClientCancel, setIsSubmittingClientCancel] = useState(false);
+
     // Details Modal State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailClient, setDetailClient] = useState<Client | null>(null);
@@ -127,8 +137,20 @@ const Clients = () => {
                 apiFetch<Client[]>('/clients'),
                 apiFetch<Bien[]>('/biens')
             ]);
+
+            const sortedBiens = biensData.sort((a, b) => {
+                const immA = a.immeuble || '';
+                const immB = b.immeuble || '';
+                if (immA !== immB) return immA.localeCompare(immB);
+
+                const valA = parseInt(a.num_appartement || '');
+                const valB = parseInt(b.num_appartement || '');
+                if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
+                return (a.num_appartement || '').localeCompare(b.num_appartement || '');
+            });
+
             setClients(clientsData);
-            setAvailableBiens(biensData);
+            setAvailableBiens(sortedBiens);
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors du chargement des données.');
         } finally {
@@ -139,6 +161,37 @@ const Clients = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    const handleOpenCancelClient = (client: Client) => {
+        setClientToCancel(client);
+        setClientRefundAmount('');
+        setClientCancelNotes('');
+        setIsClientCancelModalOpen(true);
+    };
+
+    const handleCancelClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!clientToCancel) return;
+
+        setIsSubmittingClientCancel(true);
+        try {
+            await apiFetch(`/clients/${clientToCancel.id}/cancel`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    refund_amount: parseNumber(clientRefundAmount),
+                    notes: clientCancelNotes
+                })
+            });
+
+            toast.success('Contrat annulé et biens libérés.');
+            setIsClientCancelModalOpen(false);
+            fetchData();
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de l'annulation.");
+        } finally {
+            setIsSubmittingClientCancel(false);
+        }
+    };
 
     const handleDelete = async (id: number) => {
         if (!window.confirm("Supprimer ce client définitivement ?")) return;
@@ -162,6 +215,8 @@ const Clients = () => {
             adresse: client.adresse,
             cin: client.cin,
             avec_finition: client.avec_finition,
+            observation: client.observation || '',
+            statut: client.statut || 'Actif',
             date_reservation: client.date_reservation ? client.date_reservation.split(' ')[0] : ''
         });
         setEditBienId(client.biens && client.biens.length > 0 ? String(client.biens[0].id) : '');
@@ -466,6 +521,12 @@ const Clients = () => {
         if (filterHasBien === 'without' && c.biens && c.biens.length > 0) return false;
 
         return true;
+    }).sort((a, b) => {
+        // Sort alphabetically by Nom, then Prenom
+        const nomA = a.nom || '';
+        const nomB = b.nom || '';
+        if (nomA !== nomB) return nomA.localeCompare(nomB);
+        return (a.prenom || '').localeCompare(b.prenom || '');
     });
 
     const resetFilters = () => {
@@ -495,7 +556,7 @@ const Clients = () => {
                 'ADRESSE': c.adresse || '-',
                 'CIN': c.cin?.toUpperCase(),
                 'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
-                'UNITÉS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
+                'BLOCS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
                 'PRIX TOTAL (DH)': prixGlobal,
                 'VERSÉ (DH)': totalVerse,
                 'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
@@ -643,7 +704,12 @@ const Clients = () => {
                                     filteredClients.map((c) => (
                                         <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-bold text-gray-800">{c.nom} {c.prenom}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-bold text-gray-800">{c.nom} {c.prenom}</div>
+                                                    {c.statut === 'Annulé' && (
+                                                        <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-full">Annulé</span>
+                                                    )}
+                                                </div>
                                                 <div className="text-[10px] text-gray-400">Réf: #{c.id} • {c.date_reservation || 'Pas de date'}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -698,7 +764,7 @@ const Clients = () => {
                                                         <span key={b.id} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
                                                             b.statut === 'Vendu' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'
                                                             }`}>
-                                                            {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
+                                                            {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}
                                                         </span>
                                                     ))}
                                                     {(!c.biens || c.biens.length === 0) && <span className="text-[10px] text-gray-400 italic">Aucun bien</span>}
@@ -733,6 +799,15 @@ const Clients = () => {
                                                     <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-all" >
                                                         <Trash2 size={16} />
                                                     </button>
+                                                    {c.statut !== 'Annulé' && (
+                                                        <button
+                                                            onClick={() => handleOpenCancelClient(c)}
+                                                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                            title="Annuler le contrat"
+                                                        >
+                                                            <X size={18} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -754,7 +829,7 @@ const Clients = () => {
             {
                 isPaymentModalOpen && selectedClient && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
@@ -773,7 +848,7 @@ const Clients = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmitPayment} className="p-6 space-y-5">
+                            <form onSubmit={handleSubmitPayment} className="flex-1 overflow-y-auto p-6 space-y-5">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wide">Montant du versement (DH)</label>
                                     <div className="relative">
@@ -803,7 +878,7 @@ const Clients = () => {
                                             <option value="">Sélectionnez le bien...</option>
                                             {selectedClient.biens.map(b => (
                                                 <option key={b.id} value={b.id}>
-                                                    {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}
+                                                    {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}
                                                 </option>
                                             ))}
                                         </select>
@@ -968,7 +1043,7 @@ const Clients = () => {
             {
                 isEditModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/30">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
@@ -981,7 +1056,7 @@ const Clients = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleUpdateClient} className="p-6 space-y-4">
+                            <form onSubmit={handleUpdateClient} className="flex-1 overflow-y-auto p-6 space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nom</label>
@@ -1065,38 +1140,66 @@ const Clients = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Statut du Client</label>
                                     <select
-                                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                        value={editBienId}
-                                        onChange={(e) => setEditBienId(e.target.value)}
+                                        value={editFormData.statut || 'Actif'}
+                                        onChange={e => setEditFormData({ ...editFormData, statut: e.target.value })}
+                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold ${editFormData.statut === 'Annulé' ? 'text-rose-600 bg-rose-50' : 'text-slate-700'}`}
                                     >
-                                        <option value="">— Aucun bien —</option>
-                                        {/* Current Bien */}
-                                        {editBienId && !availableBiens.find(b => b.id === Number(editBienId)) && (
-                                            (() => {
-                                                const currentClient = clients.find(c => c.id === editFormData.id);
-                                                const b = currentClient?.biens?.find(x => x.id === Number(editBienId));
-                                                return b ? (
-                                                    <option key={b.id} value={b.id}>
-                                                        {b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''} (Actuel)
-                                                    </option>
-                                                ) : null;
-                                            })()
-                                        )}
-                                        {availableBiens.map((b) => (
-                                            <option
-                                                key={b.id}
-                                                value={b.id}
-                                                disabled={b.statut !== 'Libre' && b.id !== Number(editBienId)}
-                                            >
-                                                {b.type_bien} {b.num_appartement ? `(N° ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
-                                            </option>
-                                        ))}
+                                        <option value="Actif">Actif</option>
+                                        <option value="Annulé">Annulé</option>
                                     </select>
                                 </div>
 
-                                {editBienId && (
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Observations / Notes</label>
+                                    <textarea
+                                        value={editFormData.observation || ''}
+                                        onChange={e => setEditFormData({ ...editFormData, observation: e.target.value })}
+                                        className={`w-full h-20 p-4 bg-gray-50 border ${fieldErrors.observation ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
+                                        placeholder="Notes sur le client..."
+                                    />
+                                    {fieldErrors.observation && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.observation[0]}</p>}
+                                </div>
+
+                                {editFormData.statut === 'Actif' && (
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
+
+                                        <select
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                            value={editBienId}
+                                            onChange={(e) => setEditBienId(e.target.value)}
+                                        >
+                                            <option value="">— Aucun bien —</option>
+                                            {/* Current Bien */}
+                                            {editBienId && !availableBiens.find(b => b.id === Number(editBienId)) && (
+                                                (() => {
+                                                    const currentClient = clients.find(c => c.id === editFormData.id);
+                                                    const b = currentClient?.biens?.find(x => x.id === Number(editBienId));
+                                                    return b ? (
+                                                        <option key={b.id} value={b.id}>
+                                                            {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''} (Actuel)
+                                                        </option>
+                                                    ) : null;
+                                                })()
+                                            )}
+                                            {availableBiens.map((b) => (
+                                                <option
+                                                    key={b.id}
+                                                    value={b.id}
+                                                    disabled={b.statut !== 'Libre' && b.id !== Number(editBienId)}
+                                                >
+                                                    {b.type_bien} {b.num_appartement ? `(Bloc ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+
+                                {editBienId && editFormData.statut === 'Actif' && (
                                     <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
                                         <div>
                                             <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
@@ -1231,8 +1334,18 @@ const Clients = () => {
                                                 <span className="text-gray-400">Date Réservation:</span>
                                                 <span className="font-bold text-gray-700">{detailClient.date_reservation || 'N/A'}</span>
                                             </div>
+                                            {detailClient.observation && (
+                                                <div className={`mt-4 p-3 rounded-xl border ${detailClient.statut === 'Annulé' ? 'bg-rose-50 border-rose-100' : 'bg-blue-50/50 border-blue-100/50'}`}>
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailClient.statut === 'Annulé' ? 'text-rose-400' : 'text-blue-400'}`}>
+                                                        {detailClient.statut === 'Annulé' ? 'Motif de l\'Annulation' : 'Observations / Notes'}
+                                                    </p>
+                                                    <p className="text-xs text-gray-600 leading-relaxed italic">{detailClient.observation}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+
+
 
                                     <div className="space-y-4">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Détails des Biens</h4>
@@ -1242,7 +1355,7 @@ const Clients = () => {
                                                     <div key={b.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic">
                                                         <div className="flex justify-between text-sm mb-1">
                                                             <span className="text-gray-400">Type / Unité:</span>
-                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? `#${b.num_appartement}` : ''}</span>
+                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}</span>
                                                         </div>
                                                         <div className="flex justify-between text-sm mb-1">
                                                             <span className="text-gray-400">Localisation:</span>
@@ -1360,7 +1473,7 @@ const Clients = () => {
                                                             </div>
                                                             {p.bien && (
                                                                 <div className="text-[9px] text-indigo-500 font-bold mt-1">
-                                                                    Bien: {p.bien.type_bien} - {p.bien.num_appartement || `N° ${p.bien.id}`}
+                                                                    {p.bien.type_bien} {p.bien.num_appartement ? `Bloc #${p.bien.num_appartement}` : `ID #${p.bien.id}`}
                                                                 </div>
                                                             )}
                                                             {(p.reference_no || p.bank_name) && (
@@ -1543,7 +1656,7 @@ const Clients = () => {
             {/* WhatsApp Editor Modal */}
             {isWhatsAppEditorOpen && whatsappTargetClient && (
                 <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
                             <h3 className="font-bold text-gray-800 flex items-center gap-2">
                                 <MessageCircle size={18} className="text-emerald-600" />
@@ -1556,7 +1669,7 @@ const Clients = () => {
                                 <X size={20} />
                             </button>
                         </div>
-                        <div className="p-6">
+                        <div className="flex-1 overflow-y-auto p-6">
                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
                                 Contenu du message
                             </label>
@@ -1627,7 +1740,93 @@ const Clients = () => {
                     </div>
                 </div>
             )}
-        </div >
+            {/* Client Cancellation Modal */}
+            {isClientCancelModalOpen && clientToCancel && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white">
+                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-rose-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+                                    <X size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Annuler le Contrat</h3>
+                                    <p className="text-[10px] text-rose-600/70 font-bold uppercase tracking-widest">Client: {clientToCancel.nom} {clientToCancel.prenom}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setIsClientCancelModalOpen(false)}
+                                className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCancelClient} className="flex-1 overflow-y-auto p-8 space-y-6">
+                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
+                                <div className="space-y-2 flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <Info size={18} className="text-amber-600 shrink-0" />
+                                        <p className="text-xs text-amber-800 font-bold leading-relaxed uppercase tracking-tight">Résumé financier du client</p>
+                                    </div>
+                                    <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
+                                        <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
+                                        <span className="text-sm font-black text-amber-900 font-mono">
+                                            {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0)} DH
+                                        </span>
+                                    </div>
+                                    <p className="text-[10px] text-amber-700 font-medium leading-tight">
+                                        L'annulation libérera automatiquement tous les biens réservés. Le statut passera à <span className="font-bold">Annulé</span>.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Montant du Remboursement (DH)</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={clientRefundAmount}
+                                        onChange={(e) => setClientRefundAmount(formatNumber(e.target.value))}
+                                        className="w-full h-14 pl-12 pr-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-lg outline-none"
+                                        placeholder="0.00"
+                                    />
+                                    <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                </div>
+                                <p className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">Laissez vide ou 0 si aucun remboursement n'est effectué.</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Motif / Notes</label>
+                                <textarea
+                                    value={clientCancelNotes}
+                                    onChange={(e) => setClientCancelNotes(e.target.value)}
+                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-sm outline-none h-24 resize-none"
+                                    placeholder="Précisez le motif de l'annulation..."
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsClientCancelModalOpen(false)}
+                                    className="flex-1 h-14 bg-gray-50 text-gray-500 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-all text-[11px]"
+                                >
+                                    Fermer
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingClientCancel}
+                                    className="flex-[2] h-14 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 flex items-center justify-center gap-2 text-[11px]"
+                                >
+                                    {isSubmittingClientCancel ? <Loader2 className="animate-spin" size={20} /> : "Confirmer l'Annulation"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 export default Clients

@@ -19,12 +19,18 @@ class Client extends Model
         'date_reservation',
         'scanned_docs',
         'avec_finition',
+        'observation',
+        'statut',
     ];
+
+
 
     protected $casts = [
         'scanned_docs' => 'array',
         'date_reservation' => 'date',
+        'statut' => 'string',
     ];
+
 
     public function biens()
     {

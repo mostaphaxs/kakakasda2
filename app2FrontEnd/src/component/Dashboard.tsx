@@ -332,7 +332,7 @@ const Dashboard = () => {
             <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-6">Actions Rapides</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { title: 'Ajouter Unité', desc: 'Appartement / Local', path: '/add-property', icon: Home, color: 'text-amber-600', bg: 'bg-amber-50/50' },
+                { title: 'Ajouter Unité', desc: 'Bloc / Local', path: '/add-property', icon: Home, color: 'text-amber-600', bg: 'bg-amber-50/50' },
                 { title: 'Nouveau Client', desc: 'Réservation directe', path: '/add-client', icon: UserPlus, color: 'text-slate-800', bg: 'bg-slate-50' },
                 { title: 'Nouveau Projet', desc: 'Gestion foncière', path: '/add-terrain', icon: MapPin, color: 'text-slate-800', bg: 'bg-slate-50' },
                 { title: 'Charges', desc: 'Saisie comptable', path: '/charges', icon: WalletCards, color: 'text-rose-600', bg: 'bg-rose-50/50' },
@@ -455,7 +455,7 @@ const Dashboard = () => {
                       {c.biens?.[0]?.type_bien || 'N/A'}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase">
-                      {c.biens?.[0]?.num_appartement ? `Unit. ${c.biens[0].num_appartement}` : 'Sans unité'}
+                      {c.biens?.[0]?.num_appartement ? `Bloc ${c.biens[0].num_appartement}` : 'Sans unité'}
                     </p>
                   </div>
                 </div>

@@ -235,7 +235,7 @@ const AddProperty: React.FC = () => {
                         <Building2 className="text-blue-600" size={22} />
                         <div>
                             <h1 className="text-lg font-bold text-gray-800">{isEdit ? 'Modifier' : 'Nouveau Bien'}</h1>
-                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{isEdit ? `Unité ${watch('num_appartement')}` : 'Enregistrer une propriété'}</p>
+                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{isEdit ? `Bloc ${watch('num_appartement')}` : 'Enregistrer une propriété'}</p>
                         </div>
                     </div>
                 </div>
@@ -323,7 +323,7 @@ const AddProperty: React.FC = () => {
 
                             {/* N° Appartement */}
                             {(!isVilla && !isLotVilla) && (
-                                <FieldWrapper label="N° Appartement" error={errors.num_appartement?.message} fieldError={fieldErrors.num_appartement}>
+                                <FieldWrapper label="N° Bloc" error={errors.num_appartement?.message} fieldError={fieldErrors.num_appartement}>
                                     <input
                                         {...register('num_appartement', { maxLength: { value: 20, message: 'Max 20 car.' } })}
                                         className={inputCls(!!errors.num_appartement)}
@@ -346,7 +346,7 @@ const AddProperty: React.FC = () => {
                                     className={inputCls(!!errors.type_bien)}
                                 >
                                     <option value="">— Sélectionner —</option>
-                                    <option value="Appartement">Appartement</option>
+                                    <option value="Appartement">Bloc</option>
                                     <option value="Villa">Villa</option>
                                     <option value="Lot Villa">Lot Villa</option>
                                     <option value="Local Commercial">Local Commercial</option>

@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "MyAmical",
+  "productName": "LES CINQ ELEMENTS",
   "version": "0.1.0",
   "identifier": "com.mustapha.myamical",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "MyAmical",
+        "title": "LES CINQ ELEMENTS",
         "width": 1200,
         "height": 800,
         "resizable": true,
@@ -48,5 +48,4 @@
       "backend/**/*"
     ]
   }
-  
 }
