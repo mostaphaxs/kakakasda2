@@ -83,20 +83,20 @@ const Dashboard = () => {
 
   const displayClients = useMemo(() => {
     if (!apiStats?.recent_clients) return [];
-    if (selectedTerrainId === null) return apiStats.recent_clients;
-    return apiStats.recent_clients.filter(c => c.biens && c.biens.some((b: any) => b.terrain_id === selectedTerrainId));
+    if (selectedTerrainId === null) return apiStats?.recent_clients;
+    return apiStats?.recent_clients.filter(c => c.biens && c.biens.some((b: any) => b.terrain_id === selectedTerrainId));
   }, [apiStats, selectedTerrainId]);
 
   const displayPayments = useMemo(() => {
     if (!apiStats?.recent_payments) return [];
-    if (selectedTerrainId === null) return apiStats.recent_payments;
-    return apiStats.recent_payments.filter(p => p.client?.biens && p.client.biens.some((b: any) => b.terrain_id === selectedTerrainId));
+    if (selectedTerrainId === null) return apiStats?.recent_payments;
+    return apiStats?.recent_payments.filter(p => p.client?.biens && p.client.biens.some((b: any) => b.terrain_id === selectedTerrainId));
   }, [apiStats, selectedTerrainId]);
 
   const displayPurchases = useMemo(() => {
     if (!apiStats?.recent_purchases) return [];
     // Purchases are global for now
-    return apiStats.recent_purchases;
+    return apiStats?.recent_purchases;
   }, [apiStats]);
 
   const fetchData = async () => {
@@ -195,7 +195,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── 1.5. Scope Selector ── */}
-      {apiStats?.terrains_stats && apiStats.terrains_stats.length > 0 && (
+      {stats.terrains_stats && stats.terrains_stats.length > 0 && (
         <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <MapPin className="text-blue-500" size={20} />
@@ -208,7 +208,7 @@ const Dashboard = () => {
             className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-blue-50/50 outline-none w-full sm:w-auto min-w-[300px]"
           >
             <option value="">Global (Tous les projets)</option>
-            {apiStats.terrains_stats.map((t) => (
+            {stats.terrains_stats.map((t) => (
               <option key={t.id} value={t.id}>{t.nom_terrain}</option>
             ))}
           </select>
@@ -366,7 +366,7 @@ const Dashboard = () => {
           <div className="flex gap-2">
             <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
               <p className="text-[10px] font-black text-slate-400 uppercase">Projets</p>
-              <p className="text-lg font-black text-slate-800">{apiStats.terrains_stats?.length || 0}</p>
+              <p className="text-lg font-black text-slate-800">{stats.terrains_stats?.length || 0}</p>
             </div>
             <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
               <p className="text-[10px] font-black text-slate-400 uppercase">Unités</p>
