@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import MarkdownText from './common/MarkdownText';
 
 
 interface AnnexUnit {
@@ -234,7 +235,7 @@ const Properties = () => {
                             <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">EL OUAHA</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -380,16 +381,16 @@ const Properties = () => {
                                 <tr key={b.id} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col">
-                                            <span className="font-black text-gray-800 uppercase tracking-wide">
+                                            <span className="font-medium text-slate-600 uppercase tracking-tight">
                                                 {b.nom ? (
                                                     <span className="text-indigo-600 mr-2">{b.nom}</span>
                                                 ) : (
                                                     b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien
                                                 )}
-                                                {b.groupe_habitation ? ` - ${b.groupe_habitation}` : ''}
-                                                {b.immeuble ? ` - Imm. ${b.immeuble}` : ''}
+                                                {b.groupe_habitation ? <> - <MarkdownText text={b.groupe_habitation} /></> : ''}
+                                                {b.immeuble ? <> - Imm. <MarkdownText text={b.immeuble} /></> : ''}
                                                 {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
-                                                {b.num_appartement ? ` - Bloc ${b.num_appartement}` : ''}
+                                                {b.num_appartement ? <> - Bloc <MarkdownText text={b.num_appartement} /></> : ''}
                                             </span>
                                             <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
                                         </div>
@@ -673,7 +674,7 @@ const Properties = () => {
                                         <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Notes & Description</label>
                                         <div className="p-4 bg-gray-50 rounded-2xl min-h-[100px]">
                                             <p className="text-xs text-gray-600 italic leading-relaxed">
-                                                {selectedBien.description || 'Aucune description particulière pour cette unité.'}
+                                                <MarkdownText text={selectedBien.description || 'Aucune description particulière pour cette unité.'} />
                                             </p>
                                         </div>
                                     </div>

@@ -7,6 +7,8 @@ import { Building2, ArrowLeft, Save, Loader2, Plus, Trash2 } from 'lucide-react'
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Controller } from 'react-hook-form';
+import EnhancedInput from './common/EnhancedInput';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -284,10 +286,17 @@ const AddProperty: React.FC = () => {
                             {/* Groupe d'habitation */}
                             {(!isVilla && !isLotVilla) && (
                                 <FieldWrapper label="Groupe d'habitation" error={errors.groupe_habitation?.message} fieldError={fieldErrors.groupe_habitation}>
-                                    <input
-                                        {...register('groupe_habitation', { maxLength: { value: 100, message: 'Max 100 caractères.' } })}
-                                        className={inputCls(!!errors.groupe_habitation)}
-                                        placeholder="Ex: Résidence Al Andalous"
+                                    <Controller
+                                        name="groupe_habitation"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <EnhancedInput
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.groupe_habitation)}
+                                                placeholder="Ex: Résidence Al Andalous"
+                                            />
+                                        )}
                                     />
                                 </FieldWrapper>
                             )}
@@ -295,10 +304,17 @@ const AddProperty: React.FC = () => {
                             {/* Immeuble */}
                             {(!isVilla && !isLotVilla) && (
                                 <FieldWrapper label="Immeuble" error={errors.immeuble?.message} fieldError={fieldErrors.immeuble}>
-                                    <input
-                                        {...register('immeuble', { maxLength: { value: 100, message: 'Max 100 caractères.' } })}
-                                        className={inputCls(!!errors.immeuble)}
-                                        placeholder="Ex: Bâtiment B"
+                                    <Controller
+                                        name="immeuble"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <EnhancedInput
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.immeuble)}
+                                                placeholder="Ex: Bâtiment B"
+                                            />
+                                        )}
                                     />
                                 </FieldWrapper>
                             )}
@@ -306,28 +322,43 @@ const AddProperty: React.FC = () => {
                             {/* Étage */}
                             {(!isVilla && !isLotVilla) && (
                                 <FieldWrapper label="Étage" error={errors.etage?.message} fieldError={fieldErrors.etage}>
-                                    <select
-                                        {...register('etage')}
-                                        className={inputCls(!!errors.etage)}
-                                    >
-                                        <option value="">— Sélectionner —</option>
-                                        <option value="0">Rez-de-chaussée (RDC)</option>
-                                        <option value="1">1er Étage</option>
-                                        <option value="2">2ème Étage</option>
-                                        <option value="3">3ème Étage</option>
-                                        <option value="4">4ème Étage</option>
-                                        <option value="5">5ème Étage</option>
-                                    </select>
+                                    <Controller
+                                        name="etage"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <select
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.etage)}
+                                            >
+                                                <option value="">— Sélectionner —</option>
+                                                <option value="0">Rez-de-chaussée (RDC)</option>
+                                                <option value="1">1er Étage</option>
+                                                <option value="2">2ème Étage</option>
+                                                <option value="3">3ème Étage</option>
+                                                <option value="4">4ème Étage</option>
+                                                <option value="5">5ème Étage</option>
+                                            </select>
+                                        )}
+                                    />
                                 </FieldWrapper>
                             )}
 
-                            {/* N° Appartement */}
+                            {/* N° Appartement / Bloc */}
                             {(!isVilla && !isLotVilla) && (
                                 <FieldWrapper label="N° Bloc" error={errors.num_appartement?.message} fieldError={fieldErrors.num_appartement}>
-                                    <input
-                                        {...register('num_appartement', { maxLength: { value: 20, message: 'Max 20 car.' } })}
-                                        className={inputCls(!!errors.num_appartement)}
-                                        placeholder="Ex: A12"
+                                    <Controller
+                                        name="num_appartement"
+                                        control={control}
+                                        rules={{ maxLength: { value: 30, message: 'Max 30 car.' } }}
+                                        render={({ field }) => (
+                                            <EnhancedInput
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.num_appartement)}
+                                                placeholder="Ex: A12"
+                                            />
+                                        )}
                                     />
                                 </FieldWrapper>
                             )}
@@ -346,7 +377,7 @@ const AddProperty: React.FC = () => {
                                     className={inputCls(!!errors.type_bien)}
                                 >
                                     <option value="">— Sélectionner —</option>
-                                    <option value="Appartement">Bloc</option>
+                                    <option value="Appartement">Appartement</option>
                                     <option value="Villa">Villa</option>
                                     <option value="Lot Villa">Lot Villa</option>
                                     <option value="Local Commercial">Local Commercial</option>
@@ -385,11 +416,20 @@ const AddProperty: React.FC = () => {
                             {/* Description */}
                             <div className="sm:col-span-2">
                                 <FieldWrapper label="Description" error={errors.description?.message} fieldError={fieldErrors.description}>
-                                    <textarea
-                                        {...register('description', { maxLength: { value: 1000, message: 'Max 1000 caractères.' } })}
-                                        rows={3}
-                                        className={`${inputCls(!!errors.description)} resize-none`}
-                                        placeholder="Notes ou détails supplémentaires…"
+                                    <Controller
+                                        name="description"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <EnhancedInput
+                                                type="textarea"
+                                                value={field.value || ''}
+                                                onChange={field.onChange}
+                                                className={inputCls(!!errors.description)}
+                                                placeholder="Notes ou détails supplémentaires…"
+                                                showPolite={true}
+                                                rows={3}
+                                            />
+                                        )}
                                     />
                                 </FieldWrapper>
                             </div>
