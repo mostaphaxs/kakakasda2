@@ -280,13 +280,13 @@ const Navbar: React.FC = () => {
 
                         <div onClick={() => navigate('/home')} className="flex items-center ml-2 md:mr-12 cursor-pointer group">
                             <img
-                                src="/assets/LogoNavbar.png"
+                                src="/assets/logoLogin.png"
                                 alt="Logo"
                                 className="h-8 w-auto mr-3 group-hover:scale-110 transition-transform"
 
                             />
                             <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                                Société les <span className="text-amber-500 font-black">cinq elements</span>
+                                EL <span className="text-amber-500 font-black">OUAHA</span>
                             </span>
                         </div>
                     </div>

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "LES CINQ ELEMENTS",
+  "productName": "EL OUAHA",
   "version": "0.1.0",
-  "identifier": "com.mustapha.myamical",
+  "identifier": "com.mustapha.ElOuaha",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
