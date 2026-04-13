@@ -35,7 +35,9 @@ class TerrainController extends Controller
             'frais_pompier'             => 'nullable|numeric|min:0',
             'frais_autorisation_intermediaire' => 'nullable|numeric|min:0',
             'total'                   => 'required|numeric|min:0',
+            'description'             => 'nullable|string',
         ]);
+
 
         $terrain = Terrain::create($validated);
 
@@ -71,7 +73,9 @@ class TerrainController extends Controller
             'frais_pompier'             => 'nullable|numeric|min:0',
             'frais_autorisation_intermediaire' => 'nullable|numeric|min:0',
             'total'                   => 'required|numeric|min:0',
+            'description'             => 'nullable|string',
         ]);
+
 
         $terrain->update($validated);
 

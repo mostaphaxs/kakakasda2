@@ -36,7 +36,9 @@ class ClientController extends Controller
             'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
+            'observation'      => 'nullable|string',
         ]);
+
 
         return DB::transaction(function () use ($validated) {
             $client = Client::create($validated);
@@ -77,29 +79,41 @@ class ClientController extends Controller
             'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
+            'observation'      => 'nullable|string',
+            'statut'           => 'nullable|string|in:Actif,Annulé',
         ]);
 
         return DB::transaction(function () use ($validated, $client) {
             $oldBienIds = $client->biens()->pluck('biens.id')->toArray();
             $newBienId = $validated['bien_id'] ?? null;
+            $oldStatus = $client->statut;
+            $newStatus = $validated['statut'] ?? $client->statut;
 
             $client->update($validated);
-            $client->biens()->sync($newBienId ? [$newBienId] : []);
+            
+            if ($newStatus === 'Annulé' && $oldStatus !== 'Annulé') {
+                $client->biens()->detach();
+                if (!empty($oldBienIds)) {
+                    Bien::whereIn('id', $oldBienIds)->update(['statut' => 'Libre']);
+                }
+            } else {
+                $client->biens()->sync($newBienId ? [$newBienId] : []);
 
-            // Free removed biens
-            $removed = array_diff($oldBienIds, $newBienId ? [$newBienId] : []);
-            if (!empty($removed)) {
-                Bien::whereIn('id', $removed)->update(['statut' => 'Libre']);
-            }
+                // Free removed biens
+                $removed = array_diff($oldBienIds, $newBienId ? [$newBienId] : []);
+                if (!empty($removed)) {
+                    Bien::whereIn('id', $removed)->update(['statut' => 'Libre']);
+                }
 
-            // Reserve new one
-            if ($newBienId && !in_array($newBienId, $oldBienIds)) {
-                Bien::where('id', $newBienId)->update(['statut' => 'Reserve']);
-                
-                // Retroactively associate any unassociated payments
-                $client->payments()
-                    ->whereNull('bien_id')
-                    ->update(['bien_id' => $newBienId]);
+                // Reserve new one IF client is Actif
+                if ($newBienId && $newStatus === 'Actif') {
+                    Bien::where('id', $newBienId)->update(['statut' => 'Reserve']);
+                    
+                    // Retroactively associate any unassociated payments
+                    $client->payments()
+                        ->whereNull('bien_id')
+                        ->update(['bien_id' => $newBienId]);
+                }
             }
 
             return response()->json([
@@ -129,6 +143,48 @@ class ClientController extends Controller
 
             $client->delete();
             return response()->json(['message' => 'Client supprimé.']);
+        });
+    }
+
+    /**
+     * Cancel a client deal.
+     */
+    public function cancel(Request $request, Client $client): JsonResponse
+    {
+        $validated = $request->validate([
+            'refund_amount' => 'nullable|numeric|min:0',
+            'notes'         => 'nullable|string',
+        ]);
+
+        return DB::transaction(function () use ($validated, $client) {
+            // 1. Update status and save motif to observation
+            $client->update([
+                'statut' => 'Annulé',
+                'observation' => $validated['notes'] ?? $client->observation
+            ]);
+
+            // 2. Free and detach associated biens
+            $bienIds = $client->biens()->pluck('biens.id')->toArray();
+            if (!empty($bienIds)) {
+                Bien::whereIn('id', $bienIds)->update(['statut' => 'Libre']);
+                $client->biens()->detach();
+            }
+
+            // 3. Handle refund if provided
+            if (!empty($validated['refund_amount'])) {
+                $lastPayment = $client->payments()->latest()->first();
+                if ($lastPayment) {
+                    $lastPayment->update([
+                        'refund_amount' => $validated['refund_amount'],
+                        'notes' => ($lastPayment->notes ? $lastPayment->notes . "\n" : "") . "REFUND ON CANCELLATION: " . ($validated['notes'] ?? '')
+                    ]);
+                }
+            }
+
+            return response()->json([
+                'message' => 'Contrat annulé avec succès.',
+                'client'  => $client->fresh('biens'),
+            ]);
         });
     }
 

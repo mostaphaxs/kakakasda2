@@ -21,7 +21,9 @@ class Terrain extends Model
         'frais_pompier',
         'frais_autorisation_intermediaire',
         'total',
+        'description',
     ];
+
 
     protected $casts = [
         'autorisation_construction' => 'float',

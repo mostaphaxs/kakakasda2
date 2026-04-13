@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::put('/clients/{client}', [ClientController::class, 'update']);
+    Route::post('/clients/{client}/cancel', [ClientController::class, 'cancel']);
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::post('/clients/{client}/documents', [ClientController::class, 'uploadDocument']);
     Route::delete('/clients/{client}/documents/{documentIndex}', [ClientController::class, 'deleteDocument']);
@@ -150,16 +151,4 @@ Route::get('/sidecar-serve/{path}', function ($path) {
     ], 404);
 
 })->where('path', '.*');
-
-// 🔍 DIAGNOSTIC
-Route::get('/debug-sidecar', function() {
-    $storage = env('LARAVEL_STORAGE_PATH');
-    $path = rtrim($storage, '/') . '/app/public';
-    return response()->json([
-        'STORAGE' => $storage,
-        'PUB_DIR' => $path,
-        'PUB_EXISTS' => is_dir($path),
-        'PUB_FILES' => is_dir($path) ? array_diff(scandir($path), ['.', '..']) : [],
-    ]);
-});
 

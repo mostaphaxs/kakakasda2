@@ -8,6 +8,7 @@ Route::get('/', function () {
 });
 
 // 🛡️ THE FIX: Serve storage files manually for sidecars (since storage:link fails)
+// 🛡️ THE FIX: Serve storage files manually for sidecars (since storage:link fails)
 // 🛡️ THE FIX: Exhaustive "Search and Serve" logic for sidecars
 Route::get('/storage/{path}', function ($path) {
     $storageBase = env('LARAVEL_STORAGE_PATH', storage_path());
