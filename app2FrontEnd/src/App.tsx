@@ -23,17 +23,7 @@ import { Toaster } from 'react-hot-toast';
 import GlobalPreview from './component/GlobalPreview.tsx';
 
 
-// Procurement Components
-import Articles from './component/procurement/Articles';
-import AddArticle from './component/procurement/AddArticle';
-import Suppliers from './component/procurement/Suppliers';
-import AddSupplier from './component/procurement/AddSupplier';
-import PurchaseInvoices from './component/procurement/PurchaseInvoices';
-import AddAchat from './component/procurement/AddAchat';
-import GeneralWorks from './component/procurement/GeneralWorks';
-import AddGeneralWork from './component/procurement/AddGeneralWork';
-import StockDashboard from './component/procurement/StockDashboard';
-import StockExitForm from './component/procurement/StockExitForm';
+
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -77,17 +67,7 @@ const App: React.FC = () => {
               <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
-              {/* Procurement Routes */}
-              <Route path="/articles" element={<PrivateRoute><Articles /></PrivateRoute>} />
-              <Route path="/add-article" element={<PrivateRoute><AddArticle /></PrivateRoute>} />
-              <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
-              <Route path="/add-supplier" element={<PrivateRoute><AddSupplier /></PrivateRoute>} />
-              <Route path="/achats" element={<PrivateRoute><PurchaseInvoices /></PrivateRoute>} />
-              <Route path="/add-achat" element={<PrivateRoute><AddAchat /></PrivateRoute>} />
-              <Route path="/travaux" element={<PrivateRoute><GeneralWorks /></PrivateRoute>} />
-              <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />
-              <Route path="/stock" element={<PrivateRoute><StockDashboard /></PrivateRoute>} />
-              <Route path="/add-stock-exit" element={<PrivateRoute><StockExitForm onSuccess={() => { }} /></PrivateRoute>} />
+
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/login" replace />} />

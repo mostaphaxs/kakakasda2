@@ -62,11 +62,6 @@ const Navbar: React.FC = () => {
         { icon: Users, label: 'Nouveau Intervenant', path: '/intervenants', color: 'text-slate-900' },
         { icon: HardHat, label: 'Construction', path: '/contractors', color: 'text-slate-900' },
         { icon: WalletCards, label: 'Nouvelle Charge', path: '/charges', color: 'text-slate-900' },
-        { icon: Package, label: 'Nouvel Article', path: '/add-article', color: 'text-indigo-600' },
-        { icon: Truck, label: 'Nouveau Fournisseur', path: '/add-supplier', color: 'text-slate-600' },
-        { icon: ShoppingCart, label: 'Nouvel Achat (Stock)', path: '/add-achat', color: 'text-emerald-600' },
-        { icon: Wrench, label: 'Nouveaux Travaux', path: '/add-travaux', color: 'text-orange-600' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit', color: 'text-rose-600' },
     ];
 
     const navItems = [
@@ -78,11 +73,7 @@ const Navbar: React.FC = () => {
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
-        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
-        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
-        { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
-        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
+    
     ];
 
     const exportItems = [
