@@ -50,7 +50,7 @@ const Home = () => {
 
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-tight">
                             Bienvenue chez <br />
-                            <span className="text-amber-500 drop-shadow-lg">les cinq elements</span>
+                            <span className="text-amber-500 drop-shadow-lg">El Ouaha </span>
                         </h1>
 
                         <div className="flex gap-4 pt-4">
