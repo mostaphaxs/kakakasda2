@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
-import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload } from 'lucide-react';
+import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
