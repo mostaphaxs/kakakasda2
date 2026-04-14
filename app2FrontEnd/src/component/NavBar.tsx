@@ -62,12 +62,9 @@ const Navbar: React.FC = () => {
         { icon: UserPlus, label: 'Nouveau Client', path: '/add-client', color: 'text-slate-900' },
         { icon: HardHat, label: 'Construction', path: '/contractors', color: 'text-slate-900' },
         { icon: WalletCards, label: 'Nouvelle Charge', path: '/charges', color: 'text-slate-900' },
-        { icon: Package, label: 'Nouvel Article', path: '/add-article', color: 'text-indigo-600' },
-        { icon: Truck, label: 'Nouveau Fournisseur', path: '/add-supplier', color: 'text-slate-600' },
-        { icon: ShoppingCart, label: 'Nouvel Achat (Stock)', path: '/add-achat', color: 'text-emerald-600' },
-        { icon: Wrench, label: 'Nouveaux Travaux', path: '/add-travaux', color: 'text-orange-600' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit', color: 'text-rose-600' },
+
     ];
+
 
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
@@ -78,11 +75,6 @@ const Navbar: React.FC = () => {
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
-        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
-        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
-        { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
-        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
     ];
 
     const exportItems = [
@@ -280,13 +272,12 @@ const Navbar: React.FC = () => {
 
                         <div onClick={() => navigate('/home')} className="flex items-center ml-2 md:mr-12 cursor-pointer group">
                             <img
-                                src="/assets/LogoNavbar.png"
+                                src="/assets/logoLogin.png"
                                 alt="Logo"
                                 className="h-8 w-auto mr-3 group-hover:scale-110 transition-transform"
-
                             />
                             <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                                Société les <span className="text-amber-500 font-black">cinq elements</span>
+                                EL <span className="text-amber-500 font-black">OUAHA</span>
                             </span>
                         </div>
                     </div>
