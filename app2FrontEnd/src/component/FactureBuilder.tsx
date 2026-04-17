@@ -474,7 +474,7 @@ const FactureBuilder: React.FC = () => {
                             {/* Right: Fournisseur Table */}
                             <div className="w-1/2">
                                 <div className="border border-black border-dashed p-3 min-h-[100px] text-xs">
-                                    <p className="text-sm mb-2 break-all"><span className="font-bold">Fournisseur :</span> <span className="font-bold uppercase">{watchAll.supplierName}</span></p>
+                                    <p className="font-black text-sm uppercase mb-1 break-all">{watchAll.supplierName}</p>
                                     <p className="text-gray-700 leading-relaxed mb-1 italic break-words">{watchAll.supplierAddress}</p>
                                     {(watchAll.supplierIce || watchAll.supplierIf || watchAll.supplierRc) && (
                                         <div className="font-mono text-[10px] mt-2 border-t pt-1 space-y-0.5">
@@ -505,41 +505,58 @@ const FactureBuilder: React.FC = () => {
                         <div className="flex-grow">
                             <table className="w-full text-left border-collapse border border-black">
                                 <thead>
-                                    <tr className="bg-gray-200 text-black text-[11px] font-bold uppercase">
+                                    <tr className="bg-gray-200 text-black text-[10px] font-bold uppercase">
                                         <th className="border border-black py-2 px-3">Désignation</th>
-                                        <th className="border border-black py-2 px-3 text-center w-24">Quantité</th>
-                                        <th className="border border-black py-2 px-3 text-right w-32">Prix unitaire</th>
-                                        <th className="border border-black py-2 px-3 text-right w-32">Total</th>
+                                        <th className="border border-black py-2 px-3 text-center w-16">Qté</th>
+                                        <th className="border border-black py-2 px-3 text-right w-24">P.U HT</th>
+                                        <th className="border border-black py-2 px-3 text-center w-16">TVA</th>
+                                        <th className="border border-black py-2 px-3 text-right w-24">Mnt. HT</th>
+                                        <th className="border border-black py-2 px-3 text-right w-28">Mnt. TTC</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {(watchAll.items || []).map((item, idx) => (
-                                        <tr key={idx} className="text-[11px] h-10">
-                                            <td className="border border-black py-1 px-3 align-top">{item.designation || '...'}</td>
-                                            <td className="border border-black py-1 px-3 text-center align-top">{item.qty}</td>
-                                            <td className="border border-black py-1 px-3 text-right align-top">{Number(item.unitPrice).toLocaleString('fr-MA', { minimumFractionDigits: 2 })}</td>
-                                            <td className="border border-black py-1 px-3 text-right align-top font-bold">
-                                                {(item.qty * item.unitPrice).toLocaleString('fr-MA', { minimumFractionDigits: 2 })}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {(() => {
+                                        const items = watchAll.items || [];
+                                        const rows = [...items];
+                                        // Ensure at least 3 rows
+                                        while (rows.length < 3) {
+                                            rows.push({ designation: '', qty: 0, unitPrice: 0, vatRate: 20 });
+                                        }
+
+                                        return rows.map((item, idx) => {
+                                            const ht = (item.qty || 0) * (item.unitPrice || 0);
+                                            const ttc = ht * (1 + (item.vatRate || 0) / 100);
+                                            return (
+                                                <tr key={idx} className="text-[10px] h-10">
+                                                    <td className="border border-black py-1 px-3 align-top">{item.designation || (idx < items.length ? '...' : '')}</td>
+                                                    <td className="border border-black py-1 px-3 text-center align-top">{item.qty || ''}</td>
+                                                    <td className="border border-black py-1 px-3 text-right align-top">{item.unitPrice ? item.unitPrice.toLocaleString('fr-MA', { minimumFractionDigits: 2 }) : ''}</td>
+                                                    <td className="border border-black py-1 px-3 text-center align-top">{item.vatRate}%</td>
+                                                    <td className="border border-black py-1 px-3 text-right align-top">{ht ? ht.toLocaleString('fr-MA', { minimumFractionDigits: 2 }) : ''}</td>
+                                                    <td className="border border-black py-1 px-3 text-right align-top font-bold">
+                                                        {ttc ? ttc.toLocaleString('fr-MA', { minimumFractionDigits: 2 }) : ''}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
+                                    })()}
                                     {/* Totals inside the table footer style */}
                                     <tr className="bg-gray-100 font-bold text-xs">
-                                        <td colSpan={2} rowSpan={3} className="border border-black p-4 align-bottom">
+                                        <td colSpan={4} rowSpan={3} className="border border-black p-4 align-bottom">
                                             <p className="italic text-[10px]">Arrête la présente Facture à la somme :</p>
                                             <p className="uppercase mt-1 text-black font-black underline">
                                                 {numberToFrenchWords(totals.ttc)}
                                             </p>
                                         </td>
-                                        <td className="border border-black py-1 px-3 text-right uppercase text-[10px]">Montant HT</td>
-                                        <td className="border border-black py-1 px-3 text-right">{totals.ht.toLocaleString('fr-MA', { minimumFractionDigits: 2 })}</td>
+                                        <td className="border border-black py-1 px-3 text-right uppercase text-[9px]">Total HT</td>
+                                        <td className="border border-black py-1 px-3 text-right text-[11px]">{totals.ht.toLocaleString('fr-MA', { minimumFractionDigits: 2 })}</td>
                                     </tr>
                                     <tr className="bg-gray-100 font-bold text-xs">
-                                        <td className="border border-black py-1 px-3 text-right uppercase text-[10px]">TVA</td>
-                                        <td className="border border-black py-1 px-3 text-right">{totals.tva.toLocaleString('fr-MA', { minimumFractionDigits: 2 })}</td>
+                                        <td className="border border-black py-1 px-3 text-right uppercase text-[9px]">Total TVA</td>
+                                        <td className="border border-black py-1 px-3 text-right text-[11px]">{totals.tva.toLocaleString('fr-MA', { minimumFractionDigits: 2 })}</td>
                                     </tr>
                                     <tr className="bg-gray-200 font-black text-sm">
-                                        <td className="border border-black py-2 px-3 text-right uppercase text-[10px]">Montant TTC</td>
+                                        <td className="border border-black py-2 px-3 text-right uppercase text-[9px]">Total TTC</td>
                                         <td className="border border-black py-2 px-3 text-right text-blue-800">{totals.ttc.toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH</td>
                                     </tr>
                                 </tbody>
