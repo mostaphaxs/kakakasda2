@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
-import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye } from 'lucide-react';
+import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
@@ -207,6 +207,9 @@ const Suppliers: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => navigate('/add-achat', { state: { supplier_id: s.id } })} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors shadow-sm bg-white border border-emerald-100" title="Nouvel Achat">
+                                            <ShoppingCart size={16} />
+                                        </button>
                                         <button onClick={() => handleOpenDetails(s)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors shadow-sm bg-white border border-blue-100" title="Détails">
                                             <Eye size={16} />
                                         </button>

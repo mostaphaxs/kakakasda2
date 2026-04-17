@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { apiFetch } from '../../lib/api';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Save, ArrowLeft, PlusCircle, Trash2, Hash, FileText, CheckCircle2 } from 'lucide-react';
 
 interface PurchaseInvoiceItemForm {
@@ -23,12 +23,17 @@ interface PurchaseInvoiceForm {
 
 const AddAchat: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const state = location.state as { supplier_id?: string | number; terrain_id?: string | number } | null;
+
     const [articles, setArticles] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
 
-    const { register, control, handleSubmit, watch, formState: { isSubmitting, errors } } = useForm<PurchaseInvoiceForm>({
+    const { register, control, handleSubmit, watch, formState: { isSubmitting, errors }, setValue } = useForm<PurchaseInvoiceForm>({
         defaultValues: {
+            supplier_id: state?.supplier_id ? String(state.supplier_id) : '',
+            terrain_id: state?.terrain_id ? String(state.terrain_id) : '',
             items: [{ article_id: '', qty: 1, unit_price: 0, vat_rate: 20 }]
         }
     });
@@ -60,12 +65,19 @@ const AddAchat: React.FC = () => {
                 setArticles(art);
                 setSuppliers(sup);
                 setTerrains(ter);
+
+                if (state?.supplier_id) {
+                    setValue('supplier_id', String(state.supplier_id));
+                }
+                if (state?.terrain_id) {
+                    setValue('terrain_id', String(state.terrain_id));
+                }
             } catch (error) {
                 console.error(error);
             }
         };
         load();
-    }, []);
+    }, [state, setValue]);
 
     const onSubmit = async (data: any) => {
         if (!data.items || data.items.length === 0) {

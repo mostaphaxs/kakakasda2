@@ -20,6 +20,7 @@ use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\GeneralWorkController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\FactureController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -103,6 +104,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::get('/settings/pricing', [SettingController::class, 'getPricing']);
     Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
+    
+    // Factures
+    Route::apiResource('factures', FactureController::class);
     
 });
 

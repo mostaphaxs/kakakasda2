@@ -34,6 +34,8 @@ import GeneralWorks from './component/procurement/GeneralWorks';
 import AddGeneralWork from './component/procurement/AddGeneralWork';
 import StockDashboard from './component/procurement/StockDashboard';
 import StockExitForm from './component/procurement/StockExitForm';
+import FactureBuilder from './component/FactureBuilder';
+import FacturesList from './component/FacturesList';
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -88,6 +90,8 @@ const App: React.FC = () => {
               <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />
               <Route path="/stock" element={<PrivateRoute><StockDashboard /></PrivateRoute>} />
               <Route path="/add-stock-exit" element={<PrivateRoute><StockExitForm onSuccess={() => { }} /></PrivateRoute>} />
+              <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
+              <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
 
               {/* Fallback */}
               <Route path="*" element={<Navigate to="/login" replace />} />

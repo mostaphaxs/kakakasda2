@@ -1,6 +1,6 @@
 // src/component/NavBar.tsx
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Menu, X, Building2, LogOut, ChevronDown, Home, MapPin, UserPlus, WalletCards, HardHat, Users, Layers, Download, Database, Package, ShoppingCart, Truck, Wrench, Settings2 } from 'lucide-react';
+import { Plus, Menu, X, Building2, LogOut, ChevronDown, Home, MapPin, UserPlus, WalletCards, HardHat, Users, Layers, Download, Database, Package, ShoppingCart, Truck, Wrench, Settings2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
@@ -11,12 +11,14 @@ const Navbar: React.FC = () => {
     const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
     const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+    const [isFacturesMenuOpen, setIsFacturesMenuOpen] = useState(false);
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
     const navigate = useNavigate();
     const token = localStorage.getItem('token');
     const dropdownRef = useRef<HTMLDivElement>(null);
     const navDropdownRef = useRef<HTMLDivElement>(null);
     const exportDropdownRef = useRef<HTMLDivElement>(null);
+    const facturesDropdownRef = useRef<HTMLDivElement>(null);
 
     // Sync user from localStorage
     useEffect(() => {
@@ -43,6 +45,9 @@ const Navbar: React.FC = () => {
             if (exportDropdownRef.current && !exportDropdownRef.current.contains(target)) {
                 setIsExportMenuOpen(false);
             }
+            if (facturesDropdownRef.current && !facturesDropdownRef.current.contains(target)) {
+                setIsFacturesMenuOpen(false);
+            }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -67,6 +72,7 @@ const Navbar: React.FC = () => {
         { icon: ShoppingCart, label: 'Nouvel Achat (Stock)', path: '/add-achat', color: 'text-emerald-600' },
         { icon: Wrench, label: 'Nouveaux Travaux', path: '/add-travaux', color: 'text-orange-600' },
         { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit', color: 'text-rose-600' },
+        { icon: FileText, label: 'Créer Facture', path: '/factures', color: 'text-blue-600' },
     ];
 
     const navItems = [
@@ -83,6 +89,7 @@ const Navbar: React.FC = () => {
         { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
         { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
+        { icon: FileText, label: 'Factures (Générateur)', path: '/factures' },
     ];
 
     const exportItems = [
@@ -303,6 +310,40 @@ const Navbar: React.FC = () => {
                                     <Settings2 size={16} className="text-amber-500" />
                                     <span>Configuration</span>
                                 </button>
+
+                                {/* Factures Dropdown */}
+                                <div className="relative hidden lg:block" ref={facturesDropdownRef}>
+                                    <button
+                                        onClick={() => setIsFacturesMenuOpen(prev => !prev)}
+                                        className="flex items-center gap-2 bg-white/5 text-white/80 px-3 py-2 rounded-lg hover:bg-white/10 hover:text-white transition font-black text-xs uppercase tracking-widest border border-white/10"
+                                    >
+                                        <FileText size={16} className="text-blue-500" />
+                                        <span>Factures</span>
+                                        <ChevronDown
+                                            size={14}
+                                            className={`transition-transform duration-200 ${isFacturesMenuOpen ? 'rotate-180' : ''}`}
+                                        />
+                                    </button>
+
+                                    {isFacturesMenuOpen && (
+                                        <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-xl py-1.5 z-50 animate-[fadeInDown_0.15s_ease-out]">
+                                            <button
+                                                onClick={() => { setIsFacturesMenuOpen(false); navigate('/factures-list'); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors border-b border-gray-50"
+                                            >
+                                                <Layers size={16} className="text-indigo-600" />
+                                                <span className="font-extrabold uppercase tracking-tight">Consulter Facture</span>
+                                            </button>
+                                            <button
+                                                onClick={() => { setIsFacturesMenuOpen(false); navigate('/factures'); }}
+                                                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs text-slate-700 hover:bg-slate-50 transition-colors"
+                                            >
+                                                <Plus size={16} className="text-blue-600" />
+                                                <span className="font-extrabold uppercase tracking-tight">Créer Facture</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Consulter Dropdown */}
                                 <div className="relative hidden lg:block" ref={navDropdownRef}>

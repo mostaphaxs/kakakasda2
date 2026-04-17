@@ -1,71 +1,107 @@
 /**
- * Formats a number or string as a currency/number with thousands separators.
- * Example: 1000000 -> 1.000.000
+ * Converts a number to its French word representation.
+ * Optimized for Moroccan Dirhams (MAD).
  */
-export const formatNumber = (value: number | string | undefined | null): string => {
-    if (value === undefined || value === null || value === '') return '';
+export const numberToFrenchWords = (n: number): string => {
+    if (n === 0) return "zéro";
 
-    let numValue: number;
+    const ones = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
+    const teens = ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"];
+    const tens = ["", "dix", "vingt", "trente", "quarante", "cinquante", "soixante", "soixante-dix", "quatre-vingt", "quatre-vingt-dix"];
 
-    if (typeof value === 'number') {
-        numValue = value;
-    } else {
-        const str = value.trim();
+    const convertChunk = (num: number): string => {
+        let chunkStr = "";
 
-        // API format is usually "121200.00" (dot followed by 2 digits)
-        // User format is "121.200" (dot followed by 3 digits) or "121200"
-
-        if (/^\d+\.\d{2}$/.test(str) || /^\d+$/.test(str)) {
-            // Likely API float string or clean integer string
-            numValue = parseFloat(str);
-        } else if (/^\d+\.\d{1}$/.test(str)) {
-            // Also possible API float "121.2"
-            numValue = parseFloat(str);
-        } else {
-            // Likely a formatted string (from user input), e.g. "121.200"
-            // Strip ALL dots and commas
-            const clean = str.replace(/\./g, '').replace(/,/g, '');
-            numValue = parseFloat(clean);
+        if (num >= 100) {
+            const h = Math.floor(num / 100);
+            if (h > 1) {
+                chunkStr += ones[h] + " cent";
+                if (num % 100 === 0) chunkStr += "s";
+            } else {
+                chunkStr += "cent";
+            }
+            num %= 100;
+            if (num > 0) chunkStr += " ";
         }
+
+        if (num >= 20) {
+            const t = Math.floor(num / 10);
+            const u = num % 10;
+
+            if (t === 7 || t === 9) {
+                chunkStr += tens[t - 1];
+                if (u === 1 && t === 7) {
+                    chunkStr += " et " + teens[u];
+                } else {
+                    chunkStr += "-" + teens[u];
+                }
+            } else {
+                chunkStr += tens[t];
+                if (u === 1 && t !== 8) {
+                    chunkStr += " et " + ones[u];
+                } else if (u > 0) {
+                    chunkStr += "-" + ones[u];
+                }
+                if (t === 8 && u === 0 && chunkStr.endsWith("vingt")) {
+                    chunkStr += "s";
+                }
+            }
+        } else if (num >= 10) {
+            chunkStr += teens[num - 10];
+        } else if (num > 0) {
+            chunkStr += ones[num];
+        }
+
+        return chunkStr;
+    };
+
+    const integerPart = Math.floor(n);
+    const fractionalPart = Math.round((n - integerPart) * 100);
+
+    let result = "";
+
+    if (integerPart >= 1000000) {
+        const millions = Math.floor(integerPart / 1000000);
+        result += convertChunk(millions) + " million" + (millions > 1 ? "s" : "") + " ";
+        result += numberToFrenchWords(integerPart % 1000000);
+    } else if (integerPart >= 1000) {
+        const thousands = Math.floor(integerPart / 1000);
+        if (thousands > 1) {
+            result += convertChunk(thousands) + " mille ";
+        } else {
+            result += "mille ";
+        }
+        const rest = integerPart % 1000;
+        if (rest > 0) result += convertChunk(rest);
+    } else {
+        result += convertChunk(integerPart);
     }
 
-    if (isNaN(numValue)) return '';
+    result = result.trim();
 
-    // Round to integer as per user requirement 
-    // (They specifically asked for NO commas and dots every 3 numbers)
-    const rounded = Math.round(numValue);
+    if (fractionalPart > 0) {
+        return `${result} Dirhams et ${convertChunk(fractionalPart)} Centimes`;
+    }
 
-    return new Intl.NumberFormat('fr-FR', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(rounded).replace(/\s/g, '.');
+    return `${result} Dirhams`;
 };
 
-/**
- * Parses a formatted string back into a number.
- * Example: 1.000.000,50 -> 1000000.50
- */
-export const parseNumber = (value: string | number | undefined | null): number => {
-    if (value === undefined || value === null || value === '') return 0;
-    if (typeof value === 'number') return value;
-
-    // Remove all periods (thousands separators) and commas
-    const cleanValue = value.toString().replace(/\./g, '').replace(/,/g, '');
-    const num = parseFloat(cleanValue);
-    return isNaN(num) ? 0 : num;
-};
-
-/**
- * Formats for display in specific Moroccan style if needed, 
- * but the user specifically asked for dots like 100.000.000
- */
-export const formatMoroccan = (val: number | string): string => {
+export const formatNumber = (val: any): string => {
     if (val === undefined || val === null || val === '') return '';
-    const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/\s/g, ''));
-    if (isNaN(num)) return '';
+    const clean = String(val).replace(/\s/g, '').replace(/,/g, '.');
+    const num = parseFloat(clean);
+    if (isNaN(num)) return String(val);
 
     return new Intl.NumberFormat('fr-MA', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    }).format(num).replace(/\s/g, '.'); // Replace default space with dot if requested
+        maximumFractionDigits: 2
+    }).format(num);
+};
+
+export const parseNumber = (val: any): number => {
+    if (typeof val === 'number') return val;
+    if (!val) return 0;
+    const clean = String(val).replace(/\s/g, '').replace(/,/g, '.');
+    const num = parseFloat(clean);
+    return isNaN(num) ? 0 : num;
 };
