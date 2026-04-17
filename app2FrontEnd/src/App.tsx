@@ -12,7 +12,7 @@ import Dashboard from './component/Dashboard.tsx'
 import Home from './component/Home.tsx'
 import Terrains from './component/Terrains.tsx'
 import Properties from './component/Properties.tsx'
-import Contractors from './component/Contractors.tsx'
+import Contractors from './component/Contractors.tsx';
 import Intervenants from './component/Intervenants.tsx'
 import EditTerrain from './component/EditTerrain.tsx'
 import Charges from './component/Charges.tsx'
@@ -61,8 +61,8 @@ const App: React.FC = () => {
               <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
               <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
               <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
-              <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
               <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />
+              <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
               <Route path="/charges" element={<PrivateRoute><Charges /></PrivateRoute>} />
               <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />

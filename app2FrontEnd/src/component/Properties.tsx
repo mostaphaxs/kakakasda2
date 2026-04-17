@@ -235,7 +235,7 @@ const Properties = () => {
                             <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Amical El Ouaha</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">

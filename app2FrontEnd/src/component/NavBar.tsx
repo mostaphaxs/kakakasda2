@@ -72,7 +72,6 @@ const Navbar: React.FC = () => {
         { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: Building2, label: 'Biens & Locaux', path: '/properties' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
-        { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
     ];

@@ -346,7 +346,7 @@ const AddProperty: React.FC = () => {
 
                             {/* N° Appartement / Bloc */}
                             {(!isVilla && !isLotVilla) && (
-                                <FieldWrapper label="N° D'appartement" error={errors.num_appartement?.message} fieldError={fieldErrors.num_appartement}>
+                                <FieldWrapper label="N° Appartement" error={errors.num_appartement?.message} fieldError={fieldErrors.num_appartement}>
                                     <Controller
                                         name="num_appartement"
                                         control={control}

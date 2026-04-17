@@ -36,9 +36,17 @@ class ClientController extends Controller
             'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
+            'avec_contrat'     => 'nullable|boolean',
+            'scan_contrat'     => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
             'observation'      => 'nullable|string',
         ]);
 
+
+        if ($request->hasFile('scan_contrat')) {
+            $validated['scan_contrat'] = $request->file('scan_contrat')->store('clients/contracts', 'public');
+        } else {
+            unset($validated['scan_contrat']);
+        }
 
         return DB::transaction(function () use ($validated) {
             $client = Client::create($validated);
@@ -79,9 +87,17 @@ class ClientController extends Controller
             'adresse'          => 'nullable|string|max:255',
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
+            'avec_contrat'     => 'nullable|boolean',
+            'scan_contrat'     => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
             'observation'      => 'nullable|string',
             'statut'           => 'nullable|string|in:Actif,Annulé',
         ]);
+
+        if ($request->hasFile('scan_contrat')) {
+            $validated['scan_contrat'] = $request->file('scan_contrat')->store('clients/contracts', 'public');
+        } else {
+            unset($validated['scan_contrat']);
+        }
 
         return DB::transaction(function () use ($validated, $client) {
             $oldBienIds = $client->biens()->pluck('biens.id')->toArray();

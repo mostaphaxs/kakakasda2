@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseNumber } from '../lib/utils';
+import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
 
@@ -58,6 +58,8 @@ interface Client {
     cin: string;
     date_reservation: string | null;
     avec_finition: boolean;
+    avec_contrat?: boolean;
+    scan_contrat?: string;
     biens?: Bien[];
     payments?: (Payment & { receipt_path?: string })[];
     scanned_docs?: ScannedDoc[];
@@ -103,6 +105,7 @@ const Clients = () => {
     const [availableBiens, setAvailableBiens] = useState<Bien[]>([]);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
     const [editBienId, setEditBienId] = useState<string>('');
+    const [contractFile, setContractFile] = useState<File | null>(null);
 
     // Client Cancellation State
     const [isClientCancelModalOpen, setIsClientCancelModalOpen] = useState(false);
@@ -128,6 +131,7 @@ const Clients = () => {
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
     const [filterFinition, setFilterFinition] = useState<'all' | 'avec' | 'sans'>('all');
+    const [filterContrat, setFilterContrat] = useState<'all' | 'avec' | 'sans'>('all');
     const [filterType, setFilterType] = useState<string>('all');
     const [filterTerrain, setFilterTerrain] = useState<string>('all');
     const [filterHasBien, setFilterHasBien] = useState<'all' | 'with' | 'without'>('all');
@@ -216,11 +220,14 @@ const Clients = () => {
             adresse: client.adresse,
             cin: client.cin,
             avec_finition: client.avec_finition,
+            avec_contrat: client.avec_contrat || false,
+            scan_contrat: client.scan_contrat,
             observation: client.observation || '',
             statut: client.statut || 'Actif',
             date_reservation: client.date_reservation ? client.date_reservation.split(' ')[0] : ''
         });
         setEditBienId(client.biens && client.biens.length > 0 ? String(client.biens[0].id) : '');
+        setContractFile(null);
         setFieldErrors({});
         setIsEditModalOpen(true);
     };
@@ -236,12 +243,26 @@ const Clients = () => {
 
         setIsSubmittingEdit(true);
         try {
+            const data = new FormData();
+            Object.entries(editFormData).forEach(([key, value]) => {
+                if (key === 'scan_contrat') return; // Handled separately as a File
+                if (value !== null && value !== undefined) {
+                    if (typeof value === 'boolean') {
+                        data.append(key, value ? '1' : '0');
+                    } else {
+                        data.append(key, String(value));
+                    }
+                }
+            });
+            if (editBienId) data.append('bien_id', editBienId);
+            if (contractFile && editFormData.avec_contrat) {
+                data.append('scan_contrat', contractFile);
+            }
+
             await apiFetch(`/clients/${editFormData.id}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    ...editFormData,
-                    bien_id: editBienId ? Number(editBienId) : null
-                })
+                method: 'POST',
+                body: data,
+                headers: { 'X-HTTP-Method-Override': 'PUT' }
             });
 
             toast.success('Client mis à jour !');
@@ -510,6 +531,8 @@ const Clients = () => {
         // 2. Finition
         if (filterFinition === 'avec' && !c.avec_finition) return false;
         if (filterFinition === 'sans' && c.avec_finition) return false;
+        if (filterContrat === 'avec' && !c.avec_contrat) return false;
+        if (filterContrat === 'sans' && c.avec_contrat) return false;
 
         // 3. Type
         if (filterType !== 'all' && !c.biens?.some(b => b.type_bien === filterType)) return false;
@@ -580,7 +603,7 @@ const Clients = () => {
                             <Users className="text-blue-600" size={32} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical El Ouaha</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -632,6 +655,16 @@ const Clients = () => {
                         <option value="all">Finition: Tous</option>
                         <option value="avec">Avec Finition</option>
                         <option value="sans">Sans Finition</option>
+                    </select>
+
+                    <select
+                        value={filterContrat}
+                        onChange={(e) => setFilterContrat(e.target.value as any)}
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                    >
+                        <option value="all">Contrat: Tout</option>
+                        <option value="avec">Avec Contrat</option>
+                        <option value="sans">Sans Contrat</option>
                     </select>
 
                     <select
@@ -762,10 +795,15 @@ const Clients = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-wrap gap-1">
                                                     {(c.biens || []).map(b => (
-                                                        <span key={b.id} className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
+                                                        <span key={b.id} className={`inline-flex flex-col px-2 py-0.5 rounded-full text-[9px] font-bold ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
                                                             b.statut === 'Vendu' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'
                                                             }`}>
-                                                            {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}
+                                                            <span>{b.type_bien} {b.num_appartement ? <>Bloc #<MarkdownText text={b.num_appartement} /></> : ''}</span>
+                                                            {c.biens && c.biens.length > 0 && c.statut !== 'Annulé' && (
+                                                                Boolean(c.avec_contrat)
+                                                                    ? <span className="text-[8px] font-black text-amber-600 uppercase tracking-wide mt-0.5">Avec Contrat</span>
+                                                                    : <span className="text-[8px] font-black text-gray-400 uppercase tracking-wide mt-0.5">Sans Contrat</span>
+                                                            )}
                                                         </span>
                                                     ))}
                                                     {(!c.biens || c.biens.length === 0) && <span className="text-[10px] text-gray-400 italic">Aucun bien</span>}
@@ -879,7 +917,7 @@ const Clients = () => {
                                             <option value="">Sélectionnez le bien...</option>
                                             {selectedClient.biens.map(b => (
                                                 <option key={b.id} value={b.id}>
-                                                    {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}
+                                                    {b.type_bien} {b.num_appartement ? `Bloc #${stripMarkdown(b.num_appartement)}` : ''}
                                                 </option>
                                             ))}
                                         </select>
@@ -1181,7 +1219,7 @@ const Clients = () => {
                                                     const b = currentClient?.biens?.find(x => x.id === Number(editBienId));
                                                     return b ? (
                                                         <option key={b.id} value={b.id}>
-                                                            {b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''} (Actuel)
+                                                            {b.type_bien} {b.num_appartement ? `Bloc #${stripMarkdown(b.num_appartement)}` : ''} (Actuel)
                                                         </option>
                                                     ) : null;
                                                 })()
@@ -1201,20 +1239,64 @@ const Clients = () => {
 
 
                                 {editBienId && editFormData.statut === 'Actif' && (
-                                    <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
-                                        <div>
-                                            <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
-                                            <p className="text-[9px] font-bold text-indigo-700/70">Appliquer la finition pour tous les biens ?</p>
+                                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
+                                                <p className="text-[9px] font-bold text-indigo-700/70">Appliquer la finition ?</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editFormData.avec_finition || false}
+                                                    onChange={e => setEditFormData({ ...editFormData, avec_finition: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            </label>
                                         </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="sr-only peer"
-                                                checked={editFormData.avec_finition || false}
-                                                onChange={e => setEditFormData({ ...editFormData, avec_finition: e.target.checked })}
-                                            />
-                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-amber-900 uppercase">Statut Contrat</p>
+                                                <p className="text-[9px] font-bold text-amber-700/70">Avec contract ?</p>
+                                            </div>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={editFormData.avec_contrat || false}
+                                                    onChange={e => setEditFormData({ ...editFormData, avec_contrat: e.target.checked })}
+                                                />
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {editBienId && editFormData.statut === 'Actif' && editFormData.avec_contrat && (
+                                    <div className="animate-in slide-in-from-top-2 duration-300 mt-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contrat Scanné (PDF/Image)</label>
+                                            {editFormData.scan_contrat && (
+                                                <button type="button" onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${editFormData.scan_contrat}`))} className="text-[10px] text-amber-600 font-bold hover:underline flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                                                    <FileText size={12} /> Voir actuel
+                                                </button>
+                                            )}
+                                        </div>
+                                        <input
+                                            type="file"
+                                            id="contract-upload"
+                                            className="hidden"
+                                            accept="application/pdf,image/*"
+                                            onChange={(e) => setContractFile(e.target.files?.[0] || null)}
+                                        />
+                                        <label htmlFor="contract-upload" className="w-full flex items-center justify-center gap-2 p-3 bg-amber-50 border border-dashed border-amber-200 text-amber-700 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors">
+                                            <Upload size={16} />
+                                            <span className="text-xs font-bold text-center">
+                                                {contractFile ? contractFile.name : editFormData.scan_contrat ? 'Remplacer le contrat existant...' : 'Choisir le contrat scanné...'}
+                                            </span>
                                         </label>
+                                        {fieldErrors.scan_contrat && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.scan_contrat[0]}</p>}
                                     </div>
                                 )}
 
@@ -1244,7 +1326,7 @@ const Clients = () => {
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </div >
                 )
             }
 
@@ -1335,6 +1417,34 @@ const Clients = () => {
                                                 <span className="text-gray-400">Date Réservation:</span>
                                                 <span className="font-bold text-gray-700">{detailClient.date_reservation || 'N/A'}</span>
                                             </div>
+                                            {detailClient.biens && detailClient.biens.length > 0 && detailClient.statut !== 'Annulé' && (
+                                                <>
+                                                    <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-50 mt-2">
+                                                        <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Statut Contrat:</span>
+                                                        {detailClient.avec_contrat ? (
+                                                            <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-amber-200">Avec Contrat</span>
+                                                        ) : (
+                                                            <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-gray-200">Sans Contrat</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm pt-1">
+                                                        <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Choix Finition:</span>
+                                                        {detailClient.avec_finition ? (
+                                                            <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-indigo-200">Options Incluses</span>
+                                                        ) : (
+                                                            <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-slate-200">Standard</span>
+                                                        )}
+                                                    </div>
+                                                    {Boolean(detailClient.avec_contrat) && detailClient.scan_contrat && (
+                                                        <div className="flex justify-between items-center text-sm pt-2 mt-2 border-t border-gray-50">
+                                                            <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Contrat Attaché:</span>
+                                                            <button onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${detailClient.scan_contrat}`))} className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors border border-amber-100">
+                                                                <FileText size={12} /> Voir
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
                                             {detailClient.observation && (
                                                 <div className={`mt-4 p-3 rounded-xl border ${detailClient.statut === 'Annulé' ? 'bg-rose-50 border-rose-100' : 'bg-blue-50/50 border-blue-100/50'}`}>
                                                     <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailClient.statut === 'Annulé' ? 'text-rose-400' : 'text-blue-400'}`}>
@@ -1356,7 +1466,7 @@ const Clients = () => {
                                                     <div key={b.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic">
                                                         <div className="flex justify-between text-sm mb-1">
                                                             <span className="text-gray-400">Type / Unité:</span>
-                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? `Bloc #${b.num_appartement}` : ''}</span>
+                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? <>Bloc #<MarkdownText text={b.num_appartement} /></> : ''}</span>
                                                         </div>
                                                         <div className="flex justify-between text-sm mb-1">
                                                             <span className="text-gray-400">Localisation:</span>
@@ -1474,7 +1584,7 @@ const Clients = () => {
                                                             </div>
                                                             {p.bien && (
                                                                 <div className="text-[9px] text-indigo-500 font-bold mt-1">
-                                                                    {p.bien.type_bien} {p.bien.num_appartement ? `Bloc #${p.bien.num_appartement}` : `ID #${p.bien.id}`}
+                                                                    {p.bien.type_bien} {p.bien.num_appartement ? <>Bloc #<MarkdownText text={p.bien.num_appartement} /></> : `ID #${p.bien.id}`}
                                                                 </div>
                                                             )}
                                                             {(p.reference_no || p.bank_name) && (
@@ -1496,7 +1606,7 @@ const Clients = () => {
                                                                         setIsCancelModalOpen(true);
                                                                     }}
                                                                     className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
-                                                                    title="Annuler adhesion"
+                                                                    title="Remboursement"
                                                                 >
                                                                     <X size={14} />
                                                                 </button>
@@ -1555,7 +1665,7 @@ const Clients = () => {
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
                             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/30">
-                                <h3 className="font-bold text-gray-800">Annuler l'adhésion</h3>
+                                <h3 className="font-bold text-gray-800">Remboursement</h3>
                                 <button onClick={() => setIsCancelModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"><X size={20} /></button>
                             </div>
                             <form onSubmit={handleCancelPayment} className="p-6 space-y-4">
@@ -1574,7 +1684,7 @@ const Clients = () => {
                                 <div className="flex gap-3 pt-2">
                                     <button type="button" onClick={() => setIsCancelModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Ignorer</button>
                                     <button type="submit" disabled={isSubmittingCancel} className="flex-[2] px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-100">
-                                        {isSubmittingCancel ? <Loader2 size={18} className="animate-spin" /> : <><Trash2 size={18} /> Confirmer l'annulation</>}
+                                        {isSubmittingCancel ? <Loader2 size={18} className="animate-spin" /> : <><Trash2 size={18} /> Confirmer le Remboursement</>}
                                     </button>
                                 </div>
                             </form>
@@ -1621,213 +1731,221 @@ const Clients = () => {
                 )
             }
             {/* WhatsApp Language Modal */}
-            {isWhatsAppLangModalOpen && whatsappTargetClient && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
-                            <h3 className="font-bold text-gray-800">Choisir la Langue / اختر اللغة</h3>
-                            <button
-                                onClick={() => setIsWhatsAppLangModalOpen(false)}
-                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 grid grid-cols-2 gap-4">
-                            <button
-                                onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'fr')}
-                                className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
-                            >
-                                <span className="text-3xl">🇫🇷</span>
-                                <span className="font-bold text-gray-700 group-hover:text-emerald-700">Français</span>
-                            </button>
+            {
+                isWhatsAppLangModalOpen && whatsappTargetClient && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
+                                <h3 className="font-bold text-gray-800">Choisir la Langue / اختر اللغة</h3>
+                                <button
+                                    onClick={() => setIsWhatsAppLangModalOpen(false)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 grid grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'fr')}
+                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                                >
+                                    <span className="text-3xl">🇫🇷</span>
+                                    <span className="font-bold text-gray-700 group-hover:text-emerald-700">Français</span>
+                                </button>
 
-                            <button
-                                onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'ar')}
-                                className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
-                            >
-                                <span className="text-3xl">🇲🇦</span>
-                                <span className="font-bold text-gray-700 group-hover:text-emerald-700">العربية</span>
-                            </button>
+                                <button
+                                    onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'ar')}
+                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                                >
+                                    <span className="text-3xl">🇲🇦</span>
+                                    <span className="font-bold text-gray-700 group-hover:text-emerald-700">العربية</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* WhatsApp Editor Modal */}
-            {isWhatsAppEditorOpen && whatsappTargetClient && (
-                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
-                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                <MessageCircle size={18} className="text-emerald-600" />
-                                Modifier le Message
-                            </h3>
-                            <button
-                                onClick={() => setIsWhatsAppEditorOpen(false)}
-                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-6">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
-                                Contenu du message
-                            </label>
-                            <textarea
-                                value={whatsappMessageContent}
-                                onChange={(e) => setWhatsappMessageContent(e.target.value)}
-                                rows={8}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"
-                                dir="auto"
-                            />
-                            <div className="mt-6 flex justify-end gap-3">
+            {
+                isWhatsAppEditorOpen && whatsappTargetClient && (
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
+                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                    <MessageCircle size={18} className="text-emerald-600" />
+                                    Modifier le Message
+                                </h3>
                                 <button
                                     onClick={() => setIsWhatsAppEditorOpen(false)}
-                                    className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
                                 >
-                                    Annuler
+                                    <X size={20} />
                                 </button>
-                                <button
-                                    onClick={handleSendWhatsApp}
-                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-200 flex items-center gap-2 transition-colors"
-                                >
-                                    <MessageCircle size={16} />
-                                    Envoyer
-                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                                    Contenu du message
+                                </label>
+                                <textarea
+                                    value={whatsappMessageContent}
+                                    onChange={(e) => setWhatsappMessageContent(e.target.value)}
+                                    rows={8}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"
+                                    dir="auto"
+                                />
+                                <div className="mt-6 flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setIsWhatsAppEditorOpen(false)}
+                                        className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={handleSendWhatsApp}
+                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-200 flex items-center gap-2 transition-colors"
+                                    >
+                                        <MessageCircle size={16} />
+                                        Envoyer
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* WhatsApp Phone Selection Modal */}
-            {isWhatsAppPhoneModalOpen && whatsappTargetClient && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
-                            <h3 className="font-bold text-gray-800">Sélectionner le Numéro</h3>
-                            <button
-                                onClick={() => setIsWhatsAppPhoneModalOpen(false)}
-                                className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <div className="p-6 flex flex-col gap-4">
-                            <button
-                                onClick={() => {
-                                    setWhatsappTargetPhone(whatsappTargetClient.tel);
-                                    setIsWhatsAppPhoneModalOpen(false);
-                                    setIsWhatsAppLangModalOpen(true);
-                                }}
-                                className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
-                            >
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Principal</span>
-                                <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel}</span>
-                            </button>
-                            <button
-                                onClick={() => {
-                                    setWhatsappTargetPhone(whatsappTargetClient.tel_2 as string);
-                                    setIsWhatsAppPhoneModalOpen(false);
-                                    setIsWhatsAppLangModalOpen(true);
-                                }}
-                                className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
-                            >
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Secondaire</span>
-                                <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel_2}</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Client Cancellation Modal */}
-            {isClientCancelModalOpen && clientToCancel && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-rose-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+            {
+                isWhatsAppPhoneModalOpen && whatsappTargetClient && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                                <h3 className="font-bold text-gray-800">Sélectionner le Numéro</h3>
+                                <button
+                                    onClick={() => setIsWhatsAppPhoneModalOpen(false)}
+                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                >
                                     <X size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Annuler le Contrat</h3>
-                                    <p className="text-[10px] text-rose-600/70 font-bold uppercase tracking-widest">Client: {clientToCancel.nom} {clientToCancel.prenom}</p>
-                                </div>
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsClientCancelModalOpen(false)}
-                                className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm"
-                            >
-                                <X size={20} />
-                            </button>
+                            <div className="p-6 flex flex-col gap-4">
+                                <button
+                                    onClick={() => {
+                                        setWhatsappTargetPhone(whatsappTargetClient.tel);
+                                        setIsWhatsAppPhoneModalOpen(false);
+                                        setIsWhatsAppLangModalOpen(true);
+                                    }}
+                                    className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                                >
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Principal</span>
+                                    <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel}</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setWhatsappTargetPhone(whatsappTargetClient.tel_2 as string);
+                                        setIsWhatsAppPhoneModalOpen(false);
+                                        setIsWhatsAppLangModalOpen(true);
+                                    }}
+                                    className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                                >
+                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Secondaire</span>
+                                    <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel_2}</span>
+                                </button>
+                            </div>
                         </div>
-
-                        <form onSubmit={handleCancelClient} className="flex-1 overflow-y-auto p-8 space-y-6">
-                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
-                                <div className="space-y-2 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <Info size={18} className="text-amber-600 shrink-0" />
-                                        <p className="text-xs text-amber-800 font-bold leading-relaxed uppercase tracking-tight">Résumé financier du client</p>
-                                    </div>
-                                    <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
-                                        <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
-                                        <span className="text-sm font-black text-amber-900 font-mono">
-                                            {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0)} DH
-                                        </span>
-                                    </div>
-                                    <p className="text-[10px] text-amber-700 font-medium leading-tight">
-                                        L'annulation libérera automatiquement tous les biens réservés. Le statut passera à <span className="font-bold">Annulé</span>.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Montant du Remboursement (DH)</label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={clientRefundAmount}
-                                        onChange={(e) => setClientRefundAmount(formatNumber(e.target.value))}
-                                        className="w-full h-14 pl-12 pr-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-lg outline-none"
-                                        placeholder="0.00"
-                                    />
-                                    <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                </div>
-                                <p className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">Laissez vide ou 0 si aucun remboursement n'est effectué.</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Motif / Notes</label>
-                                <textarea
-                                    value={clientCancelNotes}
-                                    onChange={(e) => setClientCancelNotes(e.target.value)}
-                                    className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-sm outline-none h-24 resize-none"
-                                    placeholder="Précisez le motif de l'annulation..."
-                                />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsClientCancelModalOpen(false)}
-                                    className="flex-1 h-14 bg-gray-50 text-gray-500 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-all text-[11px]"
-                                >
-                                    Fermer
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmittingClientCancel}
-                                    className="flex-[2] h-14 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 flex items-center justify-center gap-2 text-[11px]"
-                                >
-                                    {isSubmittingClientCancel ? <Loader2 className="animate-spin" size={20} /> : "Confirmer l'Annulation"}
-                                </button>
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+            {/* Client Cancellation Modal */}
+            {
+                isClientCancelModalOpen && clientToCancel && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white">
+                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-rose-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+                                        <X size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Annuler le Contrat</h3>
+                                        <p className="text-[10px] text-rose-600/70 font-bold uppercase tracking-widest">Client: {clientToCancel.nom} {clientToCancel.prenom}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setIsClientCancelModalOpen(false)}
+                                    className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCancelClient} className="flex-1 overflow-y-auto p-8 space-y-6">
+                                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
+                                    <div className="space-y-2 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <Info size={18} className="text-amber-600 shrink-0" />
+                                            <p className="text-xs text-amber-800 font-bold leading-relaxed uppercase tracking-tight">Résumé financier du client</p>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
+                                            <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
+                                            <span className="text-sm font-black text-amber-900 font-mono">
+                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0)} DH
+                                            </span>
+                                        </div>
+                                        <p className="text-[10px] text-amber-700 font-medium leading-tight">
+                                            L'annulation libérera automatiquement tous les biens réservés. Le statut passera à <span className="font-bold">Annulé</span>.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Montant du Remboursement (DH)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={clientRefundAmount}
+                                            onChange={(e) => setClientRefundAmount(formatNumber(e.target.value))}
+                                            className="w-full h-14 pl-12 pr-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-lg outline-none"
+                                            placeholder="0.00"
+                                        />
+                                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                    </div>
+                                    <p className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">Laissez vide ou 0 si aucun remboursement n'est effectué.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Motif / Notes</label>
+                                    <textarea
+                                        value={clientCancelNotes}
+                                        onChange={(e) => setClientCancelNotes(e.target.value)}
+                                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-sm outline-none h-24 resize-none"
+                                        placeholder="Précisez le motif de l'annulation..."
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsClientCancelModalOpen(false)}
+                                        className="flex-1 h-14 bg-gray-50 text-gray-500 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-all text-[11px]"
+                                    >
+                                        Fermer
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingClientCancel}
+                                        className="flex-[2] h-14 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 flex items-center justify-center gap-2 text-[11px]"
+                                    >
+                                        {isSubmittingClientCancel ? <Loader2 className="animate-spin" size={20} /> : "Confirmer l'Annulation"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 export default Clients
