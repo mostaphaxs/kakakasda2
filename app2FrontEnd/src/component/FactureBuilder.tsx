@@ -156,7 +156,6 @@ const FactureBuilder: React.FC = () => {
                     body: JSON.stringify(payload)
                 });
                 toast.success('Facture modifiée avec succès !');
-                navigate('/factures-list');
             } else {
                 await apiFetch('/factures', {
                     method: 'POST',
@@ -164,6 +163,7 @@ const FactureBuilder: React.FC = () => {
                 });
                 toast.success('Facture enregistrée avec succès !');
             }
+            navigate('/factures-list');
         } catch (error: any) {
             toast.error(error.message || 'Erreur lors de la sauvegarde de la facture.');
         } finally {
@@ -311,30 +311,11 @@ const FactureBuilder: React.FC = () => {
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Adresse</label>
                         <input {...register('supplierAddress')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none" />
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ICE</label>
-                            <input {...register('supplierIce')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="12" />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">I.F</label>
-                            <input {...register('supplierIf')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="2" />
-                        </div>
-                        <div>
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">R.C</label>
-                            <input {...register('supplierRc')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="12" />
-                        </div>
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ICE</label>
+                        <input {...register('supplierIce')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="000000000" />
                     </div>
 
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b pb-2 mt-6">Client</h3>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nom du Client</label>
-                        <input {...register('clientName')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none" />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Adresse Client</label>
-                        <textarea {...register('clientAddress')} rows={3} className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none resize-none" />
-                    </div>
 
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b pb-2 mt-6">Informations Bancaires</h3>
                     <div className="grid grid-cols-1 gap-4">
@@ -476,24 +457,15 @@ const FactureBuilder: React.FC = () => {
                                 <div className="border border-black border-dashed p-3 min-h-[100px] text-xs">
                                     <p className="font-black text-sm uppercase mb-1 break-all">{watchAll.supplierName}</p>
                                     <p className="text-gray-700 leading-relaxed mb-1 italic break-words">{watchAll.supplierAddress}</p>
-                                    {(watchAll.supplierIce || watchAll.supplierIf || watchAll.supplierRc) && (
-                                        <div className="font-mono text-[10px] mt-2 border-t pt-1 space-y-0.5">
-                                            {watchAll.supplierIce && <p>ICE: {watchAll.supplierIce}</p>}
-                                            <div className="flex gap-4">
-                                                {watchAll.supplierIf && <p>I.F: {watchAll.supplierIf}</p>}
-                                                {watchAll.supplierRc && <p>R.C: {watchAll.supplierRc}</p>}
-                                            </div>
+                                    {watchAll.supplierIce && (
+                                        <div className="font-mono text-[10px] mt-2 border-t pt-1">
+                                            <p>ICE: {watchAll.supplierIce}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Client Info (Compact Header below) */}
-                        <div className="mb-6 border-b pb-2">
-                            <p className="text-xs font-bold uppercase break-all"><span className="text-gray-500">Client :</span> {watchAll.clientName}</p>
-                            {watchAll.clientAddress && <p className="text-[10px] text-gray-600 italic break-words">{watchAll.clientAddress}</p>}
-                        </div>
 
                         {watchAll.description && (
                             <div className="mb-4">

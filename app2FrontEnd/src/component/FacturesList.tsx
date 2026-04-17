@@ -9,6 +9,7 @@ interface Facture {
     invoice_no: string;
     date: string;
     client_name: string;
+    supplier_name?: string;
     client_address?: string;
     client_ice?: string;
     client_if?: string;
@@ -55,7 +56,9 @@ const FacturesList: React.FC = () => {
 
     const filteredFactures = factures.filter(f =>
         f.invoice_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+        (f.client_name && f.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (f.description && f.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (f.supplier_name && f.supplier_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -83,7 +86,7 @@ const FacturesList: React.FC = () => {
                             <tr className="bg-gray-50 border-b border-gray-200 text-xs font-black text-gray-500 uppercase tracking-widest">
                                 <th className="px-6 py-4">N° Facture</th>
                                 <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Client</th>
+                                <th className="px-6 py-4">Émetteur / Objet</th>
                                 <th className="px-6 py-4 text-right">Montant HT</th>
                                 <th className="px-6 py-4 text-right">TVA</th>
                                 <th className="px-6 py-4 text-right">Montant TTC</th>
@@ -110,7 +113,12 @@ const FacturesList: React.FC = () => {
                                     <tr key={facture.id} className="hover:bg-gray-50/50 transition-colors text-sm">
                                         <td className="px-6 py-4 font-bold text-blue-600">{facture.invoice_no}</td>
                                         <td className="px-6 py-4 font-medium text-gray-600">{facture.date}</td>
-                                        <td className="px-6 py-4 font-bold text-gray-800">{facture.client_name}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-gray-800">{facture.supplier_name || facture.client_name || '...'}</span>
+                                                <span className="text-[10px] text-gray-500 italic truncate max-w-[200px]">{facture.description}</span>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4 font-medium text-gray-600 text-right">{Number(facture.total_ht).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH</td>
                                         <td className="px-6 py-4 font-medium text-gray-600 text-right">{Number(facture.total_tva).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH</td>
                                         <td className="px-6 py-4 font-black text-gray-800 text-right">{Number(facture.total_ttc).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH</td>
