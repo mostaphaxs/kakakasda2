@@ -1,3 +1,8 @@
+export const stripMarkdown = (text: string | null | undefined): string => {
+    if (!text) return '';
+    return String(text).replace(/\*\*(.*?)\*\*/g, '$1');
+};
+
 /**
  * Converts a number to its French word representation.
  * Optimized for Moroccan Dirhams (MAD).
@@ -88,20 +93,30 @@ export const numberToFrenchWords = (n: number): string => {
 
 export const formatNumber = (val: any): string => {
     if (val === undefined || val === null || val === '') return '';
-    const clean = String(val).replace(/\s/g, '').replace(/,/g, '.');
-    const num = parseFloat(clean);
+    const num = typeof val === 'number' ? val : parseNumber(val);
     if (isNaN(num)) return String(val);
 
     return new Intl.NumberFormat('fr-MA', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
-    }).format(num);
+    }).format(num).replace(/\s/g, '.'); // Replace space with dot for thousands
 };
 
 export const parseNumber = (val: any): number => {
     if (typeof val === 'number') return val;
     if (!val) return 0;
-    const clean = String(val).replace(/\s/g, '').replace(/,/g, '.');
+
+    const str = String(val);
+
+    // If it's a backend/system float format with exactly one dot and 1 or 2 decimal digits.
+    // We avoid matching 3 digits (e.g., \.\d{3}) because that indicates a thousands separator in our format (e.g. 15.000).
+    if (/^-?\d+\.\d{1,2}$/.test(str)) {
+        return parseFloat(str);
+    }
+
+    // In this application, we use dots (.) as thousands separators and commas (,) as decimals.
+    // So we remove spaces and dots, then convert comma to dot for parsing.
+    const clean = str.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
 };

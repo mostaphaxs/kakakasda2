@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { formatNumber } from '../lib/utils';
+import MarkdownText from './common/MarkdownText';
 
 interface Stats {
   investissement: number;
@@ -447,7 +448,7 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{c.prenom} {c.nom}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{c.cin}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase"><MarkdownText text={c.cin} /></p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -455,7 +456,7 @@ const Dashboard = () => {
                       {c.biens?.[0]?.type_bien || 'N/A'}
                     </p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase">
-                      {c.biens?.[0]?.num_appartement ? `Bloc ${c.biens[0].num_appartement}` : 'Sans unité'}
+                      {c.biens?.[0]?.num_appartement ? <>Bloc <MarkdownText text={c.biens[0].num_appartement} /></> : 'Sans unité'}
                     </p>
                   </div>
                 </div>

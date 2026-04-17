@@ -19,6 +19,8 @@ class Client extends Model
         'date_reservation',
         'scanned_docs',
         'avec_finition',
+        'avec_contrat',
+        'scan_contrat',
         'observation',
         'statut',
     ];
