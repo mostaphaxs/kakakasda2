@@ -3,7 +3,7 @@ import './App.css'
 import React from 'react';
 import Login from './component/Login.tsx'
 import Footer from './component/Footer.tsx';
-import NavBar from './component/NavBar.tsx';
+import Sidebar from './component/Sidebar.tsx';
 import AddProperty from './component/AddProperty.tsx';
 import AddTerrain from './component/AddTerrain.tsx';
 import AddClient from './component/AddClient.tsx';
@@ -22,9 +22,6 @@ import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import { Toaster } from 'react-hot-toast';
 import GlobalPreview from './component/GlobalPreview.tsx';
 
-
-
-
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -36,46 +33,45 @@ const App: React.FC = () => {
   const token = localStorage.getItem('token');
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       <Router>
         <Toaster position="top-right" reverseOrder={false} />
         <GlobalPreview />
-        <NavBar />
 
+        {token && <Sidebar />}
 
-        <div className="flex-grow pt-20 px-4 pb-10">
-          <div className="max-w-7xl mx-auto">
-            <Routes>
-              {/* Public */}
-              <Route path="/login" element={<Login />} />
+        <div className="flex-grow flex flex-col min-h-screen transition-all duration-300" style={{ paddingLeft: token ? 'var(--sidebar-width, 0px)' : '0px' }}>
+          <div className="flex-grow p-4 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+              <Routes>
+                {/* Public */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Protected */}
-              <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
-              <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-              <Route path="/terrains" element={<PrivateRoute><Terrains /></PrivateRoute>} />
-              <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
-              <Route path="/property-pricing" element={<PrivateRoute><ConfigPrixBiens /></PrivateRoute>} />
-              <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
-              <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
-              <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
-              <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
-              <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
-              <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />
-              <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
-              <Route path="/charges" element={<PrivateRoute><Charges /></PrivateRoute>} />
-              <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
-              <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                {/* Protected */}
+                <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
+                <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                <Route path="/terrains" element={<PrivateRoute><Terrains /></PrivateRoute>} />
+                <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
+                <Route path="/property-pricing" element={<PrivateRoute><ConfigPrixBiens /></PrivateRoute>} />
+                <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
+                <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
+                <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
+                <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
+                <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
+                <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />
+                <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
+                <Route path="/charges" element={<PrivateRoute><Charges /></PrivateRoute>} />
+                <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
+                <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
 
-
-
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </div>
           </div>
+          <Footer />
         </div>
-
-        <Footer />
       </Router>
     </div>
   )
