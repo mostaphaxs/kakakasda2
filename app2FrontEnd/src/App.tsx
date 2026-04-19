@@ -61,7 +61,10 @@ const App: React.FC = () => {
           setIsMobileOpen={setIsMobileSidebarOpen}
         />
 
-        <div className={`flex-1 flex flex-col min-w-0 ${token ? 'lg:pl-[280px]' : ''}`}>
+        <div
+          className="flex-1 flex flex-col min-w-0 transition-[padding-left] duration-300"
+          style={{ paddingLeft: token ? 'var(--sidebar-width)' : '0px' }}
+        >
           {/* Mobile Header */}
           {token && (
             <header className="lg:hidden sticky top-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl h-[60px] flex items-center px-3">

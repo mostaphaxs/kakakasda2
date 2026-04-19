@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus, X, Building2, LogOut, ChevronDown, Home, MapPin, UserPlus, WalletCards, HardHat, Users, Layers, Download, Database, Package, ShoppingCart, Truck, Wrench, Settings2, FileText, ChevronLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+    Plus, Menu, X, Building2, LogOut, ChevronDown,
+    Home, MapPin, UserPlus, WalletCards, HardHat,
+    Users, Layers, Download, Database, Package,
+    ShoppingCart, Truck, Wrench, Settings2, FileText,
+    ChevronRight, BarChart3
+} from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
 import { toast } from 'react-hot-toast';
@@ -11,20 +17,51 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
-    const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
-    const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
-    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-    const [isFacturesMenuOpen, setIsFacturesMenuOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
+    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
     const navigate = useNavigate();
+    const location = useLocation();
     const token = localStorage.getItem('token');
 
+    const exportDropdownRef = useRef<HTMLDivElement>(null);
+    const quickAddRef = useRef<HTMLDivElement>(null);
+
+    // Sync user from localStorage
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             try { setUser(JSON.parse(storedUser)); } catch (e) { console.error("Failed to parse user", e); }
         }
     }, [token]);
+
+    // Sync layout margin
+    useEffect(() => {
+        const updateMargin = () => {
+            if (token && window.innerWidth >= 1024) {
+                document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '80px' : '260px');
+            } else {
+                document.documentElement.style.setProperty('--sidebar-width', '0px');
+            }
+        };
+
+        updateMargin();
+        window.addEventListener('resize', updateMargin);
+        return () => window.removeEventListener('resize', updateMargin);
+    }, [isCollapsed, token]);
+
+    // Close dropdowns on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            const target = e.target as Node;
+            if (exportDropdownRef.current && !exportDropdownRef.current.contains(target)) setIsExportOpen(false);
+            if (quickAddRef.current && !quickAddRef.current.contains(target)) setIsQuickAddOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleLogout = () => {
         localStorage.clear();
@@ -34,33 +71,35 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     };
 
     const quickAddItems = [
-        { icon: MapPin, label: 'Nouveau Projet', path: '/add-terrain', color: 'text-slate-900' },
-        { icon: Users, label: 'Nouveau Intervenant', path: '/intervenants', color: 'text-slate-900' },
-        { icon: Home, label: 'Nouveau Bien', path: '/add-property', color: 'text-slate-900' },
-        { icon: UserPlus, label: 'Nouveau Client', path: '/add-client', color: 'text-slate-900' },
-        { icon: HardHat, label: 'Construction', path: '/contractors', color: 'text-slate-900' },
-        { icon: WalletCards, label: 'Nouvelle Charge', path: '/charges', color: 'text-slate-900' },
-        { icon: Package, label: 'Nouvel Article', path: '/add-article', color: 'text-indigo-600' },
-        { icon: Truck, label: 'Nouveau Fournisseur', path: '/add-supplier', color: 'text-slate-600' },
-        { icon: ShoppingCart, label: 'Nouvel Achat (Stock)', path: '/add-achat', color: 'text-emerald-600' },
-        { icon: Wrench, label: 'Nouveaux Travaux', path: '/add-travaux', color: 'text-orange-600' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit', color: 'text-rose-600' },
+        { icon: MapPin, label: 'Projet', path: '/add-terrain' },
+        { icon: Users, label: 'Intervenant', path: '/intervenants' },
+        { icon: Home, label: 'Bien', path: '/add-property' },
+        { icon: UserPlus, label: 'Client', path: '/add-client' },
+        { icon: HardHat, label: 'Entreprise', path: '/contractors' },
+        { icon: WalletCards, label: 'Charge', path: '/charges' },
+        { icon: Package, label: 'Article', path: '/add-article' },
+        { icon: Truck, label: 'Fournisseur', path: '/add-supplier' },
+        { icon: ShoppingCart, label: 'Achat (Stock)', path: '/add-achat' },
+        { icon: Wrench, label: 'Travaux', path: '/add-travaux' },
+        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
+        { icon: FileText, label: 'Créer Facture', path: '/factures' },
     ];
 
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
+        { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
+        { icon: Building2, label: 'Biens', path: '/properties' },
         { icon: Users, label: 'Intervenants', path: '/intervenants' },
-        { icon: Building2, label: 'Biens & Locaux', path: '/properties' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
-        { icon: WalletCards, label: 'Analytics', path: '/dashboard' },
         { icon: Package, label: 'Catalogue Articles', path: '/articles' },
         { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
         { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
+        { icon: FileText, label: 'Factures (Générateur)', path: '/factures-list' },
     ];
 
     const exportItems = [
@@ -105,6 +144,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                         'NB PAIEMENTS': c.payments?.length || 0, 'STATUT DOSSIER': c.bien?.statut || 'EN ATTENTE'
                     };
                 });
+            case '/intervenants':
+            case '/contractors':
+                return data.map(i => {
+                    const totalVerse = i.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+                    return {
+                        'ID': i.id, 'MODULE': endpoint.includes('contractor') ? 'CONSTRUCTION' : 'INTERVENANT',
+                        'CATÉGORIE': i.categorie?.toUpperCase(), 'SOCIÉTÉ': i.nom_societe?.toUpperCase(),
+                        'GÉRANT': i.nom_gerant?.toUpperCase(), 'TÉLÉPHONE': i.tel,
+                        'PROJET LIÉ': i.terrain?.nom_projet || 'N/A', 'MARCHÉ GLOBAL (DH)': i.montant_global,
+                        'TOTAL PAYÉ (DH)': totalVerse, 'RESTE À PAYER (DH)': Math.max(0, i.montant_global - totalVerse),
+                        'IDENTIFIANT FISCAL': i.if || '', 'ICE': i.ice || '', 'RC': i.rc || ''
+                    };
+                });
+            case '/charges':
+                return data.map(c => {
+                    const totalMois = Number(c.frais_tel) + Number(c.internet) + Number(c.loyer_bureau) +
+                        Number(c.fournitures_bureau) + Number(c.employes_bureau) + Number(c.impots) + Number(c.gasoil);
+                    return {
+                        'ID': c.id, 'MOIS / PÉRIODE': new Date(c.periode).toLocaleDateString('fr-MA').toUpperCase(),
+                        'TOTAL GÉNÉRAL (DH)': totalMois, 'LOYER (DH)': c.loyer_bureau, 'SALAIRES (DH)': c.employes_bureau,
+                        'FOURNITURES (DH)': c.fournitures_bureau,
+                        'COMMUNICATIONS (DH)': Number(c.frais_tel) + Number(c.internet), 'LOGISTIQUE (DH)': c.gasoil,
+                        'IMPÔTS & TAXES (DH)': c.impots, 'AFFECTATION': c.terrain?.nom_projet || 'FRAIS GÉNÉRAUX'
+                    };
+                });
             default:
                 return data;
         }
@@ -113,118 +177,110 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const handleGlobalExport = async (item: typeof exportItems[0]) => {
         const toastId = 'export-status';
         try {
-            toast.loading(`Préparation ${item.label}...`, { id: toastId });
-            const data: any = await apiFetch(item.endpoint === 'all' ? '/terrains' : item.endpoint); // Simplified for demo
-            const rawData = Array.isArray(data) ? data : (data.data || []);
-            exportToExcel(mapExportData(item.endpoint, rawData), item.fileName, true);
+            toast.loading(`Préparation de l'export ${item.label}...`, { id: toastId });
+            if (item.endpoint === 'all') {
+                const endpoints = exportItems.filter(i => i.endpoint !== 'all');
+                const results = await Promise.all(
+                    endpoints.map(async (i) => {
+                        try {
+                            const data: any = await apiFetch(i.endpoint);
+                            const rawData = Array.isArray(data) ? data : (data.data || []);
+                            return { label: i.label, sheetName: i.label.replace('Tous les ', '').replace('Tous ', '').substring(0, 30), data: mapExportData(i.endpoint, rawData), includeSummary: true };
+                        } catch (err) {
+                            console.error(`Failed to fetch ${i.label}`, err);
+                            return { label: i.label, sheetName: i.label.substring(0, 30), data: [], includeSummary: false };
+                        }
+                    })
+                );
+                const validSheets = results.filter(s => s.data.length > 0);
+                if (validSheets.length === 0) { toast.error("Aucune donnée trouvée dans la base de données", { id: toastId }); return; }
+                const summaryData = validSheets.map(s => {
+                    const numericKeys = Object.keys(s.data[0] || {}).filter(k => k.includes('(DH)'));
+                    const totals: any = {};
+                    numericKeys.forEach(k => { totals[k] = s.data.reduce((sum, row) => sum + (parseFloat(row[k]) || 0), 0); });
+                    return { 'MODULE': s.label, 'NOMBRE D\'ENTRÉES': s.data.length, 'VALEUR TOTALE (DH)': totals[numericKeys[0]] || 0, 'RESTE / SOLDE (DH)': totals[numericKeys.find(k => k.includes('RESTE') || k.includes('SOLDE')) || ''] || 0 };
+                });
+                exportMultiSheetToExcel([{ sheetName: 'RÉCAPITULATIF GLOBAL', data: summaryData, includeSummary: true }, ...validSheets.map(s => ({ sheetName: s.sheetName, data: s.data, includeSummary: true }))], item.fileName);
+            } else {
+                const data: any = await apiFetch(item.endpoint);
+                const rawData = Array.isArray(data) ? data : (data.data || []);
+                const mappedData = mapExportData(item.endpoint, rawData);
+                if (mappedData.length === 0) { toast.error("Aucune donnée à exporter pour ce module", { id: toastId }); return; }
+                exportToExcel(mappedData, item.fileName, true);
+            }
             toast.success("Export réussi !", { id: toastId });
-            setIsExportMenuOpen(false);
+            setIsExportOpen(false);
         } catch (error: any) {
-            toast.error("Échec de l'exportation", { id: toastId });
+            console.error("Export failed", error);
+            toast.error(`Échec de l'exportation: ${error.message || 'Erreur inconnue'}`, { id: toastId });
         }
     };
 
-    const go = (path: string) => { navigate(path); setIsMobileOpen(false); };
+    if (!token) return null;
 
     return (
         <>
-            {isMobileOpen && <div className="fixed inset-0 bg-black/60 z-[110] lg:hidden" onClick={() => setIsMobileOpen(false)} />}
+            {/* Mobile Overlay */}
+            {isMobileOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 z-[120] lg:hidden" onClick={() => setIsMobileOpen(false)} />
+            )}
 
-            <aside className={`
-                fixed top-0 left-0 bottom-0 z-[120]
-                w-[280px] bg-[#1a0f0a] border-r border-[#2a1a11] shadow-2xl
-                flex flex-col transition-transform duration-500 ease-in-out
-                ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            `}>
-
-                {/* Header with Logo and Close Arrow */}
-                <div className="px-4 border-b border-[#2a1a11] flex items-center justify-between h-[64px] flex-shrink-0 bg-[#1a0f0a]">
-                    <div onClick={() => go('/home')} className="flex items-center min-w-0 cursor-pointer group flex-1 overflow-hidden">
-                        <img src="/assets/LogoNavbar.png" alt="Logo" className="h-9 w-auto mr-3 flex-shrink-0 group-hover:scale-105 transition-transform" />
-                        <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] leading-none mb-1">Société les</span>
-                            <span className="text-sm font-black text-white leading-tight truncate">
-                                CINQ <span className="text-amber-500">ÉLÉMENTS</span>
-                            </span>
+            {/* Sidebar */}
+            <aside
+                className={`
+                    fixed top-0 left-0 h-full bg-[#1e293b] text-slate-300 z-[130] 
+                    border-r border-slate-800 transition-all duration-300 flex flex-col
+                    ${isCollapsed ? 'w-20' : 'w-[260px]'}
+                    ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                `}
+            >
+                {/* Logo Section */}
+                <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/50 flex-shrink-0">
+                    {!isCollapsed && (
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <img src="/assets/LogoNavbar.png" alt="" className="h-7 w-auto flex-shrink-0" />
+                            <span className="font-semibold text-white tracking-tight text-sm truncate">CINQ ÉLÉMENTS</span>
                         </div>
-                    </div>
-                    {/* Close Arrow Toggle */}
+                    )}
                     <button
-                        onClick={() => setIsMobileOpen(false)}
-                        className="p-2 text-white/40 hover:text-amber-500 hover:bg-white/5 rounded-full transition-all ml-2"
-                        title="Fermer le menu"
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="p-1 hover:text-white transition-colors lg:block hidden flex-shrink-0 ml-auto"
                     >
-                        <ChevronLeft size={20} strokeWidth={2.5} />
+                        {isCollapsed ? <ChevronRight size={18} /> : <Menu size={18} />}
+                    </button>
+                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden flex-shrink-0 ml-auto">
+                        <X size={20} />
                     </button>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 flex flex-col gap-3">
+                {/* Main Content */}
+                <div className="flex-grow flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar-white">
 
-                    {/* Section: Factures */}
-                    <div className="space-y-1">
+                    {/* Nouveau Button */}
+                    <div className="mb-6 px-1 relative" ref={quickAddRef}>
                         <button
-                            onClick={() => setIsFacturesMenuOpen(!isFacturesMenuOpen)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-white/5 group ${isFacturesMenuOpen ? 'bg-blue-500/10 text-white border-blue-500/20' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
+                            onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
+                            className={`
+                                w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all
+                                ${isQuickAddOpen
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-white text-slate-900 hover:bg-slate-100 shadow-sm'}
+                            `}
                         >
-                            <FileText size={18} className={isFacturesMenuOpen ? 'text-blue-400' : 'text-blue-500 group-hover:scale-110 transition-transform'} />
-                            <span className="flex-1 text-left font-black text-xs uppercase tracking-widest">Factures</span>
-                            <ChevronDown size={14} className={`transition-transform duration-300 ${isFacturesMenuOpen ? 'rotate-180' : ''}`} />
+                            <Plus size={18} className={isQuickAddOpen ? '' : 'text-slate-700'} />
+                            {!isCollapsed && <span className="text-sm font-semibold">Nouveau</span>}
+                            {!isCollapsed && <ChevronDown size={14} className={`ml-auto transition-transform ${isQuickAddOpen ? 'rotate-180' : ''}`} />}
                         </button>
 
-                        {isFacturesMenuOpen && (
-                            <div className="mt-1 bg-white/95 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-[fadeInScale_0.2s_ease-out]">
-                                <button onClick={() => go('/factures-list')} className="w-full flex items-center gap-3 px-5 py-3 text-xs font-bold text-slate-800 hover:bg-blue-50 transition-colors border-b border-slate-100">
-                                    <Layers size={16} className="text-indigo-600" />
-                                    <span>CONSULTER FACTURES</span>
-                                </button>
-                                <button onClick={() => go('/factures')} className="w-full flex items-center gap-3 px-5 py-3 text-xs font-bold text-slate-800 hover:bg-blue-50 transition-colors">
-                                    <Plus size={16} className="text-blue-600" />
-                                    <span>CRÉER FACTURE</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Section: Consulter */}
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-white/5 group ${isNavMenuOpen ? 'bg-amber-500/10 text-white border-amber-500/20' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
-                        >
-                            <Layers size={18} className={isNavMenuOpen ? 'text-amber-400' : 'text-amber-500 group-hover:scale-110 transition-transform'} />
-                            <span className="flex-1 text-left font-black text-xs uppercase tracking-widest">Consulter</span>
-                            <ChevronDown size={14} className={`transition-transform duration-300 ${isNavMenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {isNavMenuOpen && (
-                            <div className="mt-1 bg-white/95 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden max-h-[400px] overflow-y-auto custom-scrollbar-white animate-[fadeInScale_0.2s_ease-out]">
-                                {navItems.map((item) => (
-                                    <button key={item.path} onClick={() => go(item.path)} className="w-full flex items-center gap-4 px-5 py-3 text-xs font-bold text-slate-800 hover:bg-amber-50 transition-colors border-b border-slate-50 last:border-0 uppercase tracking-tighter">
-                                        <item.icon size={16} className="text-slate-900 opacity-70" />
-                                        <span>{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Section: Nouveau */}
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-amber-600 text-white transition-all duration-300 font-black text-xs uppercase tracking-[0.15em] shadow-xl shadow-amber-900/40 hover:bg-amber-500 group"
-                        >
-                            <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-                            <span className="flex-1 text-left">Nouveau</span>
-                            <ChevronDown size={16} className={`transition-transform duration-300 ${isAddMenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {isAddMenuOpen && (
-                            <div className="mt-2 bg-white/95 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-[fadeInScale_0.2s_ease-out]">
+                        {isQuickAddOpen && !isCollapsed && (
+                            <div className="absolute left-0 right-0 mt-2 mx-1 bg-white rounded-lg shadow-xl border border-slate-200 z-50 py-2 animate-in fade-in slide-in-from-top-1 max-h-[300px] overflow-y-auto">
                                 {quickAddItems.map((item) => (
-                                    <button key={item.path} onClick={() => go(item.path)} className="w-full flex items-center gap-4 px-5 py-3 text-xs font-black text-slate-800 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 uppercase tracking-tight">
-                                        <item.icon size={16} className={`${item.color} opacity-80`} />
+                                    <button
+                                        key={item.path}
+                                        onClick={() => { navigate(item.path); setIsQuickAddOpen(false); setIsMobileOpen(false); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-amber-600 transition-colors"
+                                    >
+                                        <item.icon size={14} />
                                         <span>{item.label}</span>
                                     </button>
                                 ))}
@@ -232,24 +288,52 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                         )}
                     </div>
 
-                    {/* Section: Exporter */}
-                    <div className="space-y-1">
-                        <button
-                            onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 border border-white/5 group ${isExportMenuOpen ? 'bg-emerald-500/10 text-white border-emerald-500/20' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'}`}
-                        >
-                            <Download size={18} className={isExportMenuOpen ? 'text-emerald-400' : 'text-emerald-500 group-hover:-translate-y-0.5 transition-transform'} />
-                            <span className="flex-1 text-left font-black text-xs uppercase tracking-widest">Exporter</span>
-                            <ChevronDown size={14} className={`transition-transform duration-300 ${isExportMenuOpen ? 'rotate-180' : ''}`} />
-                        </button>
+                    {/* Navigation Items */}
+                    <nav className="space-y-1 px-1">
+                        {navItems.map((item) => {
+                            const isActive = location.pathname === item.path;
+                            return (
+                                <button
+                                    key={item.path}
+                                    onClick={() => { navigate(item.path); setIsMobileOpen(false); }}
+                                    className={`
+                                        w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
+                                        ${isActive
+                                            ? 'bg-slate-800 text-white'
+                                            : 'hover:bg-slate-800/50 hover:text-white'}
+                                    `}
+                                >
+                                    <item.icon size={18} className={isActive ? 'text-amber-500' : ''} />
+                                    {!isCollapsed && <span>{item.label}</span>}
+                                </button>
+                            );
+                        })}
+                    </nav>
 
-                        {isExportMenuOpen && (
-                            <div className="mt-1 bg-white/95 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-[fadeInScale_0.2s_ease-out]">
-                                <div className="px-5 py-2.5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">Sauvegarde</div>
+                    <div className="mt-6 mb-2 border-t border-slate-800/50 pt-4 px-3">
+                        {!isCollapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Outils</span>}
+                    </div>
+
+                    {/* Simple Export Dropdown */}
+                    <div className="px-1" ref={exportDropdownRef}>
+                        <button
+                            onClick={() => setIsExportOpen(!isExportOpen)}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800/50 hover:text-white transition-all text-sm font-medium"
+                        >
+                            <Download size={18} />
+                            {!isCollapsed && <span>Exporter</span>}
+                            {!isCollapsed && <ChevronDown size={14} className={`ml-auto transition-transform ${isExportOpen ? 'rotate-180' : ''}`} />}
+                        </button>
+                        {isExportOpen && !isCollapsed && (
+                            <div className="mt-1 ml-6 space-y-1">
                                 {exportItems.map((item) => (
-                                    <button key={item.label} onClick={() => handleGlobalExport(item)} className={`w-full flex items-center gap-4 px-5 py-3 text-xs font-bold transition-all ${item.endpoint === 'all' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-b border-emerald-100' : 'text-slate-800 hover:bg-slate-50'}`}>
-                                        <Database size={16} className={item.endpoint === 'all' ? 'text-emerald-700' : 'text-emerald-600'} />
-                                        <span className={item.endpoint === 'all' ? 'font-black' : ''}>{item.label}</span>
+                                    <button
+                                        key={item.endpoint}
+                                        onClick={() => handleGlobalExport(item)}
+                                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs transition-colors ${item.endpoint === 'all' ? 'text-emerald-400 hover:text-emerald-300 font-bold' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        {item.endpoint === 'all' && <Database size={12} />}
+                                        {item.label}
                                     </button>
                                 ))}
                             </div>
@@ -257,31 +341,44 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     </div>
                 </div>
 
-                {/* Footer and Bottom Settings */}
-                <div className="mt-auto border-t border-[#2a1a11] bg-[#130b08]/50 p-4 space-y-4">
-                    {/* Configuration — above profile */}
+                {/* Bottom Section: Profile & Settings */}
+                <div className="mt-auto p-3 border-t border-slate-800/50 space-y-1 flex-shrink-0">
                     <button
-                        onClick={() => go('/property-pricing')}
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all group shadow-inner"
+                        onClick={() => { navigate('/property-pricing'); setIsMobileOpen(false); }}
+                        className={`
+                            w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
+                            ${location.pathname === '/property-pricing' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}
+                        `}
                     >
-                        <Settings2 size={18} className="text-amber-500 group-hover:rotate-45 transition-transform duration-500" />
-                        <span className="font-black text-xs uppercase tracking-[0.1em]">Configuration</span>
+                        <Settings2 size={18} />
+                        {!isCollapsed && <span>Configuration</span>}
                     </button>
 
-                    {/* Profile & Logout */}
-                    <div className="flex items-center gap-3 px-1">
-                        <div onClick={() => go('/profile')} className="flex-1 min-w-0 cursor-pointer group">
-                            <p className="text-sm font-black text-white group-hover:text-amber-500 transition-colors truncate uppercase tracking-tight">{user?.name || 'Utilisateur'}</p>
-                            <p className="text-[10px] text-white/40 font-mono truncate lowercase opacity-60 group-hover:opacity-100 transition-opacity">{user?.email || 'N/A'}</p>
+                    <button
+                        onClick={() => { navigate('/profile'); setIsMobileOpen(false); }}
+                        className={`
+                            w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
+                            ${location.pathname === '/profile' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}
+                        `}
+                    >
+                        <div className="w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-[10px] uppercase font-bold text-white flex-shrink-0">
+                            {user?.name?.charAt(0) || 'U'}
                         </div>
-                        <button
-                            onClick={handleLogout}
-                            className="p-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-xl transition-all duration-300 shadow-lg shadow-rose-900/20"
-                            title="Déconnexion"
-                        >
-                            <LogOut size={18} />
-                        </button>
-                    </div>
+                        {!isCollapsed && (
+                            <div className="flex flex-col min-w-0 flex-1 text-left">
+                                <span className="truncate text-sm">{user?.name || 'Profil'}</span>
+                                <span className="truncate text-[10px] text-slate-500">{user?.email}</span>
+                            </div>
+                        )}
+                    </button>
+
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-all text-sm font-medium"
+                    >
+                        <LogOut size={18} />
+                        {!isCollapsed && <span>Déconnexion</span>}
+                    </button>
                 </div>
             </aside>
         </>
