@@ -2,8 +2,9 @@ import './index.css';
 import './App.css'
 import React from 'react';
 import Login from './component/Login.tsx'
-import Footer from './component/Footer.tsx';
-import NavBar from './component/NavBar.tsx';
+import Sidebar from './component/Sidebar.tsx';
+import { Menu } from 'lucide-react';
+
 import AddProperty from './component/AddProperty.tsx';
 import AddTerrain from './component/AddTerrain.tsx';
 import AddClient from './component/AddClient.tsx';
@@ -47,59 +48,84 @@ const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) 
 const App: React.FC = () => {
   const token = localStorage.getItem('token');
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       <Router>
         <Toaster position="top-right" reverseOrder={false} />
         <GlobalPreview />
-        <NavBar />
 
+        <Sidebar
+          isMobileOpen={isMobileSidebarOpen}
+          setIsMobileOpen={setIsMobileSidebarOpen}
+        />
 
-        <div className="flex-grow pt-20 px-4 pb-10">
-          <div className="max-w-7xl mx-auto">
-            <Routes>
-              {/* Public */}
-              <Route path="/login" element={<Login />} />
+        <div className={`flex-1 flex flex-col min-w-0 ${token ? 'lg:pl-[280px]' : ''}`}>
+          {/* Mobile Header */}
+          {token && (
+            <header className="lg:hidden sticky top-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl h-[60px] flex items-center px-3">
+              <button
+                onClick={() => setIsMobileSidebarOpen(true)}
+                className="p-2 text-white/60 rounded cursor-pointer hover:bg-white/10 mr-2"
+              >
+                <Menu size={24} />
+              </button>
+              <div onClick={() => { }} className="flex items-center cursor-pointer group">
+                <img src="/assets/LogoNavbar.png" alt="Logo" className="h-8 w-auto mr-3" />
+                <span className="self-center text-lg font-bold whitespace-nowrap text-white">
+                  Société les <span className="text-amber-500 font-black">cinq elements</span>
+                </span>
+              </div>
+            </header>
+          )}
 
-              {/* Protected */}
-              <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
-              <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
-              <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-              <Route path="/terrains" element={<PrivateRoute><Terrains /></PrivateRoute>} />
-              <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
-              <Route path="/property-pricing" element={<PrivateRoute><ConfigPrixBiens /></PrivateRoute>} />
-              <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
-              <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
-              <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
-              <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
-              <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
-              <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
-              <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />
-              <Route path="/charges" element={<PrivateRoute><Charges /></PrivateRoute>} />
-              <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
-              <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+          <main className="flex-grow px-4 py-6">
+            <div className="max-w-7xl mx-auto">
 
-              {/* Procurement Routes */}
-              <Route path="/articles" element={<PrivateRoute><Articles /></PrivateRoute>} />
-              <Route path="/add-article" element={<PrivateRoute><AddArticle /></PrivateRoute>} />
-              <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
-              <Route path="/add-supplier" element={<PrivateRoute><AddSupplier /></PrivateRoute>} />
-              <Route path="/achats" element={<PrivateRoute><PurchaseInvoices /></PrivateRoute>} />
-              <Route path="/add-achat" element={<PrivateRoute><AddAchat /></PrivateRoute>} />
-              <Route path="/travaux" element={<PrivateRoute><GeneralWorks /></PrivateRoute>} />
-              <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />
-              <Route path="/stock" element={<PrivateRoute><StockDashboard /></PrivateRoute>} />
-              <Route path="/add-stock-exit" element={<PrivateRoute><StockExitForm onSuccess={() => { }} /></PrivateRoute>} />
-              <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
-              <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
+              <Routes>
+                {/* Public */}
+                <Route path="/login" element={<Login />} />
 
-              {/* Fallback */}
-              <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </div>
+                {/* Protected */}
+                <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
+                <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
+                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                <Route path="/terrains" element={<PrivateRoute><Terrains /></PrivateRoute>} />
+                <Route path="/properties" element={<PrivateRoute><Properties /></PrivateRoute>} />
+                <Route path="/property-pricing" element={<PrivateRoute><ConfigPrixBiens /></PrivateRoute>} />
+                <Route path="/add-property" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
+                <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
+                <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
+                <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
+                <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
+                <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
+                <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />
+                <Route path="/charges" element={<PrivateRoute><Charges /></PrivateRoute>} />
+                <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
+                <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+
+                {/* Procurement Routes */}
+                <Route path="/articles" element={<PrivateRoute><Articles /></PrivateRoute>} />
+                <Route path="/add-article" element={<PrivateRoute><AddArticle /></PrivateRoute>} />
+                <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
+                <Route path="/add-supplier" element={<PrivateRoute><AddSupplier /></PrivateRoute>} />
+                <Route path="/achats" element={<PrivateRoute><PurchaseInvoices /></PrivateRoute>} />
+                <Route path="/add-achat" element={<PrivateRoute><AddAchat /></PrivateRoute>} />
+                <Route path="/travaux" element={<PrivateRoute><GeneralWorks /></PrivateRoute>} />
+                <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />
+                <Route path="/stock" element={<PrivateRoute><StockDashboard /></PrivateRoute>} />
+                <Route path="/add-stock-exit" element={<PrivateRoute><StockExitForm onSuccess={() => { }} /></PrivateRoute>} />
+                <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
+                <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
+
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </div>
+          </main>
         </div>
 
-        <Footer />
       </Router>
     </div>
   )
