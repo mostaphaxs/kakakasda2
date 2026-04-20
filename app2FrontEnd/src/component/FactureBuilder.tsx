@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FileText, PlusCircle, Trash2, Download, FileSpreadsheet, File as FileIcon, Save, ArrowLeft } from 'lucide-react';
@@ -51,7 +51,7 @@ const FactureBuilder: React.FC = () => {
     const factureData = state?.facture;
     const mode = state?.mode || 'create';
 
-    const { register, control, watch } = useForm<InvoiceForm>({
+    const { register, control, watch, setValue } = useForm<InvoiceForm>({
         defaultValues: (() => {
             const storedUser = localStorage.getItem('user');
             const user = storedUser ? JSON.parse(storedUser) : null;
@@ -86,7 +86,7 @@ const FactureBuilder: React.FC = () => {
                 };
             }
             return {
-                invoiceNo: `FA-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-001`,
+                invoiceNo: `FA-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-...`, // Placeholder
                 date: new Date().toISOString().split('T')[0],
                 clientName: '',
                 clientAddress: '',
@@ -108,6 +108,46 @@ const FactureBuilder: React.FC = () => {
             };
         })()
     });
+
+    useEffect(() => {
+        if (mode === 'create') {
+            const fetchNextInvoiceNo = async () => {
+                try {
+                    const data: any = await apiFetch('/factures');
+                    const factures = Array.isArray(data) ? data : (data.data || []);
+
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    const prefix = `FA-${year}-${month}-`;
+
+                    const monthlyInvoices = factures.filter((f: any) => f.invoice_no?.startsWith(prefix));
+
+                    let nextSuffix = 1;
+                    if (monthlyInvoices.length > 0) {
+                        const suffixes = monthlyInvoices.map((f: any) => {
+                            const parts = f.invoice_no.split('-');
+                            return parseInt(parts[parts.length - 1], 10);
+                        }).filter((n: any) => !isNaN(n));
+
+                        if (suffixes.length > 0) {
+                            nextSuffix = Math.max(...suffixes) + 1;
+                        }
+                    }
+
+                    const nextNo = `${prefix}${String(nextSuffix).padStart(3, '0')}`;
+                    setValue('invoiceNo', nextNo);
+                } catch (error) {
+                    console.error("Error calculating next invoice number", error);
+                    // Fallback to 001 if error occurs
+                    const now = new Date();
+                    const prefix = `FA-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-001`;
+                    setValue('invoiceNo', prefix);
+                }
+            };
+            fetchNextInvoiceNo();
+        }
+    }, [mode, setValue]);
 
     const { fields, append, remove } = useFieldArray({
         control,
