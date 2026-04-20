@@ -1,6 +1,15 @@
 // src/component/Dashboard.tsx
 import { useState, useEffect, useMemo } from 'react';
-import { TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin, UserPlus, Eye, EyeOff, Lock, Info, Clock, ShoppingBag, Paintbrush } from 'lucide-react';
+import {
+  TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin,
+  UserPlus, Eye, EyeOff, Lock, ShoppingBag, Paintbrush,
+  PieChart as PieChartIcon, BarChart as BarChartIcon, HelpCircle
+} from 'lucide-react';
+import {
+  ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, Legend
+} from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
@@ -51,6 +60,21 @@ interface Stats {
   }[];
 }
 
+
+// Custom Tooltip Component (Premium, No Dependencies)
+const TooltipInfo = ({ text, title }: { text: string; title?: string }) => (
+  <div className="group relative inline-block ml-2 cursor-help z-50">
+    <div className="p-1 rounded-full bg-slate-50 text-slate-400 hover:bg-amber-100 hover:text-amber-600 transition-all shadow-sm border border-slate-100">
+      <HelpCircle size={14} />
+    </div>
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block w-64 p-4 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[999] animate-in fade-in zoom-in duration-200 border border-white/10 ring-1 ring-black/5">
+      {title && <p className="text-[10px] font-black uppercase tracking-widest text-amber-500 mb-1.5">{title}</p>}
+      <p className="text-[11px] leading-relaxed font-medium text-slate-200">{text}</p>
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95" />
+    </div>
+  </div>
+);
+
 const Dashboard = () => {
   const [apiStats, setApiStats] = useState<Stats | null>(null);
   const [selectedTerrainId, setSelectedTerrainId] = useState<number | null>(null);
@@ -81,6 +105,24 @@ const Dashboard = () => {
       benefice_estime: tStats.benefice_estime,
     };
   }, [apiStats, selectedTerrainId]);
+
+  // Normalized stats for charts (Aggregates Soldé, Vendu, etc.)
+  const normalizedStats = useMemo(() => {
+    if (!stats) return null;
+    const n = { ...stats };
+    const bStatus = { Libre: 0, Réservé: 0, Vendu: 0 };
+
+    Object.entries(stats.biens_status || {}).forEach(([k, v]) => {
+      const key = k.toLowerCase();
+      if (key.includes('libr')) bStatus.Libre += v;
+      else if (key.includes('reserv') || key.includes('réserv')) bStatus.Réservé += v;
+      else if (key.includes('vend') || key.includes('sold')) bStatus.Vendu += v;
+      else bStatus[k as keyof typeof bStatus] = (bStatus[k as keyof typeof bStatus] || 0) + v;
+    });
+
+    n.biens_status = bStatus as any;
+    return n;
+  }, [stats]);
 
   const displayClients = useMemo(() => {
     if (!apiStats?.recent_clients) return [];
@@ -137,7 +179,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading || !stats) {
+  if (loading || !stats || !normalizedStats) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-4">
         <Loader2 className="animate-spin text-blue-600" size={48} />
@@ -226,10 +268,16 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Row 1: CA, Encaissements, Reste */}
-          <div className="bg-[#1a0f0a] p-8 rounded-[32px] shadow-xl shadow-slate-200 transition-transform hover:scale-[1.02] duration-300">
+          <div className="bg-[#1a0f0a] p-8 rounded-[32px] shadow-xl shadow-slate-200 transition-transform hover:scale-[1.02] duration-300 relative">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Chiffre d'Affaires</p>
+                <div className="flex items-center">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Chiffre d'Affaires</p>
+                  <TooltipInfo
+                    title="Chiffre d'Affaires (Objectif)"
+                    text="Valeur totale cumulée de tous les biens sous contrat (Vendus + Réservés). C'est votre objectif de revenu brut."
+                  />
+                </div>
                 <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Ventes & Réservations</p>
               </div>
               <div className="p-3 bg-white/10 text-white rounded-2xl">
@@ -239,10 +287,16 @@ const Dashboard = () => {
             {renderAmount(stats.chiffre_affaires, "text-4xl", "text-white")}
           </div>
 
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between transition-transform hover:scale-[1.02] duration-300 relative">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Recouvré</p>
+                <div className="flex items-center">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Total Recouvré</p>
+                  <TooltipInfo
+                    title="Liquidités Encaissées"
+                    text="Argent réel déjà déposé en banque. Ce montant provient des avances et des paiements de solde des clients."
+                  />
+                </div>
                 <p className="text-[10px] text-emerald-500 font-bold uppercase mt-1">Paiements Reçus</p>
               </div>
               <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
@@ -267,10 +321,16 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] transition-transform hover:scale-[1.02] duration-300">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_15px_40px_rgba(0,0,0,0.03)] transition-transform hover:scale-[1.02] duration-300 relative">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Reste à Recouvrer</p>
+                <div className="flex items-center">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Reste à Recouvrer</p>
+                  <TooltipInfo
+                    title="Engagement Client Restant"
+                    text="Différence entre le CA signé et l'argent déjà reçu. C'est ce que les clients doivent encore verser."
+                  />
+                </div>
                 <p className="text-[10px] text-rose-500 font-bold uppercase mt-1">Créances Clients</p>
               </div>
               <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
@@ -282,14 +342,158 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {/* ── 2. Analytics Visualizations ── */}
+      <section className="grid grid-cols-1 xl:grid-cols-5 gap-8 mb-8 h-auto">
+        {/* Graphique 1: Taux de Remplissage */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-2">
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex justify-between items-center w-full">
+              <div>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Taux de Remplissage</h3>
+                <p className="text-xs text-slate-400 font-medium">Répartition du parc par état de vente</p>
+              </div>
+              <TooltipInfo
+                title="Détail du Remplissage"
+                text="• Libre : Unités disponibles. • Réservé : Bien bloqué (avance versée). • Vendu : Transfert de propriété effectué."
+              />
+            </div>
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <PieChartIcon size={24} />
+            </div>
+          </div>
+          <div className="flex-grow relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: 'Libre', value: normalizedStats.biens_status['Libre'] || 0, color: '#10b981' },
+                    { name: 'Réservé', value: normalizedStats.biens_status['Réservé'] || 0, color: '#f59e0b' },
+                    { name: 'Vendu', value: normalizedStats.biens_status['Vendu'] || 0, color: '#334155' }
+                  ].filter(d => d.value > 0)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  animationDuration={1000}
+                >
+                  {[
+                    { name: 'Libre', value: normalizedStats.biens_status['Libre'] || 0, color: '#10b981' },
+                    { name: 'Réservé', value: normalizedStats.biens_status['Réservé'] || 0, color: '#f59e0b' },
+                    { name: 'Vendu', value: normalizedStats.biens_status['Vendu'] || 0, color: '#334155' }
+                  ].filter(d => d.value > 0).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Legend verticalAlign="bottom" height={36} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
+              <p className="text-xl font-black text-slate-800 group">{Object.values(stats.biens_status).reduce((a, b) => a + b, 0)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Graphique 2: Cash-Flow */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-3">
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex justify-between items-center w-full">
+              <div>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Flux de Trésorerie</h3>
+                <p className="text-xs text-slate-400 font-medium">Entrées (Paiements) vs Sorties (Dépenses)</p>
+              </div>
+              <TooltipInfo
+                title="Analyse du Cash-Flow"
+                text="• Entrées : Revenus réels (Encaissements). • Sorties : Dépenses réelles (Charges, Chantiers, Achats)."
+              />
+            </div>
+            <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+              <BarChartIcon size={24} />
+            </div>
+          </div>
+          <div className="flex-grow">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Global', Entrées: stats.encaissements, Sorties: stats.charges }
+                ]}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" hide />
+                <YAxis hide />
+                <RechartsTooltip
+                  cursor={{ fill: 'transparent' }}
+                  formatter={(value: any) => [`${formatNumber(value || 0)} DH`, '']}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Legend verticalAlign="top" align="right" height={36} />
+                <Bar dataKey="Entrées" fill="#10b981" radius={[10, 10, 0, 0]} barSize={60} />
+                <Bar dataKey="Sorties" fill="#f43f5e" radius={[10, 10, 0, 0]} barSize={60} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Graphique 3: Perspectives Financières */}
+        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-12 mt-8">
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex justify-between items-center w-full">
+              <div>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Perspectives Financières</h3>
+                <p className="text-xs text-slate-400 font-medium">Revenu Collecté vs Reste à Percoir vs Potentiel Stock</p>
+              </div>
+              <TooltipInfo
+                title="Détails des Perspectives"
+                text="• Recouvré : Argent réel encaissé. • Créances : Argent restant à percevoir des contrats (Vendu/Réservé). • Potentiel : Valeur estimée des unités encore 'Libres'."
+              />
+            </div>
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+              <WalletCards size={24} />
+            </div>
+          </div>
+          <div className="flex-grow">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Situation', Recouvré: stats.encaissements, Créances: stats.reste_a_recouvrer, Potentiel: stats.chiffre_affaires * 0.2 }
+                ]}
+                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" hide />
+                <YAxis hide />
+                <RechartsTooltip
+                  cursor={{ fill: 'transparent' }}
+                  formatter={(value: any) => [`${formatNumber(value || 0)} DH`, '']}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                />
+                <Legend verticalAlign="top" height={36} />
+                <Bar dataKey="Recouvré" fill="#10b981" radius={[10, 10, 0, 0]} barSize={80} />
+                <Bar dataKey="Créances" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={80} />
+                <Bar dataKey="Potentiel" fill="#94a3b8" radius={[10, 10, 0, 0]} barSize={80} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+
       {/* ── 3. Détails & Commercial ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Détail des charges */}
         <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-slate-50/50 border-b border-slate-100 p-6">
-            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Répartition des Charges</h3>
-            <p className="text-xs text-slate-500 font-medium">Analytique des dépenses par catégorie</p>
+          <div className="bg-slate-50/50 border-b border-slate-100 p-6 flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Répartition des Charges</h3>
+              <p className="text-xs text-slate-500 font-medium">Analytique des dépenses par catégorie</p>
+            </div>
+            <TooltipInfo text="Détail des sorties d'argent par type : Gros oeuvre, matériaux (Achat), intervenants techniques, et frais de bureau." />
           </div>
           <div className="p-6 space-y-3 flex-grow">
             {[
@@ -377,17 +581,26 @@ const Dashboard = () => {
         </div>
         <div className="p-8">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-            <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-[24px] text-center">
-              <p className="text-xs font-black text-emerald-800 uppercase mb-2">Libres</p>
-              <p className="text-4xl font-black text-emerald-600">{stats.biens_status['Libre'] || 0}</p>
+            <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-[24px] text-center relative group">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <p className="text-xs font-black text-emerald-800 uppercase">Libres</p>
+                <TooltipInfo text="Unités sans client associé et disponibles immédiatement à la vente." />
+              </div>
+              <p className="text-4xl font-black text-emerald-600">{normalizedStats.biens_status['Libre'] || 0}</p>
             </div>
-            <div className="p-6 bg-amber-50/50 border border-amber-100 rounded-[24px] text-center">
-              <p className="text-xs font-black text-amber-800 uppercase mb-2">Réservés</p>
-              <p className="text-4xl font-black text-amber-600">{stats.biens_status['Réservé'] || 0}</p>
+            <div className="p-6 bg-amber-50/50 border border-amber-100 rounded-[24px] text-center relative group">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <p className="text-xs font-black text-amber-800 uppercase">Réservés</p>
+                <TooltipInfo text="Unités avec un client attaché mais dont le dossier ou le paiement n'est pas encore finalisé." />
+              </div>
+              <p className="text-4xl font-black text-amber-600">{normalizedStats.biens_status['Réservé'] || 0}</p>
             </div>
-            <div className="p-6 bg-slate-50 border border-slate-100 rounded-[24px] text-center">
-              <p className="text-xs font-black text-slate-600 uppercase mb-2">Vendus</p>
-              <p className="text-4xl font-black text-slate-800">{(stats.biens_status['Vendu'] || 0) + (stats.biens_status['Vendu Définitivement'] || 0)}</p>
+            <div className="p-6 bg-slate-50 border border-slate-100 rounded-[24px] text-center relative group">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <p className="text-xs font-black text-slate-600 uppercase">Vendus</p>
+                <TooltipInfo text="Dossiers bouclés et unités contractuellement cédées aux clients." />
+              </div>
+              <p className="text-4xl font-black text-slate-800">{normalizedStats.biens_status['Vendu'] || 0}</p>
             </div>
           </div>
 
