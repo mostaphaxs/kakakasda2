@@ -302,18 +302,18 @@ const FactureBuilder: React.FC = () => {
                         </div>
                     </div>
 
-                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b pb-2 mt-6">Émetteur / Fournisseur</h3>
+                    <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b pb-2 mt-6">Client</h3>
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nom / Raison Sociale Émetteur</label>
-                        <input {...register('supplierName')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none" placeholder="Ex: MON ENTREPRISE" />
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nom de client</label>
+                        <textarea {...register('clientName')} rows={2} className="w-full p-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none resize-none" placeholder="Ex: Jean Dupont / Entreprise SARL" />
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Adresse</label>
-                        <input {...register('supplierAddress')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none" />
+                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Adresse de client</label>
+                        <input {...register('clientAddress')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none" />
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ICE</label>
-                        <input {...register('supplierIce')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="000000000" />
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">ICE (Factultatif)</label>
+                        <input {...register('clientIce')} className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono outline-none" placeholder="000000000" />
                     </div>
 
 
@@ -452,14 +452,14 @@ const FactureBuilder: React.FC = () => {
                                 </table>
                             </div>
 
-                            {/* Right: Fournisseur Table */}
+                            {/* Right: Client Table */}
                             <div className="w-1/2">
                                 <div className="border border-black border-dashed p-3 min-h-[100px] text-xs">
-                                    <p className="font-black text-sm uppercase mb-1 break-all">{watchAll.supplierName}</p>
-                                    <p className="text-gray-700 leading-relaxed mb-1 italic break-words">{watchAll.supplierAddress}</p>
-                                    {watchAll.supplierIce && (
-                                        <div className="font-mono text-[10px] mt-2 border-t pt-1">
-                                            <p>ICE: {watchAll.supplierIce}</p>
+                                    <p className="font-black text-sm uppercase mb-1 break-all">{watchAll.clientName}</p>
+                                    <p className="text-gray-700 leading-relaxed mb-1 italic break-words">{watchAll.clientAddress}</p>
+                                    {watchAll.clientIce && (
+                                        <div className="font-mono text-[10px] mt-2 border-t pt-1 border-gray-300">
+                                            <p>ICE: {watchAll.clientIce}</p>
                                         </div>
                                     )}
                                 </div>
