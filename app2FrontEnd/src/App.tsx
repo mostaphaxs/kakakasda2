@@ -22,7 +22,7 @@ import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import { Toaster } from 'react-hot-toast';
 import GlobalPreview from './component/GlobalPreview.tsx';
 
-// ── Auth Guard ─────────────────────────────────────────────────────────────────
+// ── Auth Guard ────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" replace />;
