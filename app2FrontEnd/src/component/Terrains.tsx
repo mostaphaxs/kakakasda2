@@ -1,4 +1,4 @@
-// src/component/Terrains.tsx
+// Terrains.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Briefcase } from 'lucide-react';
