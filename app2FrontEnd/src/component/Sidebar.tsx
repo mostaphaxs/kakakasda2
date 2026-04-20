@@ -16,6 +16,7 @@ interface SidebarProps {
     setIsMobileOpen: (open: boolean) => void;
 }
 
+
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
