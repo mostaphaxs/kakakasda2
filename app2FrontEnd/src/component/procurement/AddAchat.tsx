@@ -3,7 +3,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { apiFetch } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Save, ArrowLeft, PlusCircle, Trash2, Hash, FileText, CheckCircle2 } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, PlusCircle, Trash2, Hash, FileText, CheckCircle2 } from 'lucide-react';
 
 interface PurchaseInvoiceItemForm {
     article_id: string;
@@ -21,6 +21,8 @@ interface PurchaseInvoiceForm {
     items: PurchaseInvoiceItemForm[];
 }
 
+import { extractAchatFromImage } from '../../lib/gemini';
+
 const AddAchat: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -29,6 +31,7 @@ const AddAchat: React.FC = () => {
     const [articles, setArticles] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
+    const [isAILoading, setIsAILoading] = useState(false);
 
     const { register, control, handleSubmit, watch, formState: { isSubmitting, errors }, setValue } = useForm<PurchaseInvoiceForm>({
         defaultValues: {
@@ -38,12 +41,13 @@ const AddAchat: React.FC = () => {
         }
     });
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control,
         name: "items"
     });
 
     const watchItems = watch('items') || [];
+    const scanFile = watch('scan_contract');
 
     const globalTotals = watchItems.reduce((acc, item) => {
         const q = item?.qty || 0;
@@ -78,6 +82,68 @@ const AddAchat: React.FC = () => {
         };
         load();
     }, [state, setValue]);
+
+    const handleAIFill = async () => {
+        if (!scanFile || !scanFile[0]) {
+            toast.error("Veuillez d'abord sélectionner un fichier (image ou PDF).");
+            return;
+        }
+
+        try {
+            setIsAILoading(true);
+            const data = await extractAchatFromImage(scanFile[0]);
+
+            if (data.invoice_no) setValue('invoice_no', data.invoice_no);
+            if (data.reference_bon) setValue('reference_bon', data.reference_bon);
+
+            if (data.items && data.items.length > 0) {
+                const currentArticles = [...articles];
+
+                const mappedItems = await Promise.all(data.items.map(async (item) => {
+                    // Try to find the closest article by name/code
+                    let matchedArticle = currentArticles.find(a =>
+                        a.name.toLowerCase().includes(item.designation.toLowerCase()) ||
+                        item.designation.toLowerCase().includes(a.name.toLowerCase()) ||
+                        (a.code && item.designation.toLowerCase().includes(a.code.toLowerCase()))
+                    );
+
+                    // If not found, create it automatically
+                    if (!matchedArticle) {
+                        try {
+                            const newArt = await apiFetch<any>('/articles', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    name: item.designation,
+                                    category: 'Autres',
+                                    unit: 'U'
+                                })
+                            });
+                            matchedArticle = newArt;
+                            currentArticles.push(newArt);
+                            toast.success(`AI: Nouvel article créé pour "${item.designation.substring(0, 20)}..."`, { icon: '✨' });
+                        } catch (err) {
+                            console.error("Auto-create failed", err);
+                        }
+                    }
+
+                    return {
+                        article_id: matchedArticle ? String(matchedArticle.id) : '',
+                        qty: item.qty || 1,
+                        unit_price: item.unit_price || 0,
+                        vat_rate: item.vat_rate || 20
+                    };
+                }));
+
+                setArticles(currentArticles);
+                replace(mappedItems);
+                toast.success(`${data.items.length} articles extraits et synchronisés !`);
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Erreur lors de l'extraction IA.");
+        } finally {
+            setIsAILoading(false);
+        }
+    }
 
     const onSubmit = async (data: any) => {
         if (!data.items || data.items.length === 0) {
@@ -173,14 +239,37 @@ const AddAchat: React.FC = () => {
                                 {errors.supplier_id && <span className="text-red-500 text-xs font-bold mt-1 block">Le fournisseur est requis</span>}
                             </div>
 
-                            <div>
+                            <div className="flex flex-col">
                                 <label className="block text-[10px] font-black text-emerald-700/70 uppercase tracking-widest mb-2">Scanner Contrat/Bon</label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    {...register('scan_contract')}
-                                    className="block w-full text-sm text-slate-500 file:mr-3 file:py-3 file:px-4 file:rounded-l-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 bg-white border border-gray-200 rounded-xl shadow-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all outline-none"
-                                />
+                                <div className="flex gap-2">
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        {...register('scan_contract')}
+                                        className="block w-full text-sm text-slate-500 file:mr-3 file:py-3 file:px-4 file:rounded-l-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 bg-white border border-gray-200 rounded-xl shadow-sm focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAIFill}
+                                        disabled={isAILoading || !scanFile?.[0]}
+                                        className={`px-4 rounded-xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${isAILoading || !scanFile?.[0]
+                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            : 'bg-gradient-to-r from-purple-600 to-emerald-600 text-white shadow-lg hover:scale-105 active:scale-95'
+                                            }`}
+                                    >
+                                        {isAILoading ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                <span>Extraction...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-sm">✨</span>
+                                                <span>Magic Fill</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

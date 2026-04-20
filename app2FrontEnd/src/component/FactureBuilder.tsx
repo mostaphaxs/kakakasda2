@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { Document, Packer, Paragraph, ImageRun } from 'docx';
 import { saveAs } from 'file-saver';
 import { numberToFrenchWords } from '../lib/utils';
+import { professionalizeDescription } from '../lib/gemini';
 
 interface InvoiceItem {
     designation: string;
@@ -46,6 +47,7 @@ const FactureBuilder: React.FC = () => {
     const invoiceRef = useRef<HTMLDivElement>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [loadingIndices, setLoadingIndices] = useState<number[]>([]);
 
     const state = location.state as { facture?: any, mode?: 'view' | 'edit' } | null;
     const factureData = state?.facture;
@@ -86,7 +88,7 @@ const FactureBuilder: React.FC = () => {
                 };
             }
             return {
-                invoiceNo: `FA-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-...`, // Placeholder
+                invoiceNo: `FA-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-...`,
                 date: new Date().toISOString().split('T')[0],
                 clientName: '',
                 clientAddress: '',
@@ -108,6 +110,27 @@ const FactureBuilder: React.FC = () => {
             };
         })()
     });
+
+    const watchAll = watch();
+
+    const handleProfessionalize = async (index: number) => {
+        const desc = watchAll.items[index]?.designation;
+        if (!desc) {
+            toast.error("Veuillez saisir une désignation.");
+            return;
+        }
+
+        try {
+            setLoadingIndices(prev => [...prev, index]);
+            const improved = await professionalizeDescription(desc);
+            setValue(`items.${index}.designation`, improved);
+            toast.success("Description améliorée ! ✨");
+        } catch (error: any) {
+            toast.error(error.message || "Erreur de connexion à l'IA.");
+        } finally {
+            setLoadingIndices(prev => prev.filter(i => i !== index));
+        }
+    };
 
     useEffect(() => {
         if (mode === 'create') {
@@ -139,7 +162,6 @@ const FactureBuilder: React.FC = () => {
                     setValue('invoiceNo', nextNo);
                 } catch (error) {
                     console.error("Error calculating next invoice number", error);
-                    // Fallback to 001 if error occurs
                     const now = new Date();
                     const prefix = `FA-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-001`;
                     setValue('invoiceNo', prefix);
@@ -153,8 +175,6 @@ const FactureBuilder: React.FC = () => {
         control,
         name: 'items'
     });
-
-    const watchAll = watch();
 
     const totals = (watchAll.items || []).reduce((acc, item) => {
         const q = item.qty || 0;
@@ -238,9 +258,8 @@ const FactureBuilder: React.FC = () => {
             toast.success('PDF généré avec succès !');
         } catch (error: any) {
             console.error('PDF Generation Error:', error);
-            const msg = error?.message || String(error);
-            toast.error('Erreur lors de la génération PDF : ' + msg);
-            invoiceRef.current.classList.add('shadow-2xl');
+            toast.error('Erreur lors de la génération PDF');
+            invoiceRef.current?.classList.add('shadow-2xl');
         } finally {
             setIsExporting(false);
         }
@@ -288,9 +307,8 @@ const FactureBuilder: React.FC = () => {
             invoiceRef.current.classList.add('shadow-2xl');
         } catch (e: any) {
             console.error('Word Export Error:', e);
-            const errorMsg = e?.message || String(e);
-            toast.error(`Erreur Word : ${errorMsg.substring(0, 50)}`);
-            invoiceRef.current.classList.add('shadow-2xl');
+            toast.error(`Erreur Word`);
+            invoiceRef.current?.classList.add('shadow-2xl');
         } finally {
             setIsExporting(false);
         }
@@ -413,7 +431,22 @@ const FactureBuilder: React.FC = () => {
                                 </button>
                                 <div>
                                     <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Désignation</label>
-                                    <input {...register(`items.${index}.designation` as const)} className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white text-xs outline-none" />
+                                    <div className="relative">
+                                        <input {...register(`items.${index}.designation` as const)} className="w-full h-8 pl-2 pr-8 rounded-lg border border-gray-200 bg-white text-xs outline-none focus:border-blue-400 transition-all" placeholder="Nom de l'article ou service..." />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleProfessionalize(index)}
+                                            disabled={loadingIndices.includes(index)}
+                                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-amber-500 hover:text-amber-600 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                                            title="Améliorer avec l'IA"
+                                        >
+                                            {loadingIndices.includes(index) ? (
+                                                <div className="w-3 h-3 border-2 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
+                                            ) : (
+                                                <span className="text-sm">✨</span>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-2">
                                     <div>
@@ -454,7 +487,7 @@ const FactureBuilder: React.FC = () => {
                 </div>
             </div>
 
-            {/* Aperçu de la facture (Format A4 - 794px largeur approx) */}
+            {/* Aperçu de la facture */}
             <div className="w-full xl:w-2/3 flex justify-center pb-12">
                 <div
                     ref={invoiceRef}
@@ -469,9 +502,7 @@ const FactureBuilder: React.FC = () => {
                     {/* Contenu principal */}
                     <div className="flex-grow flex flex-col px-10 py-6 relative text-black">
 
-                        {/* Box Header: Facture Info & Fournisseur Info */}
                         <div className="flex justify-between items-start mb-8">
-                            {/* Left: Facture Table */}
                             <div className="w-1/3">
                                 <table className="w-full border-collapse border border-black text-center text-xs">
                                     <thead>
@@ -492,7 +523,6 @@ const FactureBuilder: React.FC = () => {
                                 </table>
                             </div>
 
-                            {/* Right: Client Table */}
                             <div className="w-1/2">
                                 <div className="border border-black border-dashed p-3 min-h-[100px] text-xs">
                                     <p className="font-black text-sm uppercase mb-1 break-all">{watchAll.clientName}</p>
@@ -506,14 +536,12 @@ const FactureBuilder: React.FC = () => {
                             </div>
                         </div>
 
-
                         {watchAll.description && (
                             <div className="mb-4">
                                 <p className="text-xs font-bold text-gray-800 break-words"><span className="text-gray-500 font-medium mr-2">Objet :</span> {watchAll.description}</p>
                             </div>
                         )}
 
-                        {/* Table des articles (The big one from the image) */}
                         <div className="flex-grow">
                             <table className="w-full text-left border-collapse border border-black">
                                 <thead>
@@ -530,7 +558,6 @@ const FactureBuilder: React.FC = () => {
                                     {(() => {
                                         const items = watchAll.items || [];
                                         const rows = [...items];
-                                        // Ensure at least 3 rows
                                         while (rows.length < 3) {
                                             rows.push({ designation: '', qty: 0, unitPrice: 0, vatRate: 20 });
                                         }
@@ -552,7 +579,6 @@ const FactureBuilder: React.FC = () => {
                                             );
                                         });
                                     })()}
-                                    {/* Totals inside the table footer style */}
                                     <tr className="bg-gray-100 font-bold text-xs">
                                         <td colSpan={4} rowSpan={3} className="border border-black p-4 align-bottom">
                                             <p className="italic text-[10px]">Arrête la présente Facture à la somme :</p>
@@ -575,7 +601,6 @@ const FactureBuilder: React.FC = () => {
                             </table>
                         </div>
 
-                        {/* Payment & Footer section */}
                         <div className="mt-8 space-y-4">
                             <div className="text-xs space-y-1 bg-gray-50 p-4 border border-black border-dotted">
                                 <p><span className="font-bold">Modalité de paiement :</span> {watchAll.paymentMethod}</p>
@@ -593,7 +618,6 @@ const FactureBuilder: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Cachet space */}
                             <div className="flex justify-end pr-10">
                                 <div className="text-center">
                                     <p className="text-[10px] font-bold uppercase text-gray-400 mb-12">Cachet & Signature</p>

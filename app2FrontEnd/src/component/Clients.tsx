@@ -8,6 +8,8 @@ import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
+import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
+import { Sparkles, Mail } from 'lucide-react';
 
 
 interface Bien {
@@ -127,6 +129,7 @@ const Clients = () => {
     const [whatsappMessageContent, setWhatsappMessageContent] = useState('');
     const [isWhatsAppPhoneModalOpen, setIsWhatsAppPhoneModalOpen] = useState(false);
     const [whatsappTargetPhone, setWhatsappTargetPhone] = useState<string>('');
+    const [isAILoading, setIsAILoading] = useState(false);
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -411,6 +414,46 @@ const Clients = () => {
         setWhatsappMessageContent(message);
         setIsWhatsAppLangModalOpen(false);
         setIsWhatsAppEditorOpen(true);
+    };
+
+    const handleImproveWithAI = async () => {
+        try {
+            setIsAILoading(true);
+            const improved = await improveWhatsAppMessage(whatsappMessageContent);
+            setWhatsappMessageContent(improved);
+            toast.success('Message amélioré par l\'IA ! ✨', { icon: '✨' });
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de l'amélioration AI.");
+        } finally {
+            setIsAILoading(false);
+        }
+    };
+
+    const handleGenerateEmailWithAI = async (client: Client) => {
+        try {
+            setIsAILoading(true);
+            const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
+            const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+            const reste = Math.max(0, prixGlobal - totalVerse);
+            const projectName = client.biens?.[0]?.terrain?.nom_projet || "Vôtre Projet";
+
+            const email = await generateClientEmail({
+                name: `${client.nom} ${client.prenom}`,
+                total: prixGlobal,
+                paid: totalVerse,
+                remaining: reste,
+                project: projectName
+            });
+
+            // For now, we'll open the mail client or just copy to clipboard / show in editor
+            setWhatsappMessageContent(email);
+            setIsWhatsAppEditorOpen(true);
+            toast.success('Email professionnel généré ! 📧', { icon: '📧' });
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de la génération de l'email.");
+        } finally {
+            setIsAILoading(false);
+        }
     };
 
     const handleSendWhatsApp = () => {
@@ -1350,6 +1393,18 @@ const Clients = () => {
                                 </button>
                             </div>
 
+                            <div className="px-6 py-3 bg-indigo-600/5 border-b border-indigo-100 flex items-center justify-between">
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Assistant CRM Intelligent</span>
+                                <button
+                                    onClick={() => handleGenerateEmailWithAI(detailClient)}
+                                    disabled={isAILoading}
+                                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
+                                    Générer Email Pro (AI)
+                                </button>
+                            </div>
+
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -1783,18 +1838,48 @@ const Clients = () => {
                                     <X size={20} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
-                                    Contenu du message
-                                </label>
-                                <textarea
-                                    value={whatsappMessageContent}
-                                    onChange={(e) => setWhatsappMessageContent(e.target.value)}
-                                    rows={8}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"
-                                    dir="auto"
-                                />
-                                <div className="mt-6 flex justify-end gap-3">
+                            <div className="px-6 py-2 bg-emerald-600/5 border-b border-emerald-100 flex items-center justify-between">
+                                <span className="text-xs font-bold text-emerald-600">Amélioration Premium</span>
+                                <button
+                                    onClick={handleImproveWithAI}
+                                    disabled={isAILoading}
+                                    className="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm active:scale-95 disabled:opacity-50"
+                                >
+                                    {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                    Améliorer avec l'IA ✨
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                                        Contenu du message (Tapez *texte* pour le gras)
+                                    </label>
+                                    <textarea
+                                        value={whatsappMessageContent}
+                                        onChange={(e) => setWhatsappMessageContent(e.target.value)}
+                                        rows={8}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none font-mono"
+                                        dir="auto"
+                                    />
+                                </div>
+
+                                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                    <label className="block text-[10px] font-black text-emerald-600 uppercase mb-3 tracking-widest">Aperçu WhatsApp</label>
+                                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {whatsappMessageContent.split('\n').map((line, i) => (
+                                            <div key={i} className="mb-1">
+                                                {line.split(/(\*.*?\*)/g).map((part, j) => {
+                                                    if (part.startsWith('*') && part.endsWith('*')) {
+                                                        return <strong key={j} className="font-black text-gray-900">{part.slice(1, -1)}</strong>;
+                                                    }
+                                                    return part;
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => setIsWhatsAppEditorOpen(false)}
                                         className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
