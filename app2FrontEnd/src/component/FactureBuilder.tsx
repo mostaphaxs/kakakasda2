@@ -32,6 +32,8 @@ interface InvoiceForm {
     supplierIce: string;
     supplierIf: string;
     supplierRc: string;
+    supplierCapSoc: string;
+    supplierTel: string;
     description: string;
     bankName: string;
     bankAccount: string;
@@ -68,11 +70,13 @@ const FactureBuilder: React.FC = () => {
                     clientIce: factureData.client_ice || '',
                     clientIf: factureData.client_if || '',
                     clientRc: factureData.client_rc || '',
-                    supplierName: factureData.supplier_name || defaultSupplierName,
-                    supplierAddress: factureData.supplier_address || 'Adresse de l\'entreprise',
-                    supplierIce: factureData.supplier_ice || '000000000000000',
-                    supplierIf: factureData.supplier_if || '00000000',
-                    supplierRc: factureData.supplier_rc || '000000',
+                    supplierName: factureData.supplier_name || 'LES CINQ ELEMENTS S.a.r.l',
+                    supplierAddress: factureData.supplier_address || '84,rue prince moulay abdellah,3 ème Etage - Casablanca',
+                    supplierIce: factureData.supplier_ice || '001728471000020',
+                    supplierIf: factureData.supplier_if || '01033242',
+                    supplierRc: factureData.supplier_rc || '153081',
+                    supplierCapSoc: factureData.supplier_cap_soc || '200 000.00DHS',
+                    supplierTel: factureData.supplier_tel || '0522 201 062 - 0522 276 429',
                     description: factureData.description || '',
                     bankName: factureData.bank_name || 'MA BANQUE',
                     bankAccount: factureData.bank_account || '0000 0000 0000 0000 0000 0000',
@@ -95,11 +99,13 @@ const FactureBuilder: React.FC = () => {
                 clientIce: '',
                 clientIf: '',
                 clientRc: '',
-                supplierName: defaultSupplierName,
-                supplierAddress: 'Adresse de l\'entreprise',
-                supplierIce: '000000000000000',
-                supplierIf: '00000000',
-                supplierRc: '000000',
+                supplierName: 'LES CINQ ELEMENTS S.a.r.l',
+                supplierAddress: '84,rue prince moulay abdellah,3 ème Etage - Casablanca',
+                supplierIce: '001728471000020',
+                supplierIf: '01033242',
+                supplierRc: '153081',
+                supplierCapSoc: '200 000.00DHS',
+                supplierTel: '0522 201 062 - 0522 276 429',
                 description: '',
                 bankName: 'MA BANQUE',
                 bankAccount: '0000 0000 0000 0000 0000 0000',
@@ -201,6 +207,8 @@ const FactureBuilder: React.FC = () => {
                 supplier_ice: watchAll.supplierIce,
                 supplier_if: watchAll.supplierIf,
                 supplier_rc: watchAll.supplierRc,
+                supplier_cap_soc: watchAll.supplierCapSoc,
+                supplier_tel: watchAll.supplierTel,
                 bank_name: watchAll.bankName,
                 bank_account: watchAll.bankAccount,
                 cheque_number: watchAll.chequeNumber,
@@ -360,6 +368,40 @@ const FactureBuilder: React.FC = () => {
                         </div>
                     </div>
 
+                    <h3 className="text-sm font-bold text-gray-800 uppercase tracking-widest border-b pb-2 mt-8 mb-4">Pied de page (Entreprise)</h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Nom de l'entreprise</label>
+                            <input {...register('supplierName')} className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" />
+                        </div>
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Adresse de l'entreprise</label>
+                            <input {...register('supplierAddress')} className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" />
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">ICE</label>
+                                <input {...register('supplierIce')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0000..." />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">IF</label>
+                                <input {...register('supplierIf')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0000..." />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">RC</label>
+                                <input {...register('supplierRc')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="1234..." />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cap. Soc.</label>
+                                <input {...register('supplierCapSoc')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0.00 DHS" />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Téléphone</label>
+                                <input {...register('supplierTel')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0522..." />
+                            </div>
+                        </div>
+                    </div>
+
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest border-b pb-2 mt-6">Client</h3>
                     <div>
                         <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Nom de client</label>
@@ -495,8 +537,12 @@ const FactureBuilder: React.FC = () => {
                     style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}
                 >
                     {/* Header Image */}
-                    <div className="w-full shrink-0 flex justify-center py-2">
-                        <img src="/Facture/Header.png" alt="Header" className="w-[70%] h-auto object-contain block" />
+                    <div className="w-full shrink-0 flex justify-center border-b-[3px] border-gray-800 pb-2 mb-2">
+                        <img
+                            src="/Facture/Header.png"
+                            alt="Header"
+                            className="w-full max-h-[160px] object-contain block px-8"
+                        />
                     </div>
 
                     {/* Contenu principal */}
@@ -542,7 +588,7 @@ const FactureBuilder: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex-grow">
+                        <div className="w-full">
                             <table className="w-full text-left border-collapse border border-black">
                                 <thead>
                                     <tr className="bg-gray-200 text-black text-[10px] font-bold uppercase">
@@ -627,9 +673,20 @@ const FactureBuilder: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Footer Image */}
-                    <div className="w-full shrink-0 mt-auto flex justify-center py-2">
-                        <img src="/Facture/Footer.png" alt="Footer" className="w-[70%] h-auto object-contain block" />
+                    {/* Footer Data */}
+                    <div className="w-full shrink-0 mt-auto pt-4 pb-4 text-center border-t border-gray-800 text-gray-800" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                        <p className="font-bold underline text-[14px] tracking-widest mb-1.5 uppercase">
+                            {watchAll.supplierName}
+                        </p>
+                        <p className="font-semibold text-[11px] mb-2.5 tracking-wide">{watchAll.supplierAddress}</p>
+
+                        <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 text-[11px] font-bold tracking-tight w-full px-4">
+                            {watchAll.supplierIce && <span>ICE: {watchAll.supplierIce}</span>}
+                            {watchAll.supplierIf && <span>IF: {watchAll.supplierIf}</span>}
+                            {watchAll.supplierRc && <span>RC: N° {watchAll.supplierRc}</span>}
+                            {watchAll.supplierCapSoc && <span>Cap. Soc: {watchAll.supplierCapSoc}</span>}
+                            {watchAll.supplierTel && <span>TEL: {watchAll.supplierTel}</span>}
+                        </div>
                     </div>
                 </div>
             </div>

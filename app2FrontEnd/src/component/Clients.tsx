@@ -432,6 +432,8 @@ const Clients = () => {
     const handleGenerateEmailWithAI = async (client: Client) => {
         try {
             setIsAILoading(true);
+            setWhatsappTargetClient(client);
+            setWhatsappTargetPhone(client.tel);
             const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
             const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
             const reste = Math.max(0, prixGlobal - totalVerse);
