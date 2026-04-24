@@ -21,6 +21,7 @@ class Intervenant extends Model
         'scan_contrat',
         'description',
         'terrain_id',
+        'rib',
     ];
 
     public function payments()

@@ -11,6 +11,7 @@ use App\Models\Bien;
 use App\Models\PurchaseInvoice;
 use App\Models\GeneralWork;
 use Illuminate\Http\JsonResponse;
+use Carbon\Carbon;
 
 class StatsController extends Controller
 {
@@ -156,6 +157,8 @@ class StatsController extends Controller
 
             $tResteARecouvrer = max(0, $tChiffreAffaires - $tEncaissements);
             $tBeneficeEstime = $tChiffreAffaires - $tCoutGlobal;
+            $tRoi = $tCoutGlobal > 0 ? ($tBeneficeEstime / $tCoutGlobal) * 100 : 0;
+            $tMargin = $tChiffreAffaires > 0 ? ($tBeneficeEstime / $tChiffreAffaires) * 100 : 0;
 
             $globalChiffreAffaires += $tChiffreAffaires;
             foreach ($tBiensTypes as $type => $count) {
@@ -184,12 +187,58 @@ class StatsController extends Controller
                 'chiffre_affaires' => (float) $tChiffreAffaires,
                 'reste_a_recouvrer' => (float) $tResteARecouvrer,
                 'benefice_estime' => (float) $tBeneficeEstime,
+                'roi' => (float) $tRoi,
+                'margin_percentage' => (float) $tMargin,
                 'biens_types' => $tBiensTypes,
             ];
         }
 
+        // 12. Monthly Performance (Last 12 months)
+        $startOfMonth = Carbon::now()->startOfMonth()->subMonths(11);
+        $monthlyPerf = [];
+        
+        for ($i = 0; $i < 12; $i++) {
+            $month = $startOfMonth->copy()->addMonths($i);
+            $monthStr = $month->format('Y-m');
+            $monthLabel = $month->translatedFormat('M y');
+
+            // Income this month
+            $income = payments::whereYear('payment_date', $month->year)
+                ->whereMonth('payment_date', $month->month)
+                ->selectRaw('SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as total')
+                ->value('total') ?? 0;
+
+            // Expenses this month (Purchase Invoices + Local Charges + Contractor Payments)
+            $expPurchases = PurchaseInvoice::whereYear('created_at', $month->year)
+                ->whereMonth('created_at', $month->month)
+                ->sum('total_ttc');
+            
+            $expCharges = Charge::whereYear('periode', $month->year)
+                ->whereMonth('periode', $month->month)
+                ->selectRaw('SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total')
+                ->value('total') ?? 0;
+            
+            $expContractors = ContractorPayment::whereYear('payment_date', $month->year)
+                ->whereMonth('payment_date', $month->month)
+                ->sum('amount');
+
+            $totalExpMonth = $expPurchases + $expCharges + $expContractors;
+
+            $monthlyPerf[] = [
+                'month' => $monthStr,
+                'label' => $monthLabel,
+                'income' => (float)$income,
+                'expenses' => (float)$totalExpMonth,
+            ];
+        }
+
+        // 13. Burn Rate (Average of last 3 months expenses)
+        $last3MonthsExp = collect($monthlyPerf)->take(-3)->avg('expenses');
+
         $globalResteARecouvrer = max(0, $globalChiffreAffaires - $totalEncaissements);
         $globalBeneficeEstime = $globalChiffreAffaires - $coutGlobal;
+        $globalRoi = $coutGlobal > 0 ? ($globalBeneficeEstime / $coutGlobal) * 100 : 0;
+        $globalMargin = $globalChiffreAffaires > 0 ? ($globalBeneficeEstime / $globalChiffreAffaires) * 100 : 0;
 
         return response()->json([
             'investissement' => (float) $totalInvested,
@@ -207,12 +256,16 @@ class StatsController extends Controller
             'chiffre_affaires' => (float) $globalChiffreAffaires,
             'reste_a_recouvrer' => (float) $globalResteARecouvrer,
             'benefice_estime' => (float) $globalBeneficeEstime,
+            'roi' => (float) $globalRoi,
+            'margin_percentage' => (float) $globalMargin,
+            'burn_rate' => (float) $last3MonthsExp,
             'biens_status' => $biensStatus,
             'biens_types' => $globalBiensTypes,
             'recent_clients' => $recentClients,
             'recent_payments' => $recentPayments,
             'recent_purchases' => $recentPurchases,
             'terrains_stats' => $terrainsStats,
+            'monthly_perf' => $monthlyPerf,
         ]);
     }
 }

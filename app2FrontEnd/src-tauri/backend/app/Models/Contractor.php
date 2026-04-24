@@ -19,6 +19,7 @@ class Contractor extends Model
         'scan_contrat',
         'description',
         'terrain_id',
+        'rib',
     ];
 
     protected $casts = [

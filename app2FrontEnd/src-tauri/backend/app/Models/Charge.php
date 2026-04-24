@@ -18,6 +18,7 @@ class Charge extends Model
         'gasoil',
         'periode',
         'terrain_id',
+        'rib',
     ];
 
     protected $casts = [

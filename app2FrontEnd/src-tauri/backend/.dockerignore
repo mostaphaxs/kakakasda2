@@ -1,0 +1,19 @@
+# Standard Laravel
+/vendor
+/node_modules
+/.git
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/logs/*
+/database/*.sqlite
+/public/storage/*
+
+# Build Artifacts (The likely culprits)
+/dist
+/static-php-cli
+/frankenphp
+/buildroot
+/pkgroot
+*.tar
+*.zip

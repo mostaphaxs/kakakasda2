@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('guarantee_checks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('supplier_id')->constrained()->onDelete('cascade');
+            $table->string('check_number');
+            $table->decimal('amount', 15, 2);
+            $table->string('bank_name')->nullable();
+            $table->string('scan_path')->nullable();
+            $table->string('status')->default('Active'); // Active, Returned, Cashed
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('guarantee_checks');
+    }
+};

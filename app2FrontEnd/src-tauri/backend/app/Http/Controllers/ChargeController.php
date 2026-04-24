@@ -30,6 +30,7 @@ class ChargeController extends Controller
             'gasoil' => 'nullable|numeric',
             'periode' => 'required|date',
             'terrain_id' => 'nullable|exists:terrains,id',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         $charge = Charge::create($validated);
@@ -58,6 +59,7 @@ class ChargeController extends Controller
             'impots' => 'nullable|numeric',
             'gasoil' => 'nullable|numeric',
             'periode' => 'required|date',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         $charge->update($validated);

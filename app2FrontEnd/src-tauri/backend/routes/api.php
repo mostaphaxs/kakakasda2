@@ -21,6 +21,9 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\GeneralWorkController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\FactureController;
+use App\Http\Controllers\OuvrierController;
+use App\Http\Controllers\SalarieController;
+use App\Http\Controllers\FinancialController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -30,6 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn(Request $r) => $r->user());
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
     Route::post('/user/update-password', [UserController::class, 'updatePassword']);
+
+    // Transactions Ledger
+    Route::get('/transactions', [FinancialController::class, 'transactions']);
 
     // Terrains
     Route::apiResource('terrains', TerrainController::class);
@@ -88,6 +94,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Suppliers
     Route::apiResource('suppliers', SupplierController::class);
+    Route::post('/suppliers/{supplier}/guarantee-checks', [SupplierController::class, 'addGuaranteeCheck']);
+    Route::delete('/guarantee-checks/{check}', [SupplierController::class, 'deleteGuaranteeCheck']);
 
     // Purchase Invoices
     Route::apiResource('purchase-invoices', PurchaseInvoiceController::class);
@@ -107,6 +115,16 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Factures
     Route::apiResource('factures', FactureController::class);
+
+    // Workers (Ouvriers)
+    Route::apiResource('ouvriers', OuvrierController::class);
+    Route::post('/ouvriers/{id}/missions', [OuvrierController::class, 'storeMission']);
+    Route::put('/ouvrier-missions/{id}', [OuvrierController::class, 'updateMission']);
+    Route::delete('/ouvrier-missions/{id}', [OuvrierController::class, 'destroyMission']);
+    Route::post('/ouvriers/{id}/payments', [OuvrierController::class, 'storePayment']);
+    Route::delete('/ouvrier-payments/{id}', [OuvrierController::class, 'destroyPayment']);
+
+    Route::apiResource('salaries', SalarieController::class);
     
 });
 
