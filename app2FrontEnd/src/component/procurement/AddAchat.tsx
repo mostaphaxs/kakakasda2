@@ -234,7 +234,13 @@ const AddAchat: React.FC = () => {
                                 <label className="block text-xs font-black text-gray-500 uppercase tracking-widest mb-2">Fournisseur</label>
                                 <select {...register('supplier_id', { required: true })} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 transition-all font-bold shadow-sm outline-none">
                                     <option value="">Sélectionner</option>
-                                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.nom_societe}</option>)}
+                                    {suppliers.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.nom_societe}
+                                            {s.type_entreprise ? ` (${s.type_entreprise})` : ''}
+                                            {s.guarantee_checks?.length > 0 ? ' 🏦 [GARANTIE]' : ''}
+                                        </option>
+                                    ))}
                                 </select>
                                 {errors.supplier_id && <span className="text-red-500 text-xs font-bold mt-1 block">Le fournisseur est requis</span>}
                             </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\payments;
+use App\Rules\UniqueReference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -36,8 +37,9 @@ class PaymentsController extends Controller
             'payment_date' => 'required|date',
             'type'         => 'required|in:Avance,Tranche,Reliquat,Caution',
             'method'       => 'required|string',
-            'reference_no' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name'    => 'nullable|string',
+            'bank_commission' => 'nullable|numeric|min:0',
             'notes'        => 'nullable|string',
             'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);
@@ -124,8 +126,9 @@ class PaymentsController extends Controller
             'payment_date' => 'nullable|date',
             'type'         => 'nullable|in:Avance,Tranche,Reliquat,Caution',
             'method'       => 'nullable|string',
-            'reference_no' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference('payments', $payment->id)],
             'bank_name'    => 'nullable|string',
+            'bank_commission' => 'nullable|numeric|min:0',
             'notes'        => 'nullable|string',
             'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
         ]);

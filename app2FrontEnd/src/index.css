@@ -16,6 +16,15 @@
     .input-premium {
         @apply w-full px-5 py-3.5 bg-white border border-slate-100 rounded-2xl outline-none transition-all focus:ring-4 focus:ring-amber-50 focus:border-amber-200 placeholder:text-slate-300 font-medium;
     }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 }
 
 /* Custom Scrollbar */
@@ -50,7 +59,8 @@
     margin-bottom: 0;
 }
 
-.markdown-content ul, .markdown-content ol {
+.markdown-content ul,
+.markdown-content ol {
     margin-left: 1.25rem !important;
     margin-bottom: 0.5rem;
     display: block !important;

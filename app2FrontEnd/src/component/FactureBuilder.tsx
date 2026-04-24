@@ -57,9 +57,6 @@ const FactureBuilder: React.FC = () => {
 
     const { register, control, watch, setValue } = useForm<InvoiceForm>({
         defaultValues: (() => {
-            const storedUser = localStorage.getItem('user');
-            const user = storedUser ? JSON.parse(storedUser) : null;
-            const defaultSupplierName = user?.name || 'MON ENTREPRISE';
 
             if (factureData) {
                 return {
@@ -378,26 +375,26 @@ const FactureBuilder: React.FC = () => {
                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Adresse de l'entreprise</label>
                             <input {...register('supplierAddress')} className="w-full h-11 px-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div className="space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">ICE</label>
-                                <input {...register('supplierIce')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0000..." />
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">ICE</label>
+                                <input {...register('supplierIce')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="001728471000020" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">IF</label>
-                                <input {...register('supplierIf')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0000..." />
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">IF</label>
+                                <input {...register('supplierIf')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="01033242" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">RC</label>
-                                <input {...register('supplierRc')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="1234..." />
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">RC</label>
+                                <input {...register('supplierRc')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="153081" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Cap. Soc.</label>
-                                <input {...register('supplierCapSoc')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0.00 DHS" />
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Cap. Soc.</label>
+                                <input {...register('supplierCapSoc')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="200 000.00DHS" />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Téléphone</label>
-                                <input {...register('supplierTel')} className="w-full h-10 px-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-xs font-mono font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0522..." />
+                                <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Téléphone</label>
+                                <input {...register('supplierTel')} className="w-full h-12 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-sm font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-300" placeholder="0522 201 062 - 0522 276 429" />
                             </div>
                         </div>
                     </div>
@@ -674,13 +671,13 @@ const FactureBuilder: React.FC = () => {
                     </div>
 
                     {/* Footer Data */}
-                    <div className="w-full shrink-0 mt-auto pt-4 pb-4 text-center border-t border-gray-800 text-gray-800" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
-                        <p className="font-bold underline text-[14px] tracking-widest mb-1.5 uppercase">
+                    <div className="w-full shrink-0 mt-auto pt-5 pb-6 text-center border-t border-gray-800 text-gray-800" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                        <p className="font-black underline text-[16px] tracking-widest mb-2 uppercase">
                             {watchAll.supplierName}
                         </p>
-                        <p className="font-semibold text-[11px] mb-2.5 tracking-wide">{watchAll.supplierAddress}</p>
+                        <p className="font-bold text-[13px] mb-3.5 tracking-wide">{watchAll.supplierAddress}</p>
 
-                        <div className="flex justify-center flex-wrap gap-x-6 gap-y-2 text-[11px] font-bold tracking-tight w-full px-4">
+                        <div className="flex justify-center flex-wrap gap-x-8 gap-y-2 text-[12px] font-black tracking-normal w-full px-4">
                             {watchAll.supplierIce && <span>ICE: {watchAll.supplierIce}</span>}
                             {watchAll.supplierIf && <span>IF: {watchAll.supplierIf}</span>}
                             {watchAll.supplierRc && <span>RC: N° {watchAll.supplierRc}</span>}

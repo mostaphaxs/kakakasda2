@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
-import { ShoppingCart, Search, PlusCircle, Download, Edit2, Trash2, X, Save, FileText, Hash, Package, Eye, Banknote, Calendar as CalendarIcon, Loader2, Upload } from 'lucide-react';
+import { ShoppingCart, Search, PlusCircle, Download, Edit2, Trash2, X, Save, FileText, Hash, Package, Eye, Banknote, Calendar as CalendarIcon, Loader2, Upload, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
@@ -66,6 +66,7 @@ const PurchaseInvoices: React.FC = () => {
     const [paymentReference, setPaymentReference] = useState('');
     const [paymentBank, setPaymentBank] = useState('');
     const [paymentNotes, setPaymentNotes] = useState('');
+    const [bankCommission, setBankCommission] = useState('');
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
     const [paymentProof, setPaymentProof] = useState<File | null>(null);
 
@@ -113,8 +114,10 @@ const PurchaseInvoices: React.FC = () => {
         try {
             const data = await apiFetch<PurchaseInvoice[]>('/purchase-invoices');
             setInvoices(data);
+            return data;
         } catch (error) {
             console.error(error);
+            return [];
         } finally {
             setLoading(false);
         }
@@ -154,6 +157,7 @@ const PurchaseInvoices: React.FC = () => {
         fd.append('method', paymentMethod);
         if (paymentReference) fd.append('reference_no', paymentReference);
         if (paymentBank) fd.append('bank_name', paymentBank);
+        fd.append('bank_commission', String(parseNumber(bankCommission)));
         if (paymentNotes) fd.append('notes', paymentNotes);
         if (paymentProof) fd.append('scan_path', paymentProof);
 
@@ -164,8 +168,12 @@ const PurchaseInvoices: React.FC = () => {
             });
 
             toast.success('Paiement enregistré !');
-            setInvoices(prev => prev.map(inv => inv.id === result.id ? result : inv));
-            if (viewingInvoice?.id === result.id) {
+            const updatedInvoices = await fetchInvoices();
+            // find current invoice with fresh data
+            const freshInvoice = updatedInvoices.find(inv => inv.id === selectedInvoice.id);
+            if (freshInvoice) {
+                setViewingInvoice(freshInvoice);
+            } else {
                 setViewingInvoice(result);
             }
             setIsPaymentModalOpen(false);
@@ -204,8 +212,9 @@ const PurchaseInvoices: React.FC = () => {
         setPaymentDate(payment.payment_date);
         setPaymentMethod(payment.method);
         setPaymentReference(payment.reference_no || '');
-        setPaymentBank(payment.bank_name || '');
-        setPaymentNotes(payment.notes || '');
+        setPaymentBank(payment ? payment.bank_name || '' : '');
+        setBankCommission(payment ? formatNumber(String(payment.bank_commission || 0)) : '');
+        setPaymentNotes(payment ? payment.notes || '' : '');
         setIsEditPaymentModalOpen(true);
     };
 
@@ -222,6 +231,7 @@ const PurchaseInvoices: React.FC = () => {
         fd.append('method', paymentMethod);
         fd.append('reference_no', paymentReference);
         fd.append('bank_name', paymentBank);
+        fd.append('bank_commission', String(parseNumber(bankCommission)));
         fd.append('notes', paymentNotes);
         if (paymentProof) fd.append('scan_path', paymentProof);
 
@@ -250,6 +260,7 @@ const PurchaseInvoices: React.FC = () => {
         setPaymentMethod('Espèces');
         setPaymentReference('');
         setPaymentBank('');
+        setBankCommission('');
         setPaymentNotes('');
         setPaymentProof(null);
     };
@@ -506,8 +517,24 @@ const PurchaseInvoices: React.FC = () => {
                                     </div>
                                 </td>
 
-                                <td className="px-6 py-4 align-top font-bold text-gray-600 uppercase text-xs">
-                                    {inv.supplier.nom_societe}
+                                <td className="px-6 py-4 align-top">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="font-bold text-gray-700 uppercase text-xs">
+                                                {inv.supplier.nom_societe}
+                                            </span>
+                                            {(inv.supplier as any).type_entreprise && (
+                                                <span className="bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-slate-200">
+                                                    {(inv.supplier as any).type_entreprise}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {(inv.supplier as any).guarantee_checks?.length > 0 && (
+                                            <span className="flex items-center gap-1 text-[8px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 w-fit px-1.5 py-0.5 rounded border border-blue-100">
+                                                <Check size={8} strokeWidth={4} /> {(inv.supplier as any).guarantee_checks.length} GARANTIE
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
 
                                 <td className="px-6 py-4 align-top">
@@ -640,7 +667,9 @@ const PurchaseInvoices: React.FC = () => {
                                                 <th className="px-4 py-2">Date</th>
                                                 <th className="px-4 py-2">Méthode</th>
                                                 <th className="px-4 py-2">Réf / Banque</th>
-                                                <th className="px-4 py-2 text-right">Montant</th>
+                                                <th className="px-4 py-2 text-right">Brut</th>
+                                                <th className="px-4 py-2 text-right">Comm.</th>
+                                                <th className="px-4 py-2 text-right">Net</th>
                                                 <th className="px-4 py-2 text-center w-20">Actions</th>
                                             </tr>
                                         </thead>
@@ -653,8 +682,14 @@ const PurchaseInvoices: React.FC = () => {
                                                         <td className="px-4 py-2 text-gray-400 text-[10px] italic">
                                                             {p.reference_no} {p.bank_name && `- ${p.bank_name}`}
                                                         </td>
-                                                        <td className="px-4 py-2 text-right font-black text-emerald-700 text-xs font-mono">
+                                                        <td className="px-4 py-2 text-right font-black text-gray-700 text-xs font-mono">
                                                             {p.amount?.toLocaleString('fr-MA')} DH
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-black text-rose-500 text-xs font-mono bg-rose-50/20">
+                                                            {p.bank_commission ? `${p.bank_commission.toLocaleString('fr-MA')} DH` : '-'}
+                                                        </td>
+                                                        <td className="px-4 py-2 text-right font-black text-emerald-700 text-xs font-mono bg-emerald-50/20">
+                                                            {((p.amount || 0) - (p.bank_commission || 0)).toLocaleString('fr-MA')} DH
                                                         </td>
                                                         <td className="px-4 py-2 text-center">
                                                             <div className="flex items-center justify-center gap-1">
@@ -915,6 +950,7 @@ const PurchaseInvoices: React.FC = () => {
                                         <option value="Virement">Virement</option>
                                         <option value="Chèque">Chèque</option>
                                         <option value="Effet">Effet</option>
+                                        <option value="Chèque de Garantie">🏦 Chèque de Garantie</option>
                                     </select>
                                 </div>
                             </div>
@@ -940,6 +976,22 @@ const PurchaseInvoices: React.FC = () => {
                                             placeholder="Nom de la banque"
                                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
                                         />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Commission Bancaire (DH)</label>
+                                        <input
+                                            type="text"
+                                            value={bankCommission}
+                                            onChange={(e) => setBankCommission(formatNumber(e.target.value))}
+                                            placeholder="0 DH"
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-xs text-emerald-600"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2 bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                        <span className="text-xs font-black text-emerald-800 uppercase tracking-widest leading-none">Net en compte (DH)</span>
+                                        <span className="text-xl font-black text-emerald-600 font-mono">
+                                            {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+                                        </span>
                                     </div>
                                 </div>
                             )}
@@ -1061,6 +1113,45 @@ const PurchaseInvoices: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
+
+                            {paymentMethod !== 'Espèces' && (
+                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">N° Référence</label>
+                                        <input
+                                            type="text"
+                                            value={paymentReference}
+                                            onChange={(e) => setPaymentReference(e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-xs"
+                                        />
+                                        <div className="col-span-2 bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Montant Net (Versé)</span>
+                                            <span className="text-lg font-black text-blue-600 font-mono">
+                                                {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest">Banque</label>
+                                        <input
+                                            type="text"
+                                            value={paymentBank}
+                                            onChange={(e) => setPaymentBank(e.target.value)}
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-xs"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest font-black text-emerald-600">Commission Bancaire (DH)</label>
+                                        <input
+                                            type="text"
+                                            value={bankCommission}
+                                            onChange={(e) => setBankCommission(formatNumber(e.target.value))}
+                                            placeholder="0 DH"
+                                            className="w-full px-4 py-2.5 bg-gray-50 border border-emerald-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-xs text-emerald-600"
+                                        />
+                                    </div>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest flex items-center justify-between">

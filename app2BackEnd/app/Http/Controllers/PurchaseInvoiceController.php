@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PurchaseInvoice;
+use App\Rules\UniqueReference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -168,8 +169,9 @@ class PurchaseInvoiceController extends Controller
             'amount' => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
             'method' => 'required|string',
-            'reference_no' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name' => 'nullable|string',
+            'bank_commission' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'scan_path' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);

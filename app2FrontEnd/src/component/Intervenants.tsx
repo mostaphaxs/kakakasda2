@@ -96,8 +96,10 @@ const Intervenants = () => {
         try {
             const data = await apiFetch<Intervenant[]>('/intervenants');
             setIntervenants(data);
+            return data;
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors du chargement des intervenants');
+            return [];
         } finally {
             setLoading(false);
         }
@@ -316,7 +318,15 @@ const Intervenants = () => {
 
             toast.success(editingPaymentId ? 'Avancement mis à jour' : 'Avancement ajouté');
             setIsPaymentModalOpen(false);
-            fetchIntervenants();
+            const updatedIntervenants = await fetchIntervenants();
+            // Redirect to details with fresh data
+            if (selectedIntervenant) {
+                const freshIntervenant = updatedIntervenants.find((c: any) => c.id === selectedIntervenant.id);
+                if (freshIntervenant) {
+                    setSelectedIntervenant(freshIntervenant);
+                }
+                setIsDetailsModalOpen(true);
+            }
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors de l\'ajout de l\'avancement');
         } finally {

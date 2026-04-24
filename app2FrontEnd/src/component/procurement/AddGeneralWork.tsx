@@ -9,7 +9,9 @@ const AddGeneralWork: React.FC = () => {
     const navigate = useNavigate();
     const [suppliers, setSuppliers] = useState<any[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
-    const { register, handleSubmit, formState: { isSubmitting } } = useForm();
+    const { register, handleSubmit, watch, formState: { isSubmitting } } = useForm();
+    const paidAmount = watch('paid_amount', 0);
+    const bankCommission = watch('bank_commission', 0);
 
     useEffect(() => {
         apiFetch<any[]>('/suppliers').then(setSuppliers);
@@ -81,14 +83,51 @@ const AddGeneralWork: React.FC = () => {
                             <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Montant du Marché (DH)</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300 font-black">DH</span>
-                                <input type="number" step="0.01" {...register('total_amount', { required: true, valueAsNumber: true })} className="w-full pl-12 pr-4 h-12 rounded-xl border-blue-100 font-black text-blue-700 text-lg shadow-inner" />
+                                <input type="number" step="0.01" {...register('total_amount', { required: true, valueAsNumber: true })} className="w-full pl-12 pr-4 h-12 rounded-xl border-blue-100 font-black text-blue-700 text-lg shadow-inner focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
                             </div>
                         </div>
                         <div>
                             <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Acompte / Payé (DH)</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-300 font-black">DH</span>
-                                <input type="number" step="0.01" {...register('paid_amount', { valueAsNumber: true })} className="w-full pl-12 pr-4 h-12 rounded-xl border-emerald-100 font-black text-emerald-700 text-lg shadow-inner" defaultValue="0" />
+                                <input type="number" step="0.01" {...register('paid_amount', { valueAsNumber: true })} className="w-full pl-12 pr-4 h-12 rounded-xl border-emerald-100 font-black text-emerald-700 text-lg shadow-inner focus:ring-2 focus:ring-emerald-500 outline-none transition-all" defaultValue="0" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Mode de Paiement</label>
+                            <select {...register('method')} className="w-full h-12 px-4 rounded-xl border-blue-100 bg-white font-bold shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                                <option value="Chèque">Chèque</option>
+                                <option value="Virement">Virement</option>
+                                <option value="Espèces">Espèces</option>
+                                <option value="Effet">Effet</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Référence (N° Chèque/Virement)</label>
+                            <input type="text" {...register('reference_no')} className="w-full px-4 h-12 rounded-xl border-blue-100 font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Ex: CHQ-12345..." />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Banque</label>
+                            <input type="text" {...register('bank_name')} className="w-full px-4 h-12 rounded-xl border-blue-100 font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Nom de la banque..." />
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Commission Bancaire (DH)</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 font-black">DH</span>
+                                <input type="number" step="0.01" {...register('bank_commission', { valueAsNumber: true })} className="w-full pl-12 pr-4 h-12 rounded-xl border-rose-100 font-black text-rose-700 text-lg shadow-inner bg-rose-50/20 focus:ring-2 focus:ring-rose-500 outline-none transition-all" defaultValue="0" />
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-2">
+                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                <span className="text-xs font-black text-emerald-800 uppercase tracking-widest">Montant Net (Reçu)</span>
+                                <span className="text-xl font-black text-emerald-600 font-mono">
+                                    {(parseFloat(String(paidAmount || 0)) - parseFloat(String(bankCommission || 0))).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+                                </span>
                             </div>
                         </div>
                     </div>

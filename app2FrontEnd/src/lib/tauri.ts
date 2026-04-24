@@ -1,4 +1,3 @@
-import { STORAGE_BASE } from './api';
 import { invoke } from '@tauri-apps/api/core';
 
 // Simple event bus to trigger the global previewer
@@ -16,24 +15,30 @@ export function registerPreviewHandler(handler: PreviewHandler) {
 export async function openExternal(url: string): Promise<void> {
     // 1. Check if it's a document/receipt from our storage
     const cleanUrl = url.split('?')[0].toLowerCase();
-    const isDoc = (url.includes('/storage/') || url.includes('/sidecar-serve/')) && (
-        cleanUrl.endsWith('.pdf') ||
-        cleanUrl.endsWith('.png') ||
-        cleanUrl.endsWith('.jpg') ||
-        cleanUrl.endsWith('.jpeg') ||
-        cleanUrl.endsWith('.webp') ||
-        cleanUrl.endsWith('.jfif') ||
+
+    // Very permissive check: if it's from our API storage and is a viewable file type
+    const isInternal = url.includes('sidecar-serve') || url.includes('/storage/');
+    const isViewable = cleanUrl.endsWith('.pdf') ||
+        /\.(png|jpg|jpeg|webp|jfif|gif)$/.test(cleanUrl) ||
         url.includes('/scanned_docs/') ||
         url.includes('/receipts/') ||
-        url.includes('/clients/')
-    );
+        url.includes('/clients/') ||    
+        url.includes('/ouvriers/') ||
+        url.includes('/salaries/') ||
+        url.includes('/contracts/');
 
+    const isDoc = isInternal && isViewable;
 
     // 2. If it's a document and the handler is ready, show internal preview
     if (isDoc && previewHandler) {
-        console.log('[tauri] Intercepting document for internal preview:', url);
+        console.log('[tauri] INTERCEPTED for internal preview:', url);
         previewHandler(url);
         return;
+    }
+
+    // fallback log to see if it missed
+    if (isDoc && !previewHandler) {
+        console.warn('[tauri] Document detected but previewHandler is NULL:', url);
     }
 
     // 3. Fallback: Open in system browser

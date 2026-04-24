@@ -12,6 +12,7 @@ interface Payment {
     amount: number;
     payment_date: string;
     method: string;
+    bank_commission: number;
     scan_path: string | null;
     notes: string | null;
 }
@@ -80,6 +81,7 @@ const Contractors = () => {
         method: 'Chèque',
         reference_no: '',
         bank_name: '',
+        bank_commission: '',
         notes: '',
     });
 
@@ -96,8 +98,10 @@ const Contractors = () => {
         try {
             const data = await apiFetch<Contractor[]>('/contractors');
             setContractors(data);
+            return data;
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors du chargement des entreprises');
+            return [];
         } finally {
             setLoading(false);
         }
@@ -134,7 +138,7 @@ const Contractors = () => {
         }
 
         const dataToExport = filteredContractors.map(c => {
-            const totalVerse = c.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+            const totalVerse = c.payments.reduce((acc, p) => acc + (Number(p.amount) - Number(p.bank_commission || 0)), 0);
             return {
                 'ID': c.id,
                 'CATÉGORIE': c.categorie?.toUpperCase(),
@@ -272,6 +276,7 @@ const Contractors = () => {
                 method: payment.method,
                 reference_no: payment.reference_no || '',
                 bank_name: payment.bank_name || '',
+                bank_commission: payment.bank_commission ? formatNumber(String(payment.bank_commission)) : '',
                 notes: payment.notes || '',
             });
         } else {
@@ -282,6 +287,7 @@ const Contractors = () => {
                 method: 'Chèque',
                 reference_no: '',
                 bank_name: '',
+                bank_commission: '',
                 notes: '',
             });
         }
@@ -307,6 +313,7 @@ const Contractors = () => {
             data.append('method', paymentData.method);
             data.append('reference_no', paymentData.reference_no);
             data.append('bank_name', paymentData.bank_name);
+            data.append('bank_commission', String(parseNumber(paymentData.bank_commission)));
             data.append('notes', paymentData.notes);
             if (paymentFile) {
                 data.append('scan_path', paymentFile);
@@ -319,7 +326,15 @@ const Contractors = () => {
 
             toast.success(editingPaymentId ? 'Avancement mis à jour' : 'Avancement ajouté');
             setIsPaymentModalOpen(false);
-            fetchContractors();
+            const updatedContractors = await fetchContractors();
+            // Redirect to details with fresh data
+            if (selectedContractor) {
+                const freshContractor = updatedContractors.find((c: any) => c.id === selectedContractor.id);
+                if (freshContractor) {
+                    setSelectedContractor(freshContractor);
+                }
+                setIsDetailsModalOpen(true);
+            }
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors de l\'ajout de l\'avancement');
         } finally {
@@ -438,7 +453,7 @@ const Contractors = () => {
                             </tr>
                         ) : filteredContractors.length > 0 ? (
                             filteredContractors.map((c) => {
-                                const totalPaid = c.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+                                const totalPaid = c.payments.reduce((acc, p) => acc + (Number(p.amount) - Number(p.bank_commission || 0)), 0);
                                 const remaining = c.montant_global - totalPaid;
                                 return (
                                     <tr key={c.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -724,6 +739,24 @@ const Contractors = () => {
                                         <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Banque</label>
                                         <input type="text" value={paymentData.bank_name} onChange={e => setPaymentData({ ...paymentData, bank_name: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold" placeholder="Nom de la banque" />
                                     </div>
+                                    <div className="col-span-2 space-y-4">
+                                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Net en compte (DH)</span>
+                                            <span className="text-xl font-black text-emerald-600 font-mono">
+                                                {(parseNumber(paymentData.amount) - parseNumber(paymentData.bank_commission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-rose-500 uppercase mb-1">Commission Bancaire (DH)</label>
+                                            <input
+                                                type="text"
+                                                value={paymentData.bank_commission}
+                                                onChange={e => setPaymentData({ ...paymentData, bank_commission: formatNumber(e.target.value) })}
+                                                className="w-full px-4 py-2.5 bg-rose-50 border border-rose-100 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none font-black text-rose-600 text-sm"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -797,13 +830,13 @@ const Contractors = () => {
                                 <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
                                     <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Total Versé</p>
                                     <p className="text-lg font-black text-emerald-700">
-                                        {formatNumber(selectedContractor.payments.reduce((acc, p) => acc + Number(p.amount), 0))} DH
+                                        {formatNumber(selectedContractor.payments.reduce((acc, p) => acc + (Number(p.amount) - Number(p.bank_commission || 0)), 0))} DH
                                     </p>
                                 </div>
                                 <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
                                     <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Reste à Payer</p>
                                     <p className="text-lg font-black text-rose-700">
-                                        {formatNumber(selectedContractor.montant_global - selectedContractor.payments.reduce((acc, p) => acc + Number(p.amount), 0))} DH
+                                        {formatNumber(selectedContractor.montant_global - selectedContractor.payments.reduce((acc, p) => acc + (Number(p.amount) - Number(p.bank_commission || 0)), 0))} DH
                                     </p>
                                 </div>
                             </div>
@@ -878,7 +911,19 @@ const Contractors = () => {
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-black text-gray-800">{formatNumber(p.amount)} DH</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">{p.payment_date} — {p.method}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase">{p.payment_date} — {p.method}</p>
+                                                            {p.bank_commission > 0 && (
+                                                                <div className="flex items-center gap-1.5 ml-2">
+                                                                    <span className="text-[8px] font-black bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                        COMM.: {formatNumber(p.bank_commission)} DH
+                                                                    </span>
+                                                                    <span className="text-[8px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                                        NET: {formatNumber(Number(p.amount) - Number(p.bank_commission))} DH
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">

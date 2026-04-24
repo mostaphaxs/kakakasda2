@@ -18,6 +18,7 @@ class payments extends Model
         'reference_no',
         'bank_name',
         'receipt_path',
+        'bank_commission',
         'notes',
         'status',
         'refund_amount',

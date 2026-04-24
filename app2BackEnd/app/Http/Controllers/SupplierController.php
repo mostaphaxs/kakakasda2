@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Supplier;
+use App\Models\GuaranteeCheck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -10,7 +11,7 @@ class SupplierController extends Controller
 {
     public function index()
     {
-        return Supplier::all();
+        return Supplier::with('guaranteeChecks')->get();
     }
 
     public function store(Request $request)
@@ -24,6 +25,7 @@ class SupplierController extends Controller
         }
         $validated = $request->validate([
             'nom_societe' => 'required|string',
+            'type_entreprise' => 'nullable|string',
             'nom_gerant' => 'nullable|string',
             'adresse' => 'nullable|string',
             'tel' => 'nullable|string',
@@ -40,12 +42,31 @@ class SupplierController extends Controller
         }
 
         $supplier = Supplier::create($validated);
-        return response()->json($supplier, 201);
+
+        if ($request->has('guarantee_checks')) {
+            foreach ($request->input('guarantee_checks') as $index => $checkData) {
+                $checkValidated = [
+                    'check_number' => $checkData['check_number'],
+                    'amount' => $checkData['amount'],
+                    'bank_name' => $checkData['bank_name'] ?? null,
+                    'notes' => $checkData['notes'] ?? null,
+                ];
+
+                if ($request->hasFile("guarantee_checks.{$index}.scan_path")) {
+                    $path = $request->file("guarantee_checks.{$index}.scan_path")->store('suppliers/guarantee_checks', 'public');
+                    $checkValidated['scan_path'] = $path;
+                }
+
+                $supplier->guaranteeChecks()->create($checkValidated);
+            }
+        }
+
+        return response()->json($supplier->load('guaranteeChecks'), 201);
     }
 
     public function show(Supplier $supplier)
     {
-        return $supplier;
+        return $supplier->load('guaranteeChecks');
     }
 
     public function update(Request $request, Supplier $supplier)
@@ -59,6 +80,7 @@ class SupplierController extends Controller
         }
         $validated = $request->validate([
             'nom_societe' => 'sometimes|required|string',
+            'type_entreprise' => 'nullable|string',
             'nom_gerant' => 'nullable|string',
             'adresse' => 'nullable|string',
             'tel' => 'nullable|string',
@@ -85,6 +107,34 @@ class SupplierController extends Controller
     public function destroy(Supplier $supplier)
     {
         $supplier->delete();
+        return response()->noContent();
+    }
+
+    public function addGuaranteeCheck(Request $request, Supplier $supplier)
+    {
+        $validated = $request->validate([
+            'check_number' => 'required|string',
+            'amount' => 'required|numeric',
+            'bank_name' => 'nullable|string',
+            'scan_path' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'notes' => 'nullable|string',
+        ]);
+
+        if ($request->hasFile('scan_path')) {
+            $path = $request->file('scan_path')->store('suppliers/guarantee_checks', 'public');
+            $validated['scan_path'] = $path;
+        }
+
+        $check = $supplier->guaranteeChecks()->create($validated);
+        return response()->json($check, 201);
+    }
+
+    public function deleteGuaranteeCheck(GuaranteeCheck $check)
+    {
+        if ($check->scan_path) {
+            \Storage::disk('public')->delete($check->scan_path);
+        }
+        $check->delete();
         return response()->noContent();
     }
 }

@@ -4,7 +4,7 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3
+    ChevronRight, BarChart3, UserCheck
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
@@ -77,6 +77,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: Home, label: 'Bien', path: '/add-property' },
         { icon: UserPlus, label: 'Client', path: '/add-client' },
         { icon: HardHat, label: 'Entreprise', path: '/contractors' },
+        { icon: UserCheck, label: 'Ouvrier', path: '/workers' },
+        { icon: Users, label: 'Salarié', path: '/salaries' },
         { icon: WalletCards, label: 'Charge', path: '/charges' },
         { icon: Package, label: 'Article', path: '/add-article' },
         { icon: Truck, label: 'Fournisseur', path: '/add-supplier' },
@@ -93,6 +95,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: Building2, label: 'Biens', path: '/properties' },
         { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
+        { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
+        { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: Package, label: 'Catalogue Articles', path: '/articles' },
@@ -110,6 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { label: 'Tous les Clients', endpoint: '/clients', fileName: 'clients_complet' },
         { label: 'Intervenants', endpoint: '/intervenants', fileName: 'intervenants_complet' },
         { label: 'Construction', endpoint: '/contractors', fileName: 'entreprises_complet' },
+        { label: 'Salariés', endpoint: '/salaries', fileName: 'salaries_complet' },
         { label: 'Charges', endpoint: '/charges', fileName: 'charges_complet' },
     ];
 
@@ -170,6 +175,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                         'IMPÔTS & TAXES (DH)': c.impots, 'AFFECTATION': c.terrain?.nom_projet || 'FRAIS GÉNÉRAUX'
                     };
                 });
+            case '/salaries':
+                return data.map(s => ({
+                    'ID': s.id, 'NOM': s.name.toUpperCase(), 'CIN': s.cin || '',
+                    'TÉL': s.phone || '', 'SPÉCIALITÉ': s.speciality,
+                    'GRADE': s.grade || '', 'FORMATION': s.education || '',
+                    'SALAIRE (DH)': s.monthly_salary, 'DATE EMBAUCHE': s.hiring_date
+                }));
             default:
                 return data;
         }

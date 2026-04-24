@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Search, Loader2, Eye, Edit, Trash2 } from 'lucide-react';
+import { FileText, Search, Loader2, Eye, Edit, Trash2, PlusCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import toast from 'react-hot-toast';
@@ -67,15 +67,23 @@ const FacturesList: React.FC = () => {
                 <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
                     <FileText className="text-blue-600" /> Historique des Factures
                 </h1>
-                <div className="relative w-full sm:w-72">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Rechercher..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-medium"
-                    />
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                        onClick={() => navigate('/factures')}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100"
+                    >
+                        <PlusCircle size={18} /> Nouveau Facture
+                    </button>
+                    <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Rechercher..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm font-medium"
+                        />
+                    </div>
                 </div>
             </div>
 

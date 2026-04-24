@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search } from 'lucide-react';
+import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus, Link } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -57,6 +57,16 @@ const Properties = () => {
     const [newAnnex, setNewAnnex] = useState({ type: 'Parking', prix: '', customType: '' });
     const [showOtherType, setShowOtherType] = useState(false);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+    // Bien → Client Association Modal
+    const [isAssocClientModalOpen, setIsAssocClientModalOpen] = useState(false);
+    const [assocBien, setAssocBien] = useState<Bien | null>(null);
+    const [assocClients, setAssocClients] = useState<any[]>([]);
+    const [assocClientSearch, setAssocClientSearch] = useState('');
+    const [assocClientId, setAssocClientId] = useState('');
+    const [assocAvecFinition, setAssocAvecFinition] = useState(false);
+    const [isLoadingAssocClients, setIsLoadingAssocClients] = useState(false);
+    const [isSubmittingAssocClient, setIsSubmittingAssocClient] = useState(false);
     // suiviBien state removed – tracking is now done inside the edit property page
 
     const { data: biens = [], isLoading: loading } = useQuery({
@@ -156,6 +166,50 @@ const Properties = () => {
     const handleOpenDetails = (bien: Bien) => {
         setSelectedBien(bien);
         setIsDetailsModalOpen(true);
+    };
+
+    const handleOpenAssocClient = async (bien: Bien) => {
+        setAssocBien(bien);
+        setAssocClientSearch('');
+        setAssocClientId('');
+        setAssocAvecFinition(false);
+        setIsAssocClientModalOpen(true);
+        setIsLoadingAssocClients(true);
+        try {
+            const clients = await apiFetch<any[]>('/clients');
+            // Only show clients without an existing bien association
+            setAssocClients(clients.filter((c: any) => !c.biens || c.biens.length === 0));
+        } catch {
+            toast.error('Erreur chargement clients');
+        } finally {
+            setIsLoadingAssocClients(false);
+        }
+    };
+
+    const handleBienAssociateClient = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assocBien || !assocClientId) return;
+        setIsSubmittingAssocClient(true);
+        try {
+            const targetClient = assocClients.find(c => String(c.id) === assocClientId);
+            if (!targetClient) throw new Error("Client introuvable");
+
+            await apiFetch(`/clients/${assocClientId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    ...targetClient, // Include required fields (nom, prenom, cin, tel)
+                    bien_id: assocBien.id,
+                    avec_finition: assocAvecFinition ? 1 : 0
+                }),
+            });
+            toast.success('Client associé au bien !');
+            setIsAssocClientModalOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['biens'] });
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de l'association.");
+        } finally {
+            setIsSubmittingAssocClient(false);
+        }
     };
 
     const deleteAnnex = (id: number) => deleteAnnexMutation.mutate(id);
@@ -383,7 +437,7 @@ const Properties = () => {
                                         <div className="flex flex-col">
                                             <span className="font-medium text-slate-600 uppercase tracking-tight">
                                                 {b.nom ? (
-                                                    <span className="text-indigo-600 mr-2">{b.nom}</span>
+                                                    <span className="text-indigo-600 mr-2"><MarkdownText text={b.nom} /></span>
                                                 ) : (
                                                     b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien
                                                 )}
@@ -413,7 +467,7 @@ const Properties = () => {
                                                 <div className="flex flex-col items-center">
                                                     {b.clients.map((c: any) => (
                                                         <span key={c.id} className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
-                                                            {c.nom} {c.prenom}
+                                                            <MarkdownText text={`${c.nom} ${c.prenom}`} />
                                                         </span>
                                                     ))}
                                                 </div>
@@ -462,6 +516,15 @@ const Properties = () => {
                                             <button onClick={() => openAnnexes(b)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100" title="Annexes">
                                                 <Layers size={18} />
                                             </button>
+                                            {b.statut === 'Libre' && (
+                                                <button
+                                                    onClick={() => handleOpenAssocClient(b)}
+                                                    className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200"
+                                                    title="Associer à un client"
+                                                >
+                                                    <UserPlus size={18} />
+                                                </button>
+                                            )}
                                             <button onClick={() => handleDeleteBien(b.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100" title="Supprimer">
                                                 <Trash2 size={18} />
                                             </button>
@@ -591,7 +654,7 @@ const Properties = () => {
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
                             <div>
                                 <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
-                                    {selectedBien.nom ? selectedBien.nom : `Détails Bloc ${selectedBien.num_appartement}`}
+                                    {selectedBien.nom ? <MarkdownText text={selectedBien.nom} /> : <>Détails Bloc <MarkdownText text={selectedBien.num_appartement} /></>}
                                 </h3>
                                 <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
                                     {selectedBien.type_bien === 'Appartement' ? 'Bloc' : selectedBien.type_bien} {selectedBien.nom ? `(${selectedBien.num_appartement})` : ''} • ID #{selectedBien.id}
@@ -645,8 +708,8 @@ const Properties = () => {
                                             <div className="flex flex-col gap-2">
                                                 {selectedBien.clients.map((c: any) => (
                                                     <div key={c.id} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                                        <p className="text-sm font-black text-emerald-800 uppercase">{c.nom} {c.prenom}</p>
-                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">CIN: {c.cin}</p>
+                                                        <p className="text-sm font-black text-emerald-800 uppercase"><MarkdownText text={`${c.nom} ${c.prenom}`} /></p>
+                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">CIN: <MarkdownText text={c.cin} /></p>
                                                         <p className="text-[10px] font-bold text-emerald-600 uppercase">Tél: {c.tel}</p>
                                                     </div>
                                                 ))}
@@ -720,6 +783,134 @@ const Properties = () => {
                                 Fermer
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Bien → Client Association Modal */}
+            {isAssocClientModalOpen && assocBien && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                            <div>
+                                <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                    <UserPlus size={16} className="text-amber-500" />
+                                    Associer un Client
+                                </h3>
+                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                    BIEN : <MarkdownText text={assocBien.type_bien === 'Appartement' ? 'Bloc' : assocBien.type_bien} />
+                                    {assocBien.immeuble ? <> – Imm. <MarkdownText text={assocBien.immeuble} /></> : ''}
+                                    {assocBien.num_appartement ? <> – <MarkdownText text={assocBien.num_appartement} /></> : ''}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsAssocClientModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleBienAssociateClient} className="p-6 space-y-4">
+                            {/* Search */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                <input
+                                    type="text"
+                                    placeholder="Rechercher nom, prénom, CIN, tel..."
+                                    value={assocClientSearch}
+                                    onChange={(e) => setAssocClientSearch(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                />
+                            </div>
+
+                            {/* Clients list */}
+                            <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
+                                {isLoadingAssocClients ? (
+                                    <div className="py-8 flex items-center justify-center gap-2 text-gray-400">
+                                        <Loader2 size={16} className="animate-spin" /> Chargement...
+                                    </div>
+                                ) : (
+                                    <>
+                                        {assocClients
+                                            .filter(c => {
+                                                const q = assocClientSearch.toLowerCase();
+                                                if (!q) return true;
+                                                return c.nom?.toLowerCase().includes(q) ||
+                                                    c.prenom?.toLowerCase().includes(q) ||
+                                                    c.cin?.toLowerCase().includes(q) ||
+                                                    c.tel?.includes(q) ||
+                                                    c.tel_2?.includes(q) ||
+                                                    `${c.nom} ${c.prenom}`.toLowerCase().includes(q) ||
+                                                    `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
+                                            })
+                                            .map((c: any) => (
+                                                <label
+                                                    key={c.id}
+                                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocClientId === String(c.id)
+                                                        ? 'bg-amber-50 border-amber-400 shadow-sm'
+                                                        : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="assocClient"
+                                                        value={c.id}
+                                                        checked={assocClientId === String(c.id)}
+                                                        onChange={() => setAssocClientId(String(c.id))}
+                                                        className="accent-amber-500"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-black text-gray-800 uppercase truncate">
+                                                            <MarkdownText text={`${c.nom} ${c.prenom}`} />
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                            CIN: <MarkdownText text={c.cin} /> · Tél: {c.tel}
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        {assocClients.filter(c => {
+                                            const q = assocClientSearch.toLowerCase();
+                                            if (!q) return true;
+                                            return c.nom?.toLowerCase().includes(q) || c.prenom?.toLowerCase().includes(q) || c.cin?.toLowerCase().includes(q) || c.tel?.includes(q) || c.tel_2?.includes(q) || `${c.nom} ${c.prenom}`.toLowerCase().includes(q) || `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
+                                        }).length === 0 && (
+                                                <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                                    Aucun client disponible ou correspondant à la recherche trouvé.
+                                                </div>
+                                            )}
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Avec finition */}
+                            {assocClientId && (
+                                <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
+                                        <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={assocAvecFinition}
+                                            onChange={e => setAssocAvecFinition(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-1">
+                                <button type="button" onClick={() => setIsAssocClientModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingAssocClient || !assocClientId}
+                                    className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                >
+                                    {isSubmittingAssocClient ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

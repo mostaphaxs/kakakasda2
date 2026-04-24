@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use App\Traits\HasFrenchDates;
 
 class ContractorPayment extends Model
@@ -17,6 +18,7 @@ class ContractorPayment extends Model
         'reference_no',
         'bank_name',
         'scan_path',
+        'bank_commission',
         'notes',
     ];
 
@@ -40,8 +42,8 @@ class ContractorPayment extends Model
     {
         $payable = $this->payable;
         if ($payable && (method_exists($payable, 'payments'))) {
-            // Recalculate total paid from all related payments
-            $totalPaid = $payable->payments()->sum('amount');
+            // Recalculate total paid from all related payments (Net: Amount - Commission)
+            $totalPaid = $payable->payments()->selectRaw('SUM(amount - COALESCE(bank_commission, 0)) as total_net')->value('total_net') ?? 0;
             
             // Only update if the model has a paid_amount column
             if (\Schema::hasColumn($payable->getTable(), 'paid_amount')) {

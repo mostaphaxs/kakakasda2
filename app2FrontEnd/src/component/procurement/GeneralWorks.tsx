@@ -12,6 +12,10 @@ interface GeneralWork {
     work_type: string;
     total_amount: number;
     paid_amount: number;
+    bank_commission: number;
+    method: string;
+    reference_no: string | null;
+    bank_name: string | null;
     balance: number;
     supplier_id: number;
     supplier: { nom_societe: string };
@@ -27,7 +31,7 @@ const GeneralWorks: React.FC = () => {
     const [editingWork, setEditingWork] = useState<GeneralWork | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-    const { register, handleSubmit, reset } = useForm();
+    const { register, handleSubmit, reset, watch } = useForm();
 
     const WORK_TYPES = ['Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable', 'Solaire'];
 
@@ -82,6 +86,10 @@ const GeneralWorks: React.FC = () => {
             terrain_id: work.terrain_id,
             total_amount: work.total_amount,
             paid_amount: work.paid_amount,
+            bank_commission: work.bank_commission,
+            method: work.method,
+            reference_no: work.reference_no,
+            bank_name: work.bank_name,
         });
         setIsEditModalOpen(true);
     };
@@ -152,6 +160,8 @@ const GeneralWorks: React.FC = () => {
                             <th className="px-4 py-2.5">Prestataire</th>
                             <th className="px-4 py-2.5">Montant Marché</th>
                             <th className="px-4 py-2.5">Payé</th>
+                            <th className="px-4 py-2.5">Réf / Mode</th>
+                            <th className="px-4 py-2.5">Comm. Banque</th>
                             <th className="px-4 py-2.5 text-right">Solde</th>
                             <th className="px-4 py-2.5 text-right">Actions</th>
                         </tr>
@@ -169,7 +179,18 @@ const GeneralWorks: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 font-bold text-slate-500 uppercase text-xs">{w.supplier.nom_societe}</td>
                                 <td className="px-6 py-4 font-black text-blue-600">{w.total_amount?.toLocaleString('fr-MA')} DH</td>
-                                <td className="px-6 py-4 font-black text-emerald-600">{w.paid_amount?.toLocaleString('fr-MA')} DH</td>
+                                <td className="px-6 py-4 font-black text-emerald-600">
+                                    {((w.paid_amount || 0) - (w.bank_commission || 0)).toLocaleString('fr-MA')} DH
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-gray-800 uppercase">{w.method}</span>
+                                        <span className="text-[9px] text-gray-400 font-bold tracking-tighter">{w.reference_no || '—'}</span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 font-black text-rose-500 text-xs">
+                                    {w.bank_commission ? `${w.bank_commission?.toLocaleString('fr-MA')} DH` : '—'}
+                                </td>
                                 <td className="px-6 py-4 text-right">
                                     <span className={`px-3 py-1.5 rounded-lg font-black text-xs ${w.balance <= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                                         {w.balance?.toLocaleString('fr-MA')} DH
@@ -245,6 +266,43 @@ const GeneralWorks: React.FC = () => {
                                             <Save size={12} className="mr-2" /> Montant Payé
                                         </label>
                                         <input type="number" step="0.01" {...register('paid_amount', { required: true, valueAsNumber: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-600 transition-all font-bold text-sm outline-none shadow-sm" />
+                                    </div>
+                                    <div className="col-span-2 grid grid-cols-2 gap-4 bg-orange-50/30 p-4 rounded-2xl border border-orange-100/50">
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Mode & Référence</label>
+                                            <div className="flex gap-2">
+                                                <select {...register('method')} className="w-1/3 h-10 px-3 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-bold text-xs ring-0 outline-none">
+                                                    <option value="Chèque">Chèque</option>
+                                                    <option value="Virement">Virement</option>
+                                                    <option value="Espèces">Espèces</option>
+                                                    <option value="Effet">Effet</option>
+                                                </select>
+                                                <input type="text" {...register('reference_no')} placeholder="N° Réf" className="w-2/3 h-10 px-3 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-bold text-xs ring-0 outline-none" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Banque</label>
+                                            <input type="text" {...register('bank_name')} className="w-full h-10 px-3 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-bold text-xs ring-0 outline-none" />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Commission Bancaire</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 text-[10px] font-black">DH</span>
+                                                <input type="number" step="0.01" {...register('bank_commission')} className="w-full pl-8 h-10 px-3 rounded-xl border-rose-100 bg-rose-50/20 font-black text-rose-600 text-xs ring-0 outline-none" />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col justify-center items-end">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Montant Net (Reçu)</span>
+                                            <span className="text-lg font-black text-emerald-600 font-mono">
+                                                {(() => {
+                                                    const p = watch('paid_amount', 0);
+                                                    const c = watch('bank_commission', 0);
+                                                    return (parseFloat(String(p || 0)) - parseFloat(String(c || 0))).toLocaleString('fr-MA', { minimumFractionDigits: 2 });
+                                                })()} DH
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

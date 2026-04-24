@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ContractorPayment;
+use App\Rules\UniqueReference;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,8 +17,9 @@ class ContractorPaymentController extends Controller
             'amount' => 'required|numeric',
             'payment_date' => 'required|date',
             'method' => 'required|string',
-            'reference_no' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name' => 'nullable|string',
+            'bank_commission' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'scan_path' => 'nullable|file|mimes:pdf,jpg,png|max:5120',
         ]);
@@ -37,8 +39,9 @@ class ContractorPaymentController extends Controller
             'amount' => 'nullable|numeric',
             'payment_date' => 'nullable|date',
             'method' => 'nullable|string',
-            'reference_no' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference('contractor_payments', $contractorPayment->id)],
             'bank_name' => 'nullable|string',
+            'bank_commission' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'scan_path' => 'nullable|file|mimes:pdf,jpg,png|max:5120',
         ]);

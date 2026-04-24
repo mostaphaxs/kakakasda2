@@ -1,16 +1,30 @@
 import React, { useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
-import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart } from 'lucide-react';
+import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart, Loader2, Check, Plus, Boxes } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+interface GuaranteeCheck {
+    id: number;
+    supplier_id: number;
+    check_number: string;
+    amount: number;
+    bank_name: string | null;
+    scan_path: string | null;
+    scan_url: string | null;
+    status: 'Active' | 'Returned' | 'Cashed';
+    notes: string | null;
+    created_at: string;
+}
+
 interface Supplier {
     id: number;
     nom_societe: string;
+    type_entreprise: string | null;
     nom_gerant: string | null;
     adresse: string | null;
     tel: string | null;
@@ -19,6 +33,7 @@ interface Supplier {
     rc: string | null;
     scan_contrat: string | null;
     description: string | null;
+    guarantee_checks?: GuaranteeCheck[];
 }
 
 const Suppliers: React.FC = () => {
@@ -30,6 +45,12 @@ const Suppliers: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [contractFile, setContractFile] = useState<File | null>(null);
+
+    // Guarantee Checks State
+    const [isGuaranteeModalOpen, setIsGuaranteeModalOpen] = useState(false);
+    const [newCheck, setNewCheck] = useState({ check_number: '', amount: '', bank_name: '', notes: '' });
+    const [checkFile, setCheckFile] = useState<File | null>(null);
+    const [isSubmittingCheck, setIsSubmittingCheck] = useState(false);
 
 
     const { register, handleSubmit, reset } = useForm();
@@ -72,6 +93,7 @@ const Suppliers: React.FC = () => {
         setContractFile(null);
         reset({
             nom_societe: supplier.nom_societe,
+            type_entreprise: supplier.type_entreprise,
             nom_gerant: supplier.nom_gerant,
             adresse: supplier.adresse,
             tel: supplier.tel,
@@ -93,6 +115,7 @@ const Suppliers: React.FC = () => {
         if (!editingSupplier) return;
         const formData = new FormData();
         formData.append('nom_societe', data.nom_societe || '');
+        formData.append('type_entreprise', data.type_entreprise || '');
         formData.append('nom_gerant', data.nom_gerant || '');
         formData.append('adresse', data.adresse || '');
         formData.append('tel', data.tel || '');
@@ -120,6 +143,7 @@ const Suppliers: React.FC = () => {
     const handleExport = () => {
         exportToExcel(filtered.map(s => ({
             'Raison Sociale': s.nom_societe,
+            'Type': s.type_entreprise || '—',
             'Gérant': s.nom_gerant || 'N/A',
             'Tél': s.tel || 'N/A',
             'ICE': s.ice || '—',
@@ -127,6 +151,51 @@ const Suppliers: React.FC = () => {
             'R.C': s.rc || '—',
             'Adresse': s.adresse || 'N/A'
         })), 'fournisseurs_complet', true);
+    };
+
+    const handleAddCheck = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedSupplier) return;
+        setIsSubmittingCheck(true);
+        try {
+            const formData = new FormData();
+            formData.append('check_number', newCheck.check_number);
+            formData.append('amount', newCheck.amount);
+            formData.append('bank_name', newCheck.bank_name);
+            formData.append('notes', newCheck.notes);
+            if (checkFile) formData.append('scan_path', checkFile);
+
+            await apiFetch(`/suppliers/${selectedSupplier.id}/guarantee-checks`, {
+                method: 'POST',
+                body: formData
+            });
+            toast.success('Chèque de garantie ajouté !');
+            setNewCheck({ check_number: '', amount: '', bank_name: '', notes: '' });
+            setCheckFile(null);
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            // Refresh detail modal
+            const updated = await apiFetch<Supplier>(`/suppliers/${selectedSupplier.id}`);
+            setSelectedSupplier(updated);
+        } catch (err: any) {
+            toast.error(err.message);
+        } finally {
+            setIsSubmittingCheck(false);
+        }
+    };
+
+    const deleteCheck = async (id: number) => {
+        if (!confirm('Supprimer ce chèque ?')) return;
+        try {
+            await apiFetch(`/guarantee-checks/${id}`, { method: 'DELETE' });
+            toast.success('Chèque supprimé');
+            queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+            if (selectedSupplier) {
+                const updated = await apiFetch<Supplier>(`/suppliers/${selectedSupplier.id}`);
+                setSelectedSupplier(updated);
+            }
+        } catch (err: any) {
+            toast.error(err.message);
+        }
     };
 
     return (
@@ -181,9 +250,24 @@ const Suppliers: React.FC = () => {
                             <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="px-4 py-3">
                                     <div className="flex flex-col">
-                                        <span className="font-black text-slate-900 uppercase tracking-tight">{s.nom_societe}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-slate-900 uppercase tracking-tight">{s.nom_societe}</span>
+                                            {s.type_entreprise && (
+                                                <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-slate-200">
+                                                    {s.type_entreprise}
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-[10px] text-gray-500 flex items-center mt-0.5 uppercase">
                                             <User size={10} className="mr-1" /> {s.nom_gerant || '—'} | <Phone size={10} className="mx-1" /> {s.tel || '—'}
+                                            {s.guarantee_checks && s.guarantee_checks.length > 0 && (
+                                                <>
+                                                    <span className="mx-2 text-gray-300">|</span>
+                                                    <span className="flex items-center gap-1 text-blue-600 font-black">
+                                                        <Check size={10} strokeWidth={3} /> {s.guarantee_checks.length} GARANTIE
+                                                    </span>
+                                                </>
+                                            )}
                                         </span>
                                     </div>
                                 </td>
@@ -230,8 +314,8 @@ const Suppliers: React.FC = () => {
 
             {/* Edit Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
                         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-900 text-white">
                             <h3 className="font-black text-base uppercase tracking-widest flex items-center gap-3">
                                 <Briefcase size={20} /> Modifier {editingSupplier?.nom_societe}
@@ -241,12 +325,16 @@ const Suppliers: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-6">
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
                             <form onSubmit={handleSubmit(onSubmitUpdate)} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
+                                    <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Briefcase size={12} className="mr-2" /> Société / Raison Sociale</label>
                                         <input {...register('nom_societe', { required: true })} className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm outline-none shadow-sm" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><Boxes size={12} className="mr-2" /> Type d'entreprise (ex: Fer, Sable...)</label>
+                                        <input {...register('type_entreprise')} placeholder="Type de marchandise/service" className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-all font-bold text-sm outline-none shadow-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center"><User size={12} className="mr-2" /> Gérant / Contact</label>
@@ -335,7 +423,28 @@ const Suppliers: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button type="submit" disabled={updateMutation.isPending} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center justify-center space-x-3">{updateMutation.isPending ? '...' : <><Save size={20} /><span>Mettre à jour</span></>}</button>
+                                <div className="mt-4 p-4 bg-blue-50/50 rounded-2xl border border-dashed border-blue-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-100 text-blue-600 rounded-xl">
+                                            <Check size={16} strokeWidth={3} />
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest leading-none mb-1">Chèques de Garantie</p>
+                                            <p className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter italic">Gérez les dépôts de sécurité pour ce partenaire</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsEditModalOpen(false);
+                                            handleOpenDetails(editingSupplier!);
+                                        }}
+                                        className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                    >
+                                        Gérer les chèques
+                                    </button>
+                                </div>
+                                <button type="submit" disabled={updateMutation.isPending} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl flex items-center justify-center space-x-3 mt-6">{updateMutation.isPending ? '...' : <><Save size={20} /><span>Mettre à jour</span></>}</button>
                             </form>
                         </div>
                     </div>
@@ -360,7 +469,7 @@ const Suppliers: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-6">
+                        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Gérant / Contact</label>
@@ -391,6 +500,44 @@ const Suppliers: React.FC = () => {
                             </div>
 
                             <div className="pt-6 border-t border-gray-100">
+                                <div className="flex items-center justify-between mb-4">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <Check size={12} /> Chèques de Garantie ({selectedSupplier.guarantee_checks?.length || 0})
+                                    </label>
+                                    <button
+                                        onClick={() => setIsGuaranteeModalOpen(true)}
+                                        className="text-[10px] font-black text-blue-600 uppercase hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                                    >
+                                        Gérer les chèques
+                                    </button>
+                                </div>
+                                <div className="space-y-2">
+                                    {selectedSupplier.guarantee_checks && selectedSupplier.guarantee_checks.length > 0 ? (
+                                        selectedSupplier.guarantee_checks.map(check => (
+                                            <div key={check.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-black text-slate-700 uppercase">N° {check.check_number}</span>
+                                                    <span className="text-[10px] text-gray-500 font-bold">{check.bank_name || 'Banque non spécifiée'} • {check.amount.toLocaleString()} DH</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {check.scan_path && (
+                                                        <button onClick={() => handleViewContract(check.scan_path!)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Voir scan">
+                                                            <FileText size={14} />
+                                                        </button>
+                                                    )}
+                                                    <button onClick={() => deleteCheck(check.id)} className="p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-[10px] text-gray-400 italic">Aucun chèque de garantie enregistré.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100">
                                 <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Observations / Description</label>
                                 <div className="p-4 bg-gray-50 rounded-2xl min-h-[80px]">
                                     <p className="text-xs text-gray-600 italic leading-relaxed">
@@ -414,6 +561,95 @@ const Suppliers: React.FC = () => {
                                 Fermer
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Guarantee Check Management Modal */}
+            {isGuaranteeModalOpen && selectedSupplier && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-100">
+                            <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest flex items-center gap-2">
+                                <Check size={18} className="text-blue-600" /> Nouveau Chèque de Garantie
+                            </h3>
+                            <button onClick={() => setIsGuaranteeModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleAddCheck} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Numéro du Chèque</label>
+                                <input
+                                    required
+                                    type="text"
+                                    value={newCheck.check_number}
+                                    onChange={(e) => setNewCheck({ ...newCheck, check_number: e.target.value })}
+                                    className="w-full h-11 px-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-500 rounded-xl font-bold text-sm transition-all outline-none"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Montant (DH)</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        value={newCheck.amount}
+                                        onChange={(e) => setNewCheck({ ...newCheck, amount: e.target.value })}
+                                        className="w-full h-11 px-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-500 rounded-xl font-bold text-sm transition-all outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Banque</label>
+                                    <input
+                                        type="text"
+                                        value={newCheck.bank_name}
+                                        onChange={(e) => setNewCheck({ ...newCheck, bank_name: e.target.value })}
+                                        className="w-full h-11 px-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-500 rounded-xl font-bold text-sm transition-all outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Notes / Observations</label>
+                                <textarea
+                                    value={newCheck.notes}
+                                    onChange={(e) => setNewCheck({ ...newCheck, notes: e.target.value })}
+                                    className="w-full p-4 bg-gray-50 border-transparent focus:bg-white focus:border-blue-500 rounded-xl font-bold text-sm transition-all outline-none h-20 resize-none tabular-nums"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Scan du Chèque</label>
+                                <div className="relative group">
+                                    <input
+                                        type="file"
+                                        onChange={(e) => setCheckFile(e.target.files?.[0] || null)}
+                                        className="hidden"
+                                        id="guarantee-check-upload"
+                                    />
+                                    <label
+                                        htmlFor="guarantee-check-upload"
+                                        className="w-full h-12 bg-white border-2 border-dashed border-gray-100 rounded-xl flex items-center justify-between px-4 hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-all"
+                                    >
+                                        <span className="text-[10px] font-bold text-gray-500 overflow-hidden truncate max-w-[200px]">
+                                            {checkFile ? checkFile.name : 'Choisir un fichier...'}
+                                        </span>
+                                        <div className="bg-slate-800 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-widest">Parcourir</div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={isSubmittingCheck}
+                                className="w-full h-12 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 mt-4"
+                            >
+                                {isSubmittingCheck ? <Loader2 className="animate-spin" size={16} /> : <><Plus size={16} /> Ajouter le chèque</>}
+                            </button>
+                        </form>
                     </div>
                 </div>
             )}

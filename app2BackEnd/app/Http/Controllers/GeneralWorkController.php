@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GeneralWork;
+use App\Rules\UniqueReference;
 use Illuminate\Http\Request;
 
 class GeneralWorkController extends Controller
@@ -20,6 +21,10 @@ class GeneralWorkController extends Controller
             'work_type' => 'required|string',
             'total_amount' => 'required|numeric',
             'paid_amount' => 'nullable|numeric',
+            'bank_commission' => 'nullable|numeric|min:0',
+            'method' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference()],
+            'bank_name' => 'nullable|string',
         ]);
 
         return GeneralWork::create($validated);
@@ -32,7 +37,19 @@ class GeneralWorkController extends Controller
 
     public function update(Request $request, GeneralWork $generalWork)
     {
-        $generalWork->update($request->all());
+        $validated = $request->validate([
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'terrain_id' => 'nullable|exists:terrains,id',
+            'work_type' => 'nullable|string',
+            'total_amount' => 'nullable|numeric',
+            'paid_amount' => 'nullable|numeric',
+            'bank_commission' => 'nullable|numeric|min:0',
+            'method' => 'nullable|string',
+            'reference_no' => ['nullable', 'string', new UniqueReference('general_works', $generalWork->id)],
+            'bank_name' => 'nullable|string',
+        ]);
+
+        $generalWork->update($validated);
         return $generalWork;
     }
 
