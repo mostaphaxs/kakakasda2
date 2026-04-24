@@ -77,11 +77,17 @@ const Profile: React.FC = () => {
 
         // Fetch DB path
         const fetchDbPath = async () => {
+            // Safety check for browser environment
+            if (!(window as any).__TAURI_INTERNALS__) {
+                setDbPath('Indisponible en mode navigateur');
+                return;
+            }
             try {
                 const path = await invoke<string>('get_database_path');
                 setDbPath(path);
             } catch (err) {
                 console.error("Failed to fetch DB path", err);
+                setDbPath('Erreur lors de la récupération');
             }
         };
         fetchDbPath();

@@ -28,6 +28,10 @@ export let STORAGE_BASE = API_BASE + '/sidecar-serve';
  */
 export async function initializeApiConfig() {
     try {
+        if (!(window as any).__TAURI_INTERNALS__) {
+            console.log("[api] Not running in Tauri, skipping dynamic config.");
+            return;
+        }
         // Attempt to get the dynamic URL from Rust
         const tauriUrl = await invoke<string>('get_api_config');
         if (tauriUrl && tauriUrl.startsWith('http')) {
