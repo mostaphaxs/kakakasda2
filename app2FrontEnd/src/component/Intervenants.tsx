@@ -1,6 +1,6 @@
 // src/component/Intervenants.tsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Loader2, Trash2, Edit2, X, Check, User, Phone, FileText, Upload, DollarSign, Calendar, Search, MapPin, Download, Briefcase } from 'lucide-react';
+import { Plus, Loader2, Trash2, Edit2, X, Check, User, Phone, FileText, Upload, DollarSign, Calendar, Search, MapPin, Download, Briefcase, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -26,6 +26,7 @@ interface Intervenant {
     if: string;
     ice: string;
     rc: string;
+    rib: string | null;
     montant_global: number;
     payments: Payment[];
     scan_contrat: string | null;
@@ -69,6 +70,7 @@ const Intervenants = () => {
         if: '',
         ice: '',
         rc: '',
+        rib: '',
         montant_global: '',
         description: '',
         terrain_id: '',
@@ -96,8 +98,10 @@ const Intervenants = () => {
         try {
             const data = await apiFetch<Intervenant[]>('/intervenants');
             setIntervenants(data);
+            return data;
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors du chargement des intervenants');
+            return [];
         } finally {
             setLoading(false);
         }
@@ -174,6 +178,7 @@ const Intervenants = () => {
                 if: intervenant.if || '',
                 ice: intervenant.ice || '',
                 rc: intervenant.rc || '',
+                rib: intervenant.rib || '',
                 montant_global: formatNumber(String(intervenant.montant_global)),
                 description: intervenant.description || '',
                 terrain_id: intervenant.terrain_id ? String(intervenant.terrain_id) : '',
@@ -191,6 +196,7 @@ const Intervenants = () => {
                 if: '',
                 ice: '',
                 rc: '',
+                rib: '',
                 montant_global: '',
                 description: '',
                 terrain_id: '',
@@ -316,7 +322,15 @@ const Intervenants = () => {
 
             toast.success(editingPaymentId ? 'Avancement mis à jour' : 'Avancement ajouté');
             setIsPaymentModalOpen(false);
-            fetchIntervenants();
+            const updatedIntervenants = await fetchIntervenants();
+            // Redirect to details with fresh data
+            if (selectedIntervenant) {
+                const freshIntervenant = updatedIntervenants.find((c: any) => c.id === selectedIntervenant.id);
+                if (freshIntervenant) {
+                    setSelectedIntervenant(freshIntervenant);
+                }
+                setIsDetailsModalOpen(true);
+            }
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors de l\'ajout de l\'avancement');
         } finally {
@@ -596,21 +610,37 @@ const Intervenants = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="grid grid-cols-3 gap-2">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.F</label>
-                                        <input type="text" value={formData.if} onChange={e => setFormData({ ...formData, if: e.target.value })} className={`w-full px-2 py-2 bg-gray-50 border ${fieldErrors.if ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                        {fieldErrors.if && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.if[0]}</p>}
+                                <div className="space-y-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                            <Banknote size={12} className="mr-2" /> RIB (Compte Bancaire)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.rib}
+                                            onChange={e => setFormData({ ...formData, rib: e.target.value })}
+                                            className={`w-full h-11 px-4 bg-gray-50 border ${fieldErrors.rib ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-xs tracking-wider`}
+                                            placeholder="RIB"
+                                        />
+                                        {fieldErrors.rib && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.rib[0]}</p>}
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.C.E</label>
-                                        <input type="text" value={formData.ice} onChange={e => setFormData({ ...formData, ice: e.target.value })} className={`w-full px-2 py-2 bg-gray-50 border ${fieldErrors.ice ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                        {fieldErrors.ice && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.ice[0]}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">R.C</label>
-                                        <input type="text" value={formData.rc} onChange={e => setFormData({ ...formData, rc: e.target.value })} className={`w-full px-2 py-2 bg-gray-50 border ${fieldErrors.rc ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                        {fieldErrors.rc && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.rc[0]}</p>}
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.F</label>
+                                            <input type="text" value={formData.if} onChange={e => setFormData({ ...formData, if: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.if ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
+                                            {fieldErrors.if && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.if[0]}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.C.E</label>
+                                            <input type="text" value={formData.ice} onChange={e => setFormData({ ...formData, ice: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.ice ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
+                                            {fieldErrors.ice && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.ice[0]}</p>}
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">R.C</label>
+                                            <input type="text" value={formData.rc} onChange={e => setFormData({ ...formData, rc: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.rc ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
+                                            {fieldErrors.rc && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.rc[0]}</p>}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
@@ -824,11 +854,15 @@ const Intervenants = () => {
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Identifiants Fiscaux</label>
+                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Identifiants Fiscaux & Bancaires</label>
                                         <div className="p-3 bg-gray-50 rounded-xl space-y-1">
                                             <p className="text-xs font-bold text-gray-600 flex justify-between"><span>I.F:</span> <span className="text-indigo-600">{selectedIntervenant.if || '—'}</span></p>
                                             <p className="text-xs font-bold text-gray-600 flex justify-between"><span>I.C.E:</span> <span className="text-indigo-600">{selectedIntervenant.ice || '—'}</span></p>
                                             <p className="text-xs font-bold text-gray-600 flex justify-between"><span>R.C:</span> <span className="text-indigo-600">{selectedIntervenant.rc || '—'}</span></p>
+                                            <p className="text-[10px] font-bold text-gray-500 flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm transition-all hover:border-emerald-200 group">
+                                                <span className="flex items-center gap-2"><Banknote size={12} className="text-gray-400 group-hover:text-emerald-500" /> RIB:</span>
+                                                <span className="text-emerald-600 font-mono text-[11px] font-black tracking-wider">{selectedIntervenant.rib || '—'}</span>
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
