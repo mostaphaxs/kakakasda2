@@ -21,7 +21,9 @@ class OuvrierController extends Controller
             'cin' => 'nullable|string',
             'speciality' => 'required|string',
             'phone' => 'nullable|string',
+            'phone' => 'nullable|string',
             'scan_cin' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('scan_cin')) {
@@ -44,7 +46,9 @@ class OuvrierController extends Controller
             'cin' => 'nullable|string',
             'speciality' => 'required|string',
             'phone' => 'nullable|string',
+            'phone' => 'nullable|string',
             'scan_cin' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('scan_cin')) {

@@ -34,6 +34,7 @@ class SupplierController extends Controller
             'rc' => 'nullable|string',
             'description' => 'nullable|string',
             'scan_contrat' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'rib' => 'nullable|string',
         ]);
 
         if ($request->hasFile('scan_contrat')) {
@@ -89,6 +90,7 @@ class SupplierController extends Controller
             'rc' => 'nullable|string',
             'description' => 'nullable|string',
             'scan_contrat' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'rib' => 'nullable|string',
         ]);
 
         if ($request->hasFile('scan_contrat')) {

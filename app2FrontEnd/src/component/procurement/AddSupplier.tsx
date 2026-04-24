@@ -23,6 +23,7 @@ interface SupplierFormInputs {
     if: string;
     rc: string;
     description: string;
+    rib: string;
     guarantee_checks: GuaranteeCheckInput[];
 }
 
@@ -42,6 +43,7 @@ const AddSupplier: React.FC = () => {
             if: '',
             rc: '',
             description: '',
+            rib: '',
             guarantee_checks: []
         }
     });
@@ -65,6 +67,7 @@ const AddSupplier: React.FC = () => {
             formData.append('if', data.if || '');
             formData.append('rc', data.rc || '');
             formData.append('description', data.description || '');
+            formData.append('rib', data.rib || '');
 
             if (contractFile) {
                 formData.append('scan_contrat', contractFile);
@@ -206,6 +209,17 @@ const AddSupplier: React.FC = () => {
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">R.C</label>
                                 <input {...register('rc')} className="w-full h-12 px-3 rounded-xl border-gray-200 bg-gray-50 font-mono text-xs outline-none shadow-sm" />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                <Banknote size={14} className="mr-2" /> RIB (Compte Bancaire)
+                            </label>
+                            <input
+                                {...register('rib')}
+                                className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-slate-800 transition-all font-mono text-xs shadow-sm outline-none"
+                                placeholder="000 000 0000000000000000 00"
+                            />
                         </div>
 
                         <div className="md:col-span-2">

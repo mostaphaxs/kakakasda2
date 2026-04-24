@@ -4,7 +4,7 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck
+    ChevronRight, BarChart3, UserCheck, History
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
@@ -91,6 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
         { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
+        { icon: History, label: 'Historique Transactions', path: '/transactions' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
         { icon: Building2, label: 'Biens', path: '/properties' },
         { icon: Users, label: 'Intervenants', path: '/intervenants' },

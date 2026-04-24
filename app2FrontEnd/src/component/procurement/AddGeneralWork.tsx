@@ -115,6 +115,11 @@ const AddGeneralWork: React.FC = () => {
                         </div>
 
                         <div>
+                            <label className="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">RIB (Compte Bancaire)</label>
+                            <input type="text" {...register('rib')} className="w-full px-4 h-12 rounded-xl border-blue-100 font-mono text-xs font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="RIB..." />
+                        </div>
+
+                        <div>
                             <label className="block text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Commission Bancaire (DH)</label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 font-black">DH</span>

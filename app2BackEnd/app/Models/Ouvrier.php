@@ -17,6 +17,7 @@ class Ouvrier extends Model
         'scan_cin',
         'total_earned',
         'paid_amount',
+        'rib',
     ];
 
     public function missions()

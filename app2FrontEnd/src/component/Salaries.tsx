@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Plus, Loader2, Trash2, Edit2, X, User, Phone, Search, Download,
-    Briefcase, GraduationCap, ShieldCheck, Eye, Info, UserCheck, FileText
+    Briefcase, GraduationCap, ShieldCheck, Eye, Info, UserCheck, FileText, Banknote
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
@@ -696,12 +696,14 @@ const Salaries: React.FC = () => {
                                 </div>
 
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Informations Bancaires / RIB</label>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1 flex items-center">
+                                        <Banknote size={14} className="mr-2" /> Informations Bancaires / RIB
+                                    </label>
                                     <input
                                         type="text"
                                         value={form.bank_info}
                                         onChange={(e) => setForm({ ...form, bank_info: e.target.value })}
-                                        className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-gray-700"
+                                        className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono text-sm tracking-wider"
                                         placeholder="Banque, Agence, RIB..."
                                     />
                                 </div>

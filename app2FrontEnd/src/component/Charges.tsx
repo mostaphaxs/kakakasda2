@@ -1,6 +1,6 @@
 // src/component/Charges.tsx
 import React, { useState, useEffect } from 'react';
-import { WalletCards, Plus, Loader2, Trash2, Edit2, X, Check, Calendar as CalendarIcon, TrendingDown, Search, Download } from 'lucide-react';
+import { WalletCards, Plus, Loader2, Trash2, Edit2, X, Check, Calendar as CalendarIcon, TrendingDown, Search, Download, Banknote } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -17,6 +17,7 @@ interface Charge {
     gasoil: number;
     periode: string;
     terrain_id: number | null;
+    rib: string | null;
     terrain?: { id: number; nom_projet: string; nom_terrain: string };
 }
 
@@ -42,6 +43,7 @@ const Charges = () => {
         gasoil: '',
         periode: new Date().toLocaleDateString('fr-MA'),
         terrain_id: '',
+        rib: '',
     });
 
     const fetchTerrains = async () => {
@@ -82,6 +84,7 @@ const Charges = () => {
                 gasoil: formatNumber(String(charge.gasoil)),
                 periode: charge.periode.split('T')[0],
                 terrain_id: charge.terrain_id ? String(charge.terrain_id) : '',
+                rib: charge.rib || '',
             });
         } else {
             setEditingCharge(null);
@@ -95,6 +98,7 @@ const Charges = () => {
                 gasoil: '',
                 periode: new Date().toLocaleDateString('fr-MA'),
                 terrain_id: '',
+                rib: '',
             });
         }
         setIsModalOpen(true);
@@ -436,6 +440,18 @@ const Charges = () => {
                                         placeholder="JJ/MM/AAAA"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-2">
+                                        <Banknote size={12} className="text-emerald-500" /> RIB (Bancaire)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.rib}
+                                        onChange={e => setFormData({ ...formData, rib: e.target.value })}
+                                        className="w-full px-4 py-3 bg-emerald-50/30 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 font-mono text-sm tracking-widest outline-none"
+                                        placeholder="Optionnel"
+                                    />
+                                </div>
                             </div>
 
                             <div className="flex gap-4 pt-4">
@@ -508,6 +524,12 @@ const Charges = () => {
                                             <p className="text-[9px] font-bold text-gray-400 uppercase">Impôts & Divers</p>
                                             <p className="text-xs font-bold text-rose-600">{formatNumber(selectedCharge.impots)} DH</p>
                                         </div>
+                                        {selectedCharge.rib && (
+                                            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl col-span-2 flex flex-col gap-1">
+                                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">RIB de Règlement</p>
+                                                <p className="text-sm font-black text-emerald-800 font-mono tracking-widest text-center">{selectedCharge.rib}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

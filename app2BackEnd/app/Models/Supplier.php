@@ -16,7 +16,8 @@ class Supplier extends Model
         'if',
         'rc',
         'scan_contrat',
-        'description'
+        'description',
+        'rib'
     ];
 
     public function guaranteeChecks()

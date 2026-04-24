@@ -23,6 +23,7 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\FactureController;
 use App\Http\Controllers\OuvrierController;
 use App\Http\Controllers\SalarieController;
+use App\Http\Controllers\FinancialController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -32,6 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', fn(Request $r) => $r->user());
     Route::post('/user/update-profile', [UserController::class, 'updateProfile']);
     Route::post('/user/update-password', [UserController::class, 'updatePassword']);
+
+    // Transactions Ledger
+    Route::get('/transactions', [FinancialController::class, 'transactions']);
 
     // Terrains
     Route::apiResource('terrains', TerrainController::class);

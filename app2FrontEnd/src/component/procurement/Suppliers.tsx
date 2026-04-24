@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
-import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart, Loader2, Check, Plus, Boxes } from 'lucide-react';
+import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart, Loader2, Check, Plus, Boxes, Banknote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
@@ -33,6 +33,7 @@ interface Supplier {
     rc: string | null;
     scan_contrat: string | null;
     description: string | null;
+    rib: string | null;
     guarantee_checks?: GuaranteeCheck[];
 }
 
@@ -101,6 +102,7 @@ const Suppliers: React.FC = () => {
             if: supplier.if,
             rc: supplier.rc,
             description: supplier.description,
+            rib: supplier.rib || '',
         });
         setIsEditModalOpen(true);
     };
@@ -123,6 +125,7 @@ const Suppliers: React.FC = () => {
         formData.append('if', data.if || '');
         formData.append('rc', data.rc || '');
         formData.append('description', data.description || '');
+        formData.append('rib', data.rib || '');
         if (contractFile) formData.append('scan_contrat', contractFile);
         formData.append('_method', 'PUT');
 
@@ -407,8 +410,18 @@ const Suppliers: React.FC = () => {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4 md:col-span-2">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                            <Banknote size={12} className="mr-2" /> RIB (Compte Bancaire)
+                                        </label>
+                                        <input
+                                            {...register('rib')}
+                                            className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white transition-all font-mono text-xs outline-none shadow-sm"
+                                            placeholder="RIB"
+                                        />
+                                    </div>
 
+                                    <div className="grid grid-cols-3 gap-4 md:col-span-2">
                                         <div>
                                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">ICE</label>
                                             <input {...register('ice')} className="w-full h-11 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-mono text-xs outline-none shadow-sm" />
@@ -482,6 +495,12 @@ const Suppliers: React.FC = () => {
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Adresse</label>
                                     <p className="text-sm font-bold text-gray-700 whitespace-pre-wrap">{selectedSupplier.adresse || 'Non spécifiée'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Compte Bancaire (RIB)</label>
+                                    <p className="text-xs font-mono font-black text-blue-600 bg-blue-50 px-3 py-2 rounded-xl border border-blue-100">
+                                        {selectedSupplier.rib || 'Aucun RIB renseigné'}
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">ICE / I.F / R.C</label>

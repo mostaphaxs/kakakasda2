@@ -24,6 +24,7 @@ import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import GlobalPreview from './component/GlobalPreview.tsx';
 import Workers from './component/Workers.tsx';
 import Salaries from './component/Salaries.tsx';
+import Transactions from './component/Transactions.tsx';
 
 // Procurement Components
 import Articles from './component/procurement/Articles';
@@ -125,6 +126,7 @@ const AppContent: React.FC = () => {
               <Route path="/add-stock-exit" element={<PrivateRoute><StockExitForm onSuccess={() => { }} /></PrivateRoute>} />
               <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
               <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
+              <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
 
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>

@@ -34,6 +34,7 @@ class ContractorController extends Controller
             'scan_contrat' => 'nullable|file|mimes:pdf,jpg,png|max:5120',
             'description' => 'nullable|string',
             'terrain_id' => 'nullable|exists:terrains,id',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('scan_contrat')) {
@@ -71,6 +72,7 @@ class ContractorController extends Controller
             'scan_contrat' => 'nullable|file|mimes:pdf,jpg,png|max:5120',
             'description' => 'nullable|string',
             'terrain_id' => 'nullable|exists:terrains,id',
+            'rib' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('scan_contrat')) {

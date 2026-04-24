@@ -16,6 +16,7 @@ interface GeneralWork {
     method: string;
     reference_no: string | null;
     bank_name: string | null;
+    rib: string | null;
     balance: number;
     supplier_id: number;
     supplier: { nom_societe: string };
@@ -30,6 +31,8 @@ const GeneralWorks: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingWork, setEditingWork] = useState<GeneralWork | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedWork, setSelectedWork] = useState<GeneralWork | null>(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
     const { register, handleSubmit, reset, watch } = useForm();
 
@@ -90,6 +93,7 @@ const GeneralWorks: React.FC = () => {
             method: work.method,
             reference_no: work.reference_no,
             bank_name: work.bank_name,
+            rib: work.rib || '',
         });
         setIsEditModalOpen(true);
     };
@@ -198,6 +202,12 @@ const GeneralWorks: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => {
+                                            setSelectedWork(w);
+                                            setIsDetailsModalOpen(true);
+                                        }} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Détails">
+                                            <Search size={18} />
+                                        </button>
                                         <button onClick={() => handleEdit(w)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                                             <Edit2 size={18} />
                                         </button>
@@ -287,6 +297,11 @@ const GeneralWorks: React.FC = () => {
                                         </div>
 
                                         <div>
+                                            <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">RIB (Compte Bancaire)</label>
+                                            <input type="text" {...register('rib')} className="w-full h-10 px-3 rounded-xl border-gray-200 bg-gray-50 focus:bg-white font-mono text-xs ring-0 outline-none" placeholder="RIB" />
+                                        </div>
+
+                                        <div>
                                             <label className="block text-[10px] uppercase font-black text-gray-400 mb-1">Commission Bancaire</label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 text-[10px] font-black">DH</span>
@@ -316,6 +331,95 @@ const GeneralWorks: React.FC = () => {
                                 <span>{updateMutation.isPending ? 'Mise à jour...' : 'Confirmer les modifications'}</span>
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Details Modal */}
+            {isDetailsModalOpen && selectedWork && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <div>
+                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
+                                    Détails Travaux
+                                </h3>
+                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">
+                                    Fiche ID #{selectedWork.id} • {selectedWork.work_type}
+                                </p>
+                            </div>
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Prestataire</label>
+                                    <p className="text-sm font-bold text-gray-700">{selectedWork.supplier.nom_societe}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Type de Travail</label>
+                                    <p className="text-sm font-bold text-gray-700">{selectedWork.work_type}</p>
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Projet (Terrain)</label>
+                                    <p className="text-sm font-bold text-blue-600 uppercase italic">{selectedWork.terrain?.nom_terrain || 'Non spécifié'}</p>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 grid grid-cols-2 gap-6">
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Montant Global</label>
+                                    <p className="text-lg font-black text-blue-600 font-mono">{selectedWork.total_amount.toLocaleString('fr-MA')} DH</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Montant Payé (Net)</label>
+                                    <p className="text-lg font-black text-emerald-600 font-mono">{((selectedWork.paid_amount || 0) - (selectedWork.bank_commission || 0)).toLocaleString('fr-MA')} DH</p>
+                                </div>
+                                <div className="col-span-2 p-4 bg-rose-50 rounded-2xl border border-rose-100 flex justify-between items-center text-rose-700">
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Solde Restante</span>
+                                    <span className="text-xl font-black font-mono">{selectedWork.balance.toLocaleString('fr-MA')} DH</span>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-gray-100 space-y-4">
+                                <label className="text-[10px] font-black text-gray-400 uppercase block tracking-widest">Informations de Paiement</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Mode</label>
+                                        <p className="text-xs font-bold text-gray-700">{selectedWork.method || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Référence</label>
+                                        <p className="text-xs font-bold text-gray-700">{selectedWork.reference_no || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                        <label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Banque</label>
+                                        <p className="text-xs font-bold text-gray-700">{selectedWork.bank_name || '—'}</p>
+                                    </div>
+                                    <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                        <label className="text-[9px] font-black text-blue-400 uppercase block mb-1">RIB Associé</label>
+                                        <p className="text-xs font-mono font-black text-blue-700">{selectedWork.rib || 'Aucun RIB spécifié'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
+                            <button
+                                onClick={() => {
+                                    setIsDetailsModalOpen(false);
+                                    handleEdit(selectedWork);
+                                }}
+                                className="flex-1 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                            >
+                                Modifier
+                            </button>
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-colors">
+                                Fermer
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

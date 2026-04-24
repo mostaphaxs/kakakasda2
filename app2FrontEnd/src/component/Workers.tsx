@@ -48,6 +48,7 @@ interface Worker {
     scan_cin: string | null;
     total_earned: number;
     paid_amount: number;
+    rib: string | null;
     missions: WorkerMission[];
     payments: WorkerPayment[];
 }
@@ -77,6 +78,7 @@ const Workers = () => {
         cin: '',
         speciality: 'Maçon',
         phone: '',
+        rib: '',
     });
     const [scanFile, setScanFile] = useState<File | null>(null);
 
@@ -334,7 +336,7 @@ const Workers = () => {
                     <button
                         onClick={() => {
                             setEditingWorker(null);
-                            setWorkerForm({ name: '', cin: '', speciality: 'Maçon', phone: '' });
+                            setWorkerForm({ name: '', cin: '', speciality: 'Maçon', phone: '', rib: '' });
                             setScanFile(null);
                             setIsWorkerModalOpen(true);
                         }}
@@ -505,7 +507,7 @@ const Workers = () => {
                                                 <button
                                                     onClick={() => {
                                                         setEditingWorker(worker);
-                                                        setWorkerForm({ name: worker.name, cin: worker.cin || '', speciality: worker.speciality, phone: worker.phone || '' });
+                                                        setWorkerForm({ name: worker.name, cin: worker.cin || '', speciality: worker.speciality, phone: worker.phone || '', rib: worker.rib || '' });
                                                         setScanFile(null);
                                                         setIsWorkerModalOpen(true);
                                                     }}
@@ -608,6 +610,19 @@ const Workers = () => {
                                             onChange={(e) => setScanFile(e.target.files?.[0] || null)}
                                             className="w-full text-[10px] file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
                                         />
+                                    </div>
+                                    <div className="col-span-full">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">RIB (Relevé d'Identité Bancaire)</label>
+                                        <div className="relative">
+                                            <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" size={18} />
+                                            <input
+                                                type="text"
+                                                value={workerForm.rib}
+                                                onChange={(e) => setWorkerForm({ ...workerForm, rib: e.target.value })}
+                                                placeholder="24 chiffres..."
+                                                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono text-sm tracking-wider"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -791,7 +806,7 @@ const Workers = () => {
                                         onClick={() => {
                                             setIsDetailsModalOpen(false);
                                             setEditingWorker(selectedWorker);
-                                            setWorkerForm({ name: selectedWorker.name, cin: selectedWorker.cin || '', speciality: selectedWorker.speciality, phone: selectedWorker.phone || '' });
+                                            setWorkerForm({ name: selectedWorker.name, cin: selectedWorker.cin || '', speciality: selectedWorker.speciality, phone: selectedWorker.phone || '', rib: selectedWorker.rib || '' });
                                             setIsWorkerModalOpen(true);
                                         }}
                                         className="p-3 bg-white text-indigo-500 rounded-2xl border border-gray-100 hover:border-indigo-200 transition-all shadow-sm"
@@ -862,6 +877,12 @@ const Workers = () => {
                                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">CIN</span>
                                                     <span className="text-xs font-black text-slate-700 uppercase">{selectedWorker.cin || '—'}</span>
                                                 </div>
+                                                {selectedWorker.rib && (
+                                                    <div className="flex flex-col gap-1 pt-2 border-t border-gray-50 group">
+                                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">RIB</span>
+                                                        <span className="text-sm font-black text-emerald-600 font-mono tracking-widest bg-emerald-50/50 px-3 py-2 rounded-xl border border-emerald-100 text-center">{selectedWorker.rib}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 

@@ -3,12 +3,13 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin,
   UserPlus, Eye, EyeOff, Lock, ShoppingBag, Paintbrush,
-  PieChart as PieChartIcon, BarChart as BarChartIcon, HelpCircle
+  HelpCircle,
+  ArrowUpRight, Percent, Activity, Briefcase, Zap, AlertTriangle
 } from 'lucide-react';
 import {
-  ResponsiveContainer, PieChart, Pie, Cell,
+  ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, Legend
+  Tooltip as RechartsTooltip, AreaChart, Area, RadialBarChart, RadialBar, Treemap,
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -34,6 +35,15 @@ interface Stats {
   chiffre_affaires: number;
   reste_a_recouvrer: number;
   benefice_estime: number;
+  roi: number;
+  margin_percentage: number;
+  burn_rate: number;
+  monthly_perf: {
+    month: string;
+    label: string;
+    income: number;
+    expenses: number;
+  }[];
   recent_clients: any[];
   recent_payments: any[];
   recent_purchases: any[];
@@ -57,6 +67,8 @@ interface Stats {
     chiffre_affaires: number;
     reste_a_recouvrer: number;
     benefice_estime: number;
+    roi: number;
+    margin_percentage: number;
   }[];
 }
 
@@ -103,6 +115,8 @@ const Dashboard = () => {
       chiffre_affaires: tStats.chiffre_affaires,
       reste_a_recouvrer: tStats.reste_a_recouvrer,
       benefice_estime: tStats.benefice_estime,
+      roi: tStats.roi ?? 0,
+      margin_percentage: tStats.margin_percentage ?? 0,
     };
   }, [apiStats, selectedTerrainId]);
 
@@ -136,11 +150,6 @@ const Dashboard = () => {
     return apiStats?.recent_payments.filter(p => p.client?.biens && p.client.biens.some((b: any) => b.terrain_id === selectedTerrainId));
   }, [apiStats, selectedTerrainId]);
 
-  const displayPurchases = useMemo(() => {
-    if (!apiStats?.recent_purchases) return [];
-    // Purchases are global for now
-    return apiStats?.recent_purchases;
-  }, [apiStats]);
 
   const fetchData = async () => {
     try {
@@ -236,27 +245,148 @@ const Dashboard = () => {
           )}
         </button>
       </div>
+      {/* ── 1.2 Executive Highlights ── */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+        <div className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50/50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                <Percent size={18} />
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${stats.margin_percentage > 20 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                {stats.margin_percentage > 20 ? 'Forte Marge' : 'Marge Stable'}
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Profit sur Vente (%)</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-slate-800">{showStats ? `${stats.margin_percentage.toFixed(1)}%` : '•••%'}</p>
+                <ArrowUpRight size={16} className="text-emerald-500 mb-1" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50/50 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl">
+                <Zap size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Rentabilité</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Rentabilité Projets</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-slate-800">{showStats ? `${stats.roi.toFixed(1)}%` : '•••%'}</p>
+                <Activity size={16} className="text-amber-500 mb-1" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#0f172a] p-6 rounded-[28px] shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all group overflow-hidden relative text-white">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2.5 bg-white/10 text-white rounded-2xl">
+                <Briefcase size={18} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Trésorerie</span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Dépenses Moy. (Mensuel)</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-black text-white">{showStats ? `${formatNumber(Math.round(stats.burn_rate))} ` : '••••••'}</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">MAD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={`p-6 rounded-[28px] border transition-all group overflow-hidden relative ${stats.benefice_estime < 0 ? 'bg-rose-50 border-rose-100 text-rose-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-black/5 rounded-full -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+          <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-2.5 rounded-2xl ${stats.benefice_estime < 0 ? 'bg-rose-200/50 text-rose-700' : 'bg-emerald-200/50 text-emerald-700'}`}>
+                {stats.benefice_estime < 0 ? <AlertTriangle size={18} /> : <TrendingUp size={18} />}
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${stats.benefice_estime < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                {stats.benefice_estime < 0 ? 'Perte Alerte' : 'Résultat Net'}
+              </span>
+            </div>
+            <div>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${stats.benefice_estime < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Profit Net Final (Total)</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-black">{showStats ? formatNumber(stats.benefice_estime) : '••••••'}</p>
+                <span className="text-[10px] font-bold uppercase opacity-60">MAD</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ── 1.5. Scope Selector ── */}
-      {stats.terrains_stats && stats.terrains_stats.length > 0 && (
-        <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <MapPin className="text-blue-500" size={20} />
-            <label htmlFor="terrain-select" className="text-sm font-black text-slate-700 uppercase tracking-wider">Périmètre d'analyse :</label>
+      {
+        stats.terrains_stats && stats.terrains_stats.length > 0 && (
+          <div className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="text-blue-500" size={20} />
+              <label htmlFor="terrain-select" className="text-sm font-black text-slate-700 uppercase tracking-wider">Filtrer par Projet :</label>
+            </div>
+            <select
+              id="terrain-select"
+              value={selectedTerrainId ?? ''}
+              onChange={(e) => setSelectedTerrainId(e.target.value ? Number(e.target.value) : null)}
+              className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-blue-50/50 outline-none w-full sm:w-auto min-w-[300px]"
+            >
+              <option value="">Global (Tous les projets)</option>
+              {stats.terrains_stats.map((t) => (
+                <option key={t.id} value={t.id}>{t.nom_terrain}</option>
+              ))}
+            </select>
           </div>
-          <select
-            id="terrain-select"
-            value={selectedTerrainId ?? ''}
-            onChange={(e) => setSelectedTerrainId(e.target.value ? Number(e.target.value) : null)}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:ring-4 focus:ring-blue-50/50 outline-none w-full sm:w-auto min-w-[300px]"
-          >
-            <option value="">Global (Tous les projets)</option>
-            {stats.terrains_stats.map((t) => (
-              <option key={t.id} value={t.id}>{t.nom_terrain}</option>
-            ))}
-          </select>
+        )
+      }
+
+      {/* ── 1.6. Smart Insights Pass ── */}
+      <section className="bg-white/70 backdrop-blur-md p-6 rounded-[32px] border border-white shadow-sm flex flex-col md:flex-row items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-1000 delay-300">
+        <div className="p-4 bg-blue-600/10 text-blue-600 rounded-3xl">
+          <Activity size={32} />
         </div>
-      )}
+        <div className="flex-grow">
+          <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Résumé en Direct</h4>
+          <div className="flex flex-wrap gap-x-8 gap-y-2">
+            {stats.margin_percentage > 20 ? (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <p className="text-sm font-bold text-slate-700">La profitabilité est excellente sur ce périmètre.</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                <p className="text-sm font-bold text-slate-700">Marge stable, mais optimisable sur les charges directes.</p>
+              </div>
+            )}
+
+            {(stats.encaissements / (stats.chiffre_affaires || 1)) < 0.5 && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]" />
+                <p className="text-sm font-bold text-slate-700">Recouvrement lent : priorisez les relances clients.</p>
+              </div>
+            )}
+
+            {stats.burn_rate > (stats.encaissements / 12) && (
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                <p className="text-sm font-bold text-slate-700">Les dépenses mensuelles sont supérieures à la moyenne des encaissements.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* ── 2. Résumé Financier Global ── */}
       <section>
@@ -344,141 +474,153 @@ const Dashboard = () => {
 
       {/* ── 2. Analytics Visualizations ── */}
       <section className="grid grid-cols-1 xl:grid-cols-5 gap-8 mb-8 h-auto">
-        {/* Graphique 1: Taux de Remplissage */}
+        {/* Graphique 1: Répartition des Dépenses (Treemap) */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-2">
           <div className="mb-6 flex justify-between items-center">
             <div className="flex justify-between items-center w-full">
               <div>
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Taux de Remplissage</h3>
-                <p className="text-xs text-slate-400 font-medium">Répartition du parc par état de vente</p>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Où va l'argent ?</h3>
+                <p className="text-xs text-slate-400 font-medium tracking-wide italic">Répartition des dépenses par catégorie</p>
               </div>
               <TooltipInfo
-                title="Détail du Remplissage"
-                text="• Libre : Unités disponibles. • Réservé : Bien bloqué (avance versée). • Vendu : Transfert de propriété effectué."
+                title="Décomposition des Charges"
+                text="Visualisation proportionnelle de vos dépenses. Ce graphique vous aide à identifier les poches de dépenses les plus lourdes."
               />
             </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
-              <PieChartIcon size={24} />
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+              <ShoppingBag size={24} />
             </div>
           </div>
-          <div className="flex-grow relative">
+          <div className="flex-grow">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Libre', value: normalizedStats.biens_status['Libre'] || 0, color: '#10b981' },
-                    { name: 'Réservé', value: normalizedStats.biens_status['Réservé'] || 0, color: '#f59e0b' },
-                    { name: 'Vendu', value: normalizedStats.biens_status['Vendu'] || 0, color: '#334155' }
-                  ].filter(d => d.value > 0)}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  animationDuration={1000}
-                >
-                  {[
-                    { name: 'Libre', value: normalizedStats.biens_status['Libre'] || 0, color: '#10b981' },
-                    { name: 'Réservé', value: normalizedStats.biens_status['Réservé'] || 0, color: '#f59e0b' },
-                    { name: 'Vendu', value: normalizedStats.biens_status['Vendu'] || 0, color: '#334155' }
-                  ].filter(d => d.value > 0).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
+              <Treemap
+                data={[
+                  { name: 'Matériaux', value: stats.charges_details.achats, fill: '#6366f1' },
+                  { name: 'M.O Chantiers', value: stats.charges_details.contractors, fill: '#4f46e5' },
+                  { name: 'Intervenants', value: stats.charges_details.intervenants, fill: '#4338ca' },
+                  { name: 'Bureau', value: stats.charges_details.bureau, fill: '#3730a3' },
+                  { name: 'Général', value: stats.charges_details.general_works, fill: '#312e81' },
+                ]}
+                dataKey="value"
+                aspectRatio={4 / 3}
+                stroke="#fff"
+                fill="#4f46e5"
+              >
                 <RechartsTooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                  formatter={(value: any) => [`${formatNumber(value)} DH`, '']}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
                 />
-                <Legend verticalAlign="bottom" height={36} />
-              </PieChart>
+              </Treemap>
             </ResponsiveContainer>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-              <p className="text-[10px] font-black text-slate-400 uppercase">Total</p>
-              <p className="text-xl font-black text-slate-800 group">{Object.values(stats.biens_status).reduce((a, b) => a + b, 0)}</p>
-            </div>
           </div>
         </div>
 
-        {/* Graphique 2: Cash-Flow */}
+        {/* Graphique 2: Performance & Tendances */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-3">
           <div className="mb-6 flex justify-between items-center">
             <div className="flex justify-between items-center w-full">
               <div>
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Flux de Trésorerie</h3>
-                <p className="text-xs text-slate-400 font-medium">Entrées (Paiements) vs Sorties (Dépenses)</p>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Flux sur 12 Mois</h3>
+                <p className="text-xs text-slate-400 font-medium tracking-wide italic">Evolution de l'argent reçu vs dépensé</p>
               </div>
               <TooltipInfo
-                title="Analyse du Cash-Flow"
-                text="• Entrées : Revenus réels (Encaissements). • Sorties : Dépenses réelles (Charges, Chantiers, Achats)."
+                title="Performance Mensuelle"
+                text="Suivi mensuel des revenus vs dépenses. L'écart entre les deux courbes représente votre profitabilité mensuelle réelle."
               />
             </div>
-            <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
-              <BarChartIcon size={24} />
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+              <TrendingUp size={24} />
             </div>
           </div>
           <div className="flex-grow">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: 'Global', Entrées: stats.encaissements, Sorties: stats.charges }
-                ]}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
+              <AreaChart data={stats.monthly_perf} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" hide />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
                 <YAxis hide />
                 <RechartsTooltip
-                  cursor={{ fill: 'transparent' }}
-                  formatter={(value: any) => [`${formatNumber(value || 0)} DH`, '']}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
+                  formatter={(value: any) => [`${formatNumber(value)} DH`, '']}
                 />
-                <Legend verticalAlign="top" align="right" height={36} />
-                <Bar dataKey="Entrées" fill="#10b981" radius={[10, 10, 0, 0]} barSize={60} />
-                <Bar dataKey="Sorties" fill="#f43f5e" radius={[10, 10, 0, 0]} barSize={60} />
-              </BarChart>
+                <Area type="monotone" dataKey="income" name="Revenus" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
+                <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Graphique 3: Perspectives Financières */}
+        {/* Graphique 3: Analyse de Rentabilité */}
         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col h-[450px] xl:col-span-12 mt-8">
           <div className="mb-6 flex justify-between items-center">
             <div className="flex justify-between items-center w-full">
               <div>
-                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Perspectives Financières</h3>
-                <p className="text-xs text-slate-400 font-medium">Revenu Collecté vs Reste à Percoir vs Potentiel Stock</p>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">Indicateurs de Succès</h3>
+                <p className="text-xs text-slate-400 font-medium">Capture des objectifs financiers</p>
               </div>
               <TooltipInfo
-                title="Détails des Perspectives"
-                text="• Recouvré : Argent réel encaissé. • Créances : Argent restant à percevoir des contrats (Vendu/Réservé). • Potentiel : Valeur estimée des unités encore 'Libres'."
+                title="Objectifs de Rentabilité"
+                text="• Recouvrement : Progrès de l'encaissement vs CA total. • Marge : Pourcentage de profit final estimé. • ROI : Retour sur investissement global."
               />
             </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-              <WalletCards size={24} />
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
+              <Zap size={24} />
             </div>
           </div>
-          <div className="flex-grow">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={[
-                  { name: 'Situation', Recouvré: stats.encaissements, Créances: stats.reste_a_recouvrer, Potentiel: stats.chiffre_affaires * 0.2 }
-                ]}
-                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" hide />
-                <YAxis hide />
-                <RechartsTooltip
-                  cursor={{ fill: 'transparent' }}
-                  formatter={(value: any) => [`${formatNumber(value || 0)} DH`, '']}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
-                />
-                <Legend verticalAlign="top" height={36} />
-                <Bar dataKey="Recouvré" fill="#10b981" radius={[10, 10, 0, 0]} barSize={80} />
-                <Bar dataKey="Créances" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={80} />
-                <Bar dataKey="Potentiel" fill="#94a3b8" radius={[10, 10, 0, 0]} barSize={80} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-grow items-center">
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-3xl group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Argent Encaissé (%)</p>
+              <div className="h-48 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={10} data={[{ name: 'Progress', value: (stats.encaissements / (stats.chiffre_affaires || 1)) * 100, fill: '#10b981' }]}>
+                    <RadialBar background dataKey="value" cornerRadius={10} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                  <p className="text-2xl font-black text-slate-800">{((stats.encaissements / (stats.chiffre_affaires || 1)) * 100).toFixed(0)}%</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">Collecté</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-3xl group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Rentabilité Réelle (%)</p>
+              <div className="h-48 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={10} data={[{ name: 'Margin', value: Math.max(0, stats.margin_percentage), fill: '#3b82f6' }]}>
+                    <RadialBar background dataKey="value" cornerRadius={10} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                  <p className="text-2xl font-black text-slate-800">{stats.margin_percentage.toFixed(0)}%</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">Objectif %</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-3xl group">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Argent à Recevoir (MAD)</p>
+              <div className="h-48 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[{ name: 'Potentiel', value: stats.reste_a_recouvrer }]}>
+                    <Bar dataKey="value" fill="#94a3b8" radius={[10, 10, 10, 10]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pt-8">
+                  <p className="text-xs font-black text-slate-600 line-clamp-1">{formatNumber(stats.reste_a_recouvrer)}</p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">A Venir</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -680,7 +822,7 @@ const Dashboard = () => {
 
       </div>
 
-    </div>
+    </div >
   );
 };
 
