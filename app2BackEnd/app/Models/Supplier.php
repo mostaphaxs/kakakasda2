@@ -8,6 +8,7 @@ class Supplier extends Model
 {
     protected $fillable = [
         'nom_societe',
+        'type_entreprise',
         'nom_gerant',
         'adresse',
         'tel',
@@ -15,8 +16,14 @@ class Supplier extends Model
         'if',
         'rc',
         'scan_contrat',
-        'description'
+        'description',
+        'rib'
     ];
+
+    public function guaranteeChecks()
+    {
+        return $this->hasMany(GuaranteeCheck::class);
+    }
 
     public function purchaseInvoices()
     {
