@@ -280,6 +280,12 @@ async fn export_database(app_handle: tauri::AppHandle, destination_path: String)
     Ok("Base de données exportée avec succès.".to_string())
 }
 
+#[tauri::command]
+async fn get_database_path(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let db_path = app_handle.path().app_data_dir().map_err(|e| e.to_string())?.join("database.sqlite");
+    Ok(db_path.to_string_lossy().to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -298,7 +304,7 @@ pub fn run() {
             app.manage(AppState { api_url: Mutex::new(api_url), child: Mutex::new(child) });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_url, get_api_config, import_database, export_database])
+        .invoke_handler(tauri::generate_handler![open_url, get_api_config, import_database, export_database, get_database_path])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {

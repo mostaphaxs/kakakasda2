@@ -245,6 +245,7 @@ const Dashboard = () => {
           )}
         </button>
       </div>
+
       {/* ── 1.2 Executive Highlights ── */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
         <div className="bg-white p-6 rounded-[28px] border border-slate-100 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">

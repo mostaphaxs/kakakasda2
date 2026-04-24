@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Plus, Menu, X, Building2, LogOut, ChevronDown,
+    Menu, X, Building2, LogOut, ChevronDown,
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
@@ -20,7 +20,6 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isExportOpen, setIsExportOpen] = useState(false);
-    const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
     const navigate = useNavigate();
@@ -28,7 +27,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const token = localStorage.getItem('token');
 
     const exportDropdownRef = useRef<HTMLDivElement>(null);
-    const quickAddRef = useRef<HTMLDivElement>(null);
 
     // Sync user from localStorage
     useEffect(() => {
@@ -58,7 +56,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         const handleClickOutside = (e: MouseEvent) => {
             const target = e.target as Node;
             if (exportDropdownRef.current && !exportDropdownRef.current.contains(target)) setIsExportOpen(false);
-            if (quickAddRef.current && !quickAddRef.current.contains(target)) setIsQuickAddOpen(false);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -71,22 +68,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         window.location.reload();
     };
 
-    const quickAddItems = [
-        { icon: MapPin, label: 'Projet', path: '/add-terrain' },
-        { icon: Users, label: 'Intervenant', path: '/intervenants' },
-        { icon: Home, label: 'Bien', path: '/add-property' },
-        { icon: UserPlus, label: 'Client', path: '/add-client' },
-        { icon: HardHat, label: 'Entreprise', path: '/contractors' },
-        { icon: UserCheck, label: 'Ouvrier', path: '/workers' },
-        { icon: Users, label: 'Salarié', path: '/salaries' },
-        { icon: WalletCards, label: 'Charge', path: '/charges' },
-        { icon: Package, label: 'Article', path: '/add-article' },
-        { icon: Truck, label: 'Fournisseur', path: '/add-supplier' },
-        { icon: ShoppingCart, label: 'Achat (Stock)', path: '/add-achat' },
-        { icon: Wrench, label: 'Travaux', path: '/add-travaux' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
-        { icon: FileText, label: 'Créer Facture', path: '/factures' },
-    ];
 
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
@@ -104,8 +85,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
+        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
         { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
-        { icon: FileText, label: 'Factures (Générateur)', path: '/factures-list' },
+        { icon: FileText, label: 'Créer Facture', path: '/factures' },
+        { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
     ];
 
     const exportItems = [
@@ -270,37 +253,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 {/* Main Content */}
                 <div className="flex-grow flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar-white">
 
-                    {/* Nouveau Button */}
-                    <div className="mb-6 px-1 relative" ref={quickAddRef}>
-                        <button
-                            onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-                            className={`
-                                w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all
-                                ${isQuickAddOpen
-                                    ? 'bg-amber-500 text-white'
-                                    : 'bg-white text-slate-900 hover:bg-slate-100 shadow-sm'}
-                            `}
-                        >
-                            <Plus size={18} className={isQuickAddOpen ? '' : 'text-slate-700'} />
-                            {!isCollapsed && <span className="text-sm font-semibold">Nouveau</span>}
-                            {!isCollapsed && <ChevronDown size={14} className={`ml-auto transition-transform ${isQuickAddOpen ? 'rotate-180' : ''}`} />}
-                        </button>
-
-                        {isQuickAddOpen && !isCollapsed && (
-                            <div className="absolute left-0 right-0 mt-2 mx-1 bg-white rounded-lg shadow-xl border border-slate-200 z-50 py-2 animate-in fade-in slide-in-from-top-1 max-h-[300px] overflow-y-auto">
-                                {quickAddItems.map((item) => (
-                                    <button
-                                        key={item.path}
-                                        onClick={() => { navigate(item.path); setIsQuickAddOpen(false); setIsMobileOpen(false); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-amber-600 transition-colors"
-                                    >
-                                        <item.icon size={14} />
-                                        <span>{item.label}</span>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
                     {/* Navigation Items */}
                     <nav className="space-y-1 px-1">
