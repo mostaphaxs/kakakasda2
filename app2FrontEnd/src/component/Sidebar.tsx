@@ -75,7 +75,6 @@ const Sidebar: React.FC = () => {
         { icon: UserPlus, label: 'Clients', path: '/clients' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: Briefcase, label: 'Travaux', path: '/travaux' },
     ];
 

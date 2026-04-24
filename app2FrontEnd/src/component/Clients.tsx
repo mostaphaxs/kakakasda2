@@ -1,6 +1,6 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Link } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,8 @@ import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
+import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
+import { Sparkles, Mail } from 'lucide-react';
 
 
 interface Bien {
@@ -15,6 +17,7 @@ interface Bien {
     terrain_id?: number;
     type_bien: string;
     num_appartement?: string;
+    surface_m2?: number;
     prix_global_finition: number;
     prix_global_non_finition: number;
     statut: string;
@@ -34,6 +37,8 @@ interface Payment {
     notes?: string;
     status: string;
     refund_amount?: string | number;
+    bank_commission: number;
+    receipt_path?: string;
     bien_id?: number;
     bien?: Bien;
 }
@@ -86,6 +91,7 @@ const Clients = () => {
     const [paymentDate, setPaymentDate] = useState(new Date().toLocaleDateString('fr-MA'));
     const [paymentFile, setPaymentFile] = useState<File | null>(null);
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+    const [bankCommission, setBankCommission] = useState('');
     const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
 
     // Cancel / Associate State
@@ -114,6 +120,16 @@ const Clients = () => {
     const [clientCancelNotes, setClientCancelNotes] = useState('');
     const [isSubmittingClientCancel, setIsSubmittingClientCancel] = useState(false);
 
+    // Client–Bien Association Modal State
+    const [isClientAssocModalOpen, setIsClientAssocModalOpen] = useState(false);
+    const [assocTargetClient, setAssocTargetClient] = useState<Client | null>(null);
+    const [assocBienSearch, setAssocBienSearch] = useState('');
+    const [assocBienId, setAssocBienId] = useState('');
+    const [assocAvecFinition, setAssocAvecFinition] = useState(false);
+    const [assocBienFloorFilter, setAssocBienFloorFilter] = useState('all');
+    const [assocBienTypeFilter, setAssocBienTypeFilter] = useState('all');
+    const [isSubmittingAssoc, setIsSubmittingAssoc] = useState(false);
+
     // Details Modal State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [detailClient, setDetailClient] = useState<Client | null>(null);
@@ -127,6 +143,7 @@ const Clients = () => {
     const [whatsappMessageContent, setWhatsappMessageContent] = useState('');
     const [isWhatsAppPhoneModalOpen, setIsWhatsAppPhoneModalOpen] = useState(false);
     const [whatsappTargetPhone, setWhatsappTargetPhone] = useState<string>('');
+    const [isAILoading, setIsAILoading] = useState(false);
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -156,8 +173,10 @@ const Clients = () => {
 
             setClients(clientsData);
             setAvailableBiens(sortedBiens);
+            return clientsData;
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors du chargement des données.');
+            return [];
         } finally {
             setLoading(false);
         }
@@ -172,6 +191,39 @@ const Clients = () => {
         setClientRefundAmount('');
         setClientCancelNotes('');
         setIsClientCancelModalOpen(true);
+    };
+
+    const handleOpenClientAssoc = (client: Client) => {
+        setAssocTargetClient(client);
+        setAssocBienSearch('');
+        setAssocBienId('');
+        setAssocAvecFinition(client.avec_finition || false);
+        setAssocBienFloorFilter('all');
+        setAssocBienTypeFilter('all');
+        setIsClientAssocModalOpen(true);
+    };
+
+    const handleClientAssociateBien = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!assocTargetClient || !assocBienId) return;
+        setIsSubmittingAssoc(true);
+        try {
+            await apiFetch(`/clients/${assocTargetClient.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    ...assocTargetClient, // Satisfy backend validation (nom, prenom, cin, tel)
+                    bien_id: Number(assocBienId),
+                    avec_finition: assocAvecFinition ? 1 : 0
+                }),
+            });
+            toast.success('Bien associé au client !');
+            setIsClientAssocModalOpen(false);
+            fetchData();
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de l'association.");
+        } finally {
+            setIsSubmittingAssoc(false);
+        }
     };
 
     const handleCancelClient = async (e: React.FormEvent) => {
@@ -336,6 +388,7 @@ const Clients = () => {
             setPaymentNotes(payment.notes || '');
             setPaymentDate(payment.payment_date.split('T')[0].split(' ')[0]);
             setPaymentAmount(formatNumber(payment.amount.toString()));
+            setBankCommission(formatNumber((payment as any).bank_commission?.toString() || '0'));
         } else {
             setEditingPaymentId(null);
             setPaymentAmount('');
@@ -344,6 +397,7 @@ const Clients = () => {
             setPaymentReference('');
             setPaymentBank('');
             setPaymentNotes('');
+            setBankCommission('');
             setPaymentDate(new Date().toLocaleDateString('fr-MA'));
         }
         setPaymentFile(null);
@@ -398,7 +452,7 @@ const Clients = () => {
         }
 
         const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-        const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+        const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
         const reste = Math.max(0, prixGlobal - totalVerse);
 
         let message = '';
@@ -411,6 +465,48 @@ const Clients = () => {
         setWhatsappMessageContent(message);
         setIsWhatsAppLangModalOpen(false);
         setIsWhatsAppEditorOpen(true);
+    };
+
+    const handleImproveWithAI = async () => {
+        try {
+            setIsAILoading(true);
+            const improved = await improveWhatsAppMessage(whatsappMessageContent);
+            setWhatsappMessageContent(improved);
+            toast.success('Message amélioré par l\'IA ! ✨', { icon: '✨' });
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de l'amélioration AI.");
+        } finally {
+            setIsAILoading(false);
+        }
+    };
+
+    const handleGenerateEmailWithAI = async (client: Client) => {
+        try {
+            setIsAILoading(true);
+            setWhatsappTargetClient(client);
+            setWhatsappTargetPhone(client.tel);
+            const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
+            const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+            const reste = Math.max(0, prixGlobal - totalVerse);
+            const projectName = client.biens?.[0]?.terrain?.nom_projet || "Vôtre Projet";
+
+            const email = await generateClientEmail({
+                name: `${client.nom} ${client.prenom}`,
+                total: prixGlobal,
+                paid: totalVerse,
+                remaining: reste,
+                project: projectName
+            });
+
+            // For now, we'll open the mail client or just copy to clipboard / show in editor
+            setWhatsappMessageContent(email);
+            setIsWhatsAppEditorOpen(true);
+            toast.success('Email professionnel généré ! 📧', { icon: '📧' });
+        } catch (err: any) {
+            toast.error(err.message || "Erreur lors de la génération de l'email.");
+        } finally {
+            setIsAILoading(false);
+        }
     };
 
     const handleSendWhatsApp = () => {
@@ -484,6 +580,7 @@ const Clients = () => {
             formData.append('method', paymentMethod);
             formData.append('reference_no', paymentReference);
             formData.append('bank_name', paymentBank);
+            formData.append('bank_commission', parseNumber(bankCommission).toString());
             formData.append('notes', paymentNotes);
             if (paymentFile) {
                 formData.append('receipt', paymentFile);
@@ -498,7 +595,17 @@ const Clients = () => {
             toast.success('Paiement enregistré !');
             setIsPaymentModalOpen(false);
             setFieldErrors({});
-            fetchData();
+            const updatedClients = await fetchData();
+            // Redirect to details with fresh data
+            if (selectedClient) {
+                const freshClient = updatedClients.find((c: any) => c.id === selectedClient.id);
+                if (freshClient) {
+                    setDetailClient(freshClient);
+                } else {
+                    setDetailClient(selectedClient);
+                }
+                setIsDetailsModalOpen(true);
+            }
         } catch (err: any) {
             if (err.errors) {
                 setFieldErrors(err.errors);
@@ -569,7 +676,7 @@ const Clients = () => {
 
         const dataToExport = filteredClients.map(c => {
             const prixGlobal = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? parseFloat(String(b.prix_global_finition || 0)) : parseFloat(String(b.prix_global_non_finition || 0))), 0) || 0;
-            const totalVerse = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+            const totalVerse = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
             return {
                 'ID': c.id,
                 'NOM': c.nom?.toUpperCase(),
@@ -603,7 +710,7 @@ const Clients = () => {
                             <Users className="text-blue-600" size={32} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical El Ouaha</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -739,7 +846,7 @@ const Clients = () => {
                                         <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="font-bold text-gray-800">{c.nom} {c.prenom}</div>
+                                                    <div className="font-bold text-gray-800"><MarkdownText text={`${c.nom} ${c.prenom}`} /></div>
                                                     {c.statut === 'Annulé' && (
                                                         <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-full">Annulé</span>
                                                     )}
@@ -759,7 +866,7 @@ const Clients = () => {
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-emerald-600">
                                                         {(() => {
-                                                            const total = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+                                                            const total = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
                                                             return formatNumber(total) + ' DH';
                                                         })()}
                                                     </span>
@@ -786,7 +893,7 @@ const Clients = () => {
                                             <td className="px-6 py-4 font-bold text-rose-500">
                                                 {(() => {
                                                     const prix = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                    const paid = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+                                                    const paid = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
                                                     const reste = Math.max(0, prix - paid);
                                                     if (!c.biens || c.biens.length === 0) return '—';
                                                     return reste > 0 ? formatNumber(reste) + ' DH' : 'Soldé';
@@ -835,6 +942,15 @@ const Clients = () => {
                                                     <button onClick={() => handleEdit(c)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all" >
                                                         <Edit2 size={16} />
                                                     </button>
+                                                    {(!c.biens || c.biens.length === 0) && (
+                                                        <button
+                                                            onClick={() => handleOpenClientAssoc(c)}
+                                                            className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-all border border-transparent hover:border-amber-200"
+                                                            title="Associer un bien"
+                                                        >
+                                                            <Link size={16} />
+                                                        </button>
+                                                    )}
                                                     <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-all" >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -971,16 +1087,23 @@ const Clients = () => {
                                             />
                                             {fieldErrors.reference_no && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.reference_no[0]}</p>}
                                         </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Banque <span className="text-[8px] opacity-50">(Facultatif)</span></label>
-                                            <input
-                                                type="text"
-                                                value={paymentBank}
-                                                onChange={(e) => setPaymentBank(e.target.value)}
-                                                placeholder="Ex: BCP, BMCE..."
-                                                className={`w-full px-3 py-2.5 bg-gray-50 border ${fieldErrors.bank_name ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium`}
-                                            />
-                                            {fieldErrors.bank_name && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.bank_name[0]}</p>}
+                                        <div className="col-span-2 space-y-4">
+                                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                                <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Net en compte (DH)</span>
+                                                <span className="text-xl font-black text-emerald-600 font-mono">
+                                                    {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-emerald-500 uppercase mb-2 tracking-wide font-black">Commission Bancaire (DH)</label>
+                                                <input
+                                                    type="text"
+                                                    value={bankCommission}
+                                                    onChange={(e) => setBankCommission(formatNumber(e.target.value))}
+                                                    placeholder="0 DH"
+                                                    className={`w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-sm text-emerald-600`}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1350,6 +1473,18 @@ const Clients = () => {
                                 </button>
                             </div>
 
+                            <div className="px-6 py-3 bg-indigo-600/5 border-b border-indigo-100 flex items-center justify-between">
+                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Assistant CRM Intelligent</span>
+                                <button
+                                    onClick={() => handleGenerateEmailWithAI(detailClient)}
+                                    disabled={isAILoading}
+                                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50"
+                                >
+                                    {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
+                                    Générer Email Pro (AI)
+                                </button>
+                            </div>
+
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
@@ -1362,7 +1497,7 @@ const Clients = () => {
                                         <p className="text-[10px] font-bold text-emerald-500 uppercase mb-1">Total Versé</p>
                                         <p className="text-lg font-bold text-emerald-600">
                                             {(() => {
-                                                const total = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+                                                const total = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
                                                 return formatNumber(total);
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1372,7 +1507,7 @@ const Clients = () => {
                                         <p className="text-lg font-bold text-rose-600">
                                             {(() => {
                                                 const prix = detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                const paid = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0;
+                                                const paid = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
                                                 return formatNumber(Math.max(0, prix - paid));
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1581,6 +1716,16 @@ const Clients = () => {
                                                                 <span>{p.method}</span>
                                                                 <span>•</span>
                                                                 <span>{p.payment_date}</span>
+                                                                {p.bank_commission > 0 && (
+                                                                    <div className="mt-1 flex items-center gap-2">
+                                                                        <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                            COMMISSION: {formatNumber(p.bank_commission)} DH
+                                                                        </span>
+                                                                        <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                                            NET: {formatNumber(parseFloat(String(p.amount)) - parseFloat(String(p.bank_commission)))} DH
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             {p.bien && (
                                                                 <div className="text-[9px] text-indigo-500 font-bold mt-1">
@@ -1730,6 +1875,179 @@ const Clients = () => {
                     </div>
                 )
             }
+
+            {/* Client → Bien Association Modal */}
+            {isClientAssocModalOpen && assocTargetClient && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                            <div>
+                                <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                    <Link size={16} className="text-amber-500" />
+                                    Associer un Bien
+                                </h3>
+                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                    CLIENT : <MarkdownText text={`${assocTargetClient.nom} ${assocTargetClient.prenom}`} />
+                                </p>
+                            </div>
+                            <button onClick={() => setIsClientAssocModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleClientAssociateBien} className="p-6 space-y-4">
+                            {/* Search field */}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                <input
+                                    type="text"
+                                    placeholder="N° bloc, étage, projet, ou tapez 'bloc'..."
+                                    value={assocBienSearch}
+                                    onChange={(e) => setAssocBienSearch(e.target.value)}
+                                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                />
+                            </div>
+
+                            {/* Type Filters */}
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
+                                {['all', 'Appartement', 'Magasin', 'Bureau', 'Parking', 'Jardin'].map(t => (
+                                    <button
+                                        key={t}
+                                        type="button"
+                                        onClick={() => setAssocBienTypeFilter(t)}
+                                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienTypeFilter === t
+                                            ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-100'
+                                            : 'bg-white text-gray-500 border-gray-100 hover:border-amber-200'
+                                            }`}
+                                    >
+                                        {t === 'all' ? 'Tous les types' : t === 'Appartement' ? 'Blocs (Appart.)' : t}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Floor Filters */}
+                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
+                                {['all', '0', '1', '2', '3', '4', '5'].map(floor => (
+                                    <button
+                                        key={floor}
+                                        type="button"
+                                        onClick={() => setAssocBienFloorFilter(floor)}
+                                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienFloorFilter === floor
+                                            ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-100'
+                                            : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200'
+                                            }`}
+                                    >
+                                        {floor === 'all' ? 'Tous les étages' : floor === '0' ? 'RDC' : `Étage ${floor}`}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Filtered bien list */}
+                            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                                {availableBiens
+                                    .filter(b => b.statut === 'Libre')
+                                    .filter(b => b.statut === 'Libre')
+                                    .filter(b => {
+                                        // Filter by UI Pills
+                                        if (assocBienTypeFilter !== 'all' && b.type_bien !== assocBienTypeFilter) return false;
+                                        if (assocBienFloorFilter !== 'all' && String(b.etage) !== assocBienFloorFilter) return false;
+
+                                        const q = assocBienSearch.toLowerCase().trim();
+                                        if (!q) return true;
+
+                                        // Smarter keyword matching
+                                        if (q === 'bloc' || q === 'blocs') return b.type_bien === 'Appartement';
+
+                                        const etageMatch = q.match(/(?:etage|étage)\s*(\d+)/);
+                                        if (etageMatch) return String(b.etage) === etageMatch[1];
+
+                                        return b.num_appartement?.toLowerCase().includes(q) ||
+                                            b.immeuble?.toLowerCase().includes(q) ||
+                                            b.type_bien?.toLowerCase().includes(q) ||
+                                            b.terrain?.nom_projet?.toLowerCase().includes(q) ||
+                                            String(b.etage) === q ||
+                                            String(b.id).includes(q);
+                                    })
+                                    .map(b => (
+                                        <label
+                                            key={b.id}
+                                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocBienId === String(b.id)
+                                                ? 'bg-amber-50 border-amber-400 shadow-sm'
+                                                : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="assocBien"
+                                                value={b.id}
+                                                checked={assocBienId === String(b.id)}
+                                                onChange={() => setAssocBienId(String(b.id))}
+                                                className="accent-amber-500"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-black text-gray-800 uppercase break-words">
+                                                    <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
+                                                    {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
+                                                    {b.num_appartement ? <> – <MarkdownText text={b.num_appartement} /></> : ''}
+                                                    {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
+                                                </p>
+                                                <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                    {b.terrain?.nom_projet || `Projet #${b.terrain_id}`}
+                                                    {b.surface_m2 ? ` · ${b.surface_m2} m²` : ''}
+                                                </p>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">Libre</span>
+                                        </label>
+                                    ))}
+                                {availableBiens.filter(b => b.statut === 'Libre' && (
+                                    !assocBienSearch ||
+                                    b.num_appartement?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                    b.immeuble?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                    b.type_bien?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                    b.terrain?.nom_projet?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                    String(b.id).includes(assocBienSearch)
+                                )).length === 0 && (
+                                        <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                            Aucun bien libre trouvé.
+                                        </div>
+                                    )}
+                            </div>
+
+                            {/* Avec finition toggle */}
+                            {assocBienId && (
+                                <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                    <div>
+                                        <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
+                                        <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={assocAvecFinition}
+                                            onChange={e => setAssocAvecFinition(e.target.checked)}
+                                            className="sr-only peer"
+                                        />
+                                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-1">
+                                <button type="button" onClick={() => setIsClientAssocModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSubmittingAssoc || !assocBienId}
+                                    className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                >
+                                    {isSubmittingAssoc ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* WhatsApp Language Modal */}
             {
                 isWhatsAppLangModalOpen && whatsappTargetClient && (
@@ -1783,18 +2101,48 @@ const Clients = () => {
                                     <X size={20} />
                                 </button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
-                                    Contenu du message
-                                </label>
-                                <textarea
-                                    value={whatsappMessageContent}
-                                    onChange={(e) => setWhatsappMessageContent(e.target.value)}
-                                    rows={8}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none"
-                                    dir="auto"
-                                />
-                                <div className="mt-6 flex justify-end gap-3">
+                            <div className="px-6 py-2 bg-emerald-600/5 border-b border-emerald-100 flex items-center justify-between">
+                                <span className="text-xs font-bold text-emerald-600">Amélioration Premium</span>
+                                <button
+                                    onClick={handleImproveWithAI}
+                                    disabled={isAILoading}
+                                    className="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm active:scale-95 disabled:opacity-50"
+                                >
+                                    {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                                    Améliorer avec l'IA ✨
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                                        Contenu du message (Tapez *texte* pour le gras)
+                                    </label>
+                                    <textarea
+                                        value={whatsappMessageContent}
+                                        onChange={(e) => setWhatsappMessageContent(e.target.value)}
+                                        rows={8}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none font-mono"
+                                        dir="auto"
+                                    />
+                                </div>
+
+                                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                    <label className="block text-[10px] font-black text-emerald-600 uppercase mb-3 tracking-widest">Aperçu WhatsApp</label>
+                                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                        {whatsappMessageContent.split('\n').map((line, i) => (
+                                            <div key={i} className="mb-1">
+                                                {line.split(/(\*.*?\*)/g).map((part, j) => {
+                                                    if (part.startsWith('*') && part.endsWith('*')) {
+                                                        return <strong key={j} className="font-black text-gray-900">{part.slice(1, -1)}</strong>;
+                                                    }
+                                                    return part;
+                                                })}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => setIsWhatsAppEditorOpen(false)}
                                         className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
@@ -1890,7 +2238,7 @@ const Clients = () => {
                                         <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
                                             <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
                                             <span className="text-sm font-black text-amber-900 font-mono">
-                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0))), 0) || 0)} DH
+                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0)} DH
                                             </span>
                                         </div>
                                         <p className="text-[10px] text-amber-700 font-medium leading-tight">
