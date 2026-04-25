@@ -113,7 +113,7 @@ const Terrains = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">

@@ -12,6 +12,7 @@ class OuvrierMission extends Model
     protected $fillable = [
         'ouvrier_id',
         'terrain_id',
+        'bien_id',
         'type',
         'start_date',
         'end_date',
@@ -30,6 +31,11 @@ class OuvrierMission extends Model
     public function terrain()
     {
         return $this->belongsTo(Terrain::class);
+    }
+
+    public function bien()
+    {
+        return $this->belongsTo(Bien::class);
     }
 
     protected static function booted()

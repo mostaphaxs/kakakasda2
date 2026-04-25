@@ -314,7 +314,7 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white p-4 rounded-[24px] border border-slate-100 shadow-sm flex flex-wrap items-center gap-3">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[24px] border border-white shadow-xl shadow-gray-200/50 flex flex-wrap items-center gap-3 mx-1">
                 <div className="relative flex-grow min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input

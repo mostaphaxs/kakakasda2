@@ -207,7 +207,7 @@ const Charges = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-black text-gray-800 flex items-center gap-2 italic uppercase tracking-tighter">

@@ -221,7 +221,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto font-sans">
 
       {/* ── 1. En-tête (Header) ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+      <div className="sticky top-4 z-30 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] mx-1">
         <div>
           <h1 className="text-3xl font-black text-slate-800 tracking-tight">
             Bonjour, <span className="text-blue-600">{userName}</span>

@@ -355,7 +355,7 @@ const Salaries: React.FC = () => {
             </div>
 
             {/* Filters and Search */}
-            <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row gap-4 items-center justify-between mx-1">
                 <div className="relative w-full md:w-96 group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input

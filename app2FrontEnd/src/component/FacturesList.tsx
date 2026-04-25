@@ -63,7 +63,7 @@ const FacturesList: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto p-4 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mx-1">
                 <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-2">
                     <FileText className="text-blue-600" /> Historique des Factures
                 </h1>

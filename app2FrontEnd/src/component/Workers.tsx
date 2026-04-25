@@ -4,7 +4,7 @@ import {
     Plus, Loader2, Trash2, Edit2, X, User, Phone, FileText,
     Calendar, Search, Download, Briefcase, Ruler, Maximize,
     Clock, CheckCircle2, Banknote, Eye, Info,
-    ChevronRight, TrendingUp, UserCheck, PlusCircle
+    ChevronRight, TrendingUp, UserCheck, PlusCircle, Home
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
@@ -56,6 +56,7 @@ interface Worker {
 const Workers = () => {
     const [workers, setWorkers] = useState<Worker[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
+    const [biens, setBiens] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSpeciality, setFilterSpeciality] = useState('all');
@@ -84,12 +85,14 @@ const Workers = () => {
 
     const [missionForm, setMissionForm] = useState({
         terrain_id: '',
+        bien_id: '',
         type: 'journalier' as 'journalier' | 'periode' | 'm2' | 'ml' | 'forfait',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
         quantity: '1',
         unit_price: '',
         description: '',
+        bienSearchTerm: '',
     });
 
     const [paymentForm, setPaymentForm] = useState({
@@ -139,9 +142,19 @@ const Workers = () => {
         }
     };
 
+    const fetchBiens = async () => {
+        try {
+            const data = await apiFetch<any[]>('/biens');
+            setBiens(data);
+        } catch (err: any) {
+            console.error('Error fetching biens:', err);
+        }
+    };
+
     useEffect(() => {
         fetchWorkers();
         fetchTerrains();
+        fetchBiens();
     }, []);
 
     // Auto-calculate quantity for period missions
@@ -199,10 +212,11 @@ const Workers = () => {
         if (!selectedWorker) return;
         setIsSubmitting(true);
         try {
+            const { bienSearchTerm, ...missionData } = missionForm;
             await apiFetch(`/ouvriers/${selectedWorker.id}/missions`, {
                 method: 'POST',
                 body: JSON.stringify({
-                    ...missionForm,
+                    ...missionData,
                     quantity: parseNumber(missionForm.quantity),
                     unit_price: parseNumber(missionForm.unit_price),
                 })
@@ -348,7 +362,7 @@ const Workers = () => {
             </div>
 
             {/* Filters and Search Bar */}
-            <div className="bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-700">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-700 mx-1">
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" size={20} />
                     <input
@@ -537,7 +551,7 @@ const Workers = () => {
             {
                 isWorkerModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar-white animate-in zoom-in-95 duration-300">
                             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/50">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
@@ -643,7 +657,7 @@ const Workers = () => {
             {
                 isMissionModalOpen && selectedWorker && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar-white">
                             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50 text-emerald-900 leading-none">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
@@ -682,16 +696,65 @@ const Workers = () => {
                                     </div>
 
                                     <div className="col-span-full">
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Projet/Terrain</label>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Projet / Terrain</label>
                                         <select
                                             value={missionForm.terrain_id}
-                                            onChange={(e) => setMissionForm({ ...missionForm, terrain_id: e.target.value })}
+                                            onChange={(e) => setMissionForm({ ...missionForm, terrain_id: e.target.value, bien_id: '', bienSearchTerm: '' })}
                                             className="w-full px-6 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-xs uppercase tracking-widest cursor-pointer"
                                         >
-                                            <option value="">Sélectionner un terrain</option>
+                                            <option value="">Sélectionner un projet</option>
                                             {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_projet} - {t.nom_terrain}</option>)}
                                         </select>
                                     </div>
+
+                                    {missionForm.terrain_id && (
+                                        <div className="col-span-full animate-in slide-in-from-top-2 duration-300">
+                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Bien Spécifique (Optionnel)</label>
+                                            <div className="relative">
+                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={18} />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Rechercher une Villa, Appartement, Local..."
+                                                    value={missionForm.bienSearchTerm}
+                                                    onChange={(e) => setMissionForm({ ...missionForm, bienSearchTerm: e.target.value })}
+                                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                                />
+                                            </div>
+
+                                            <div className="mt-2 max-h-40 overflow-y-auto custom-scrollbar-white space-y-1 bg-white rounded-2xl p-1 border border-gray-100 shadow-inner">
+                                                {biens
+                                                    .filter(b => b.terrain_id === parseInt(missionForm.terrain_id))
+                                                    .filter(b =>
+                                                        !missionForm.bienSearchTerm ||
+                                                        b.nom?.toLowerCase().includes(missionForm.bienSearchTerm.toLowerCase()) ||
+                                                        b.num_appartement?.toLowerCase().includes(missionForm.bienSearchTerm.toLowerCase()) ||
+                                                        b.type_bien?.toLowerCase().includes(missionForm.bienSearchTerm.toLowerCase())
+                                                    )
+                                                    .map(b => (
+                                                        <button
+                                                            key={b.id}
+                                                            type="button"
+                                                            onClick={() => setMissionForm({ ...missionForm, bien_id: b.id.toString(), bienSearchTerm: b.nom || `${b.type_bien} - ${b.num_appartement}` })}
+                                                            className={`w-full text-left px-4 py-3 rounded-xl transition-all flex items-center justify-between group ${missionForm.bien_id === b.id.toString() ? 'bg-emerald-500 text-white shadow-lg' : 'hover:bg-emerald-50 text-gray-600'}`}
+                                                        >
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-1.5 rounded-lg ${missionForm.bien_id === b.id.toString() ? 'bg-white/20' : 'bg-white shadow-sm text-emerald-500'}`}>
+                                                                    <Home size={12} />
+                                                                </div>
+                                                                <div>
+                                                                    <p className={`text-[10px] font-black uppercase tracking-tight ${missionForm.bien_id === b.id.toString() ? 'text-white' : 'text-gray-800'}`}>{b.nom || `${b.type_bien} - ${b.num_appartement}`}</p>
+                                                                    <p className={`text-[9px] font-bold ${missionForm.bien_id === b.id.toString() ? 'text-emerald-100' : 'text-gray-400 font-medium'}`}>{b.type_bien} • {b.statut}</p>
+                                                                </div>
+                                                            </div>
+                                                            {missionForm.bien_id === b.id.toString() && <CheckCircle2 size={16} />}
+                                                        </button>
+                                                    ))}
+                                                {biens.filter(b => b.terrain_id === parseInt(missionForm.terrain_id)).length === 0 && (
+                                                    <p className="text-center py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">Aucun bien trouvé pour ce terrain</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className={`col-span-full ${missionForm.type === 'periode' ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-1'}`}>
                                         <div>
@@ -1020,7 +1083,7 @@ const Workers = () => {
             {
                 isPaymentModalOpen && selectedWorker && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar-white animate-in zoom-in-95 duration-300">
                             <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
