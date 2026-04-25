@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus, Link } from 'lucide-react';
+import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -50,6 +50,28 @@ const Properties = () => {
     const [filterStatut, setFilterStatut] = useState<string>('all');
     const [filterTerrain, setFilterTerrain] = useState<string>('all');
     const [filterEtage, setFilterEtage] = useState<string>('all');
+    const [filterImmeuble, setFilterImmeuble] = useState<string>('all');
+    const headerRef = useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = useState(0);
+
+    useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
 
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isAnnexModalOpen, setIsAnnexModalOpen] = useState(false);
@@ -231,6 +253,7 @@ const Properties = () => {
         if (filterStatut !== 'all' && b.statut !== filterStatut) return false;
         if (filterTerrain !== 'all' && b.terrain_id?.toString() !== filterTerrain) return false;
         if (filterEtage !== 'all' && b.etage?.toString() !== filterEtage) return false;
+        if (filterImmeuble !== 'all' && b.immeuble !== filterImmeuble) return false;
 
         return true;
     }).sort((a, b) => {
@@ -244,7 +267,10 @@ const Properties = () => {
         const immB = b.immeuble || '';
         if (immA !== immB) return immA.localeCompare(immB);
 
-        // 3. Sort by N° Bloc (numerical if possible)
+        // 3. Sort by Etage (Requested: gradually 1 to max)
+        if ((a.etage || 0) !== (b.etage || 0)) return (a.etage || 0) - (b.etage || 0);
+
+        // 4. Sort by N° Bloc (numerical if possible)
         const valA = parseInt(a.num_appartement);
         const valB = parseInt(b.num_appartement);
         if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
@@ -256,6 +282,7 @@ const Properties = () => {
         setFilterStatut('all');
         setFilterTerrain('all');
         setFilterEtage('all');
+        setFilterImmeuble('all');
     };
 
     const handleExport = () => {
@@ -282,14 +309,14 @@ const Properties = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                             <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société Amical</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -313,7 +340,10 @@ const Properties = () => {
                 </div>
 
                 {/* Filter Controls */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-6 border-t border-slate-100">
+                <div
+                    ref={headerRef}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-6 border-t border-slate-100"
+                >
                     <div className="relative lg:col-span-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                         <input
@@ -350,6 +380,18 @@ const Properties = () => {
                                 </option>
                             );
                         })}
+                    </select>
+
+                    {/* New Bloc/Immeuble Filter */}
+                    <select
+                        value={filterImmeuble}
+                        onChange={(e) => setFilterImmeuble(e.target.value)}
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                    >
+                        <option value="all">Bloc: Tous</option>
+                        {Array.from(new Set(biens.map(b => b.immeuble).filter(Boolean)))
+                            .sort((a, b) => (a as string).localeCompare(b as string))
+                            .map(imm => <option key={imm} value={imm}>{imm}</option>)}
                     </select>
 
                     <select
@@ -412,17 +454,20 @@ const Properties = () => {
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-400 uppercase font-black text-[10px] tracking-widest">
-                        <tr>
-                            <th className="px-4 py-2.5">Type & N°</th>
-                            <th className="px-4 py-2.5">Localisation</th>
-                            <th className="px-4 py-2.5 text-center">Surface</th>
-                            <th className="px-4 py-2.5 text-center">Statut</th>
-                            <th className="px-4 py-2.5 text-center whitespace-nowrap">Réalisation (GO / FIN)</th>
-                            <th className="px-4 py-2.5 text-right">Prix Total (Fin / Non Fin)</th>
-                            <th className="px-4 py-2.5 text-right">Actions</th>
+            <div className="bg-white border border-gray-100 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.02)] overflow-hidden">
+                <table className="w-full text-sm text-left border-collapse">
+                    <thead
+                        className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
+                        style={{ top: `${stickyOffset}px` }}
+                    >
+                        <tr className="bg-white">
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Type & N°</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Localisation</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Surface</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Statut</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center whitespace-nowrap">Réalisation</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Prix Total</th>
+                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 italic">
