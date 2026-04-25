@@ -22,9 +22,10 @@ import Clients from './component/Clients.tsx'
 import Profile from './component/Profile.tsx'
 import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import GlobalPreview from './component/GlobalPreview.tsx';
-import Workers from './component/Workers.tsx';
-import Salaries from './component/Salaries.tsx';
-import Transactions from './component/Transactions.tsx';
+import Workers from './component/Workers.tsx'
+import Salaries from './component/Salaries.tsx'
+import Transactions from './component/Transactions.tsx'
+import Contentieux from './component/Contentieux.tsx'
 
 // Procurement Components
 import Articles from './component/procurement/Articles';
@@ -113,6 +114,7 @@ const AppContent: React.FC = () => {
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
               <Route path="/workers" element={<PrivateRoute><Workers /></PrivateRoute>} />
               <Route path="/salaries" element={<PrivateRoute><Salaries /></PrivateRoute>} />
+              <Route path="/contentieux" element={<PrivateRoute><Contentieux /></PrivateRoute>} />
 
               <Route path="/articles" element={<PrivateRoute><Articles /></PrivateRoute>} />
               <Route path="/add-article" element={<PrivateRoute><AddArticle /></PrivateRoute>} />

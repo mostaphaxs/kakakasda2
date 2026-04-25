@@ -4,7 +4,7 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck, History
+    ChevronRight, BarChart3, UserCheck, History, Scale
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
@@ -80,6 +80,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
         { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
+        { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: Package, label: 'Catalogue Articles', path: '/articles' },
         { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
