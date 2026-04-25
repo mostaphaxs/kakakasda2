@@ -4,7 +4,7 @@ import {
     Menu, Building2, LogOut,
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Download, Database, Settings2,
-    ChevronRight, BarChart3, ChevronDown, Truck, Briefcase
+    ChevronRight, BarChart3, ChevronDown, Briefcase, ArrowRightLeft, Banknote, Contact
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -76,6 +76,9 @@ const Sidebar: React.FC = () => {
         { icon: WalletCards, label: 'Charges', path: '/charges' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: Briefcase, label: 'Travaux', path: '/travaux' },
+        { icon: Contact, label: 'Gestion Personnes', path: '/workers' },
+        { icon: Banknote, label: 'Salaires', path: '/salaries' },
+        { icon: ArrowRightLeft, label: 'Transactions', path: '/transactions' },
     ];
 
 

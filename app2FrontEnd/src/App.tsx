@@ -24,6 +24,7 @@ import Clients from './component/Clients.tsx'
 import Profile from './component/Profile.tsx'
 import ConfigPrixBiens from './component/ConfigPrixBiens.tsx'
 import GlobalPreview from './component/GlobalPreview.tsx';
+import Transactions from './component/Transactions.tsx';
 
 // Procurement Components
 import Suppliers from './component/Suppliers';
@@ -88,6 +89,7 @@ const AppContent: React.FC = () => {
               <Route path="/add-supplier" element={<PrivateRoute><AddSupplier /></PrivateRoute>} />
               <Route path="/travaux" element={<PrivateRoute><GeneralWorks /></PrivateRoute>} />
               <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />
+              <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </div>
