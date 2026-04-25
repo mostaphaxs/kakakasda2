@@ -4,7 +4,8 @@ import {
     Users, WalletCards, Phone, MapPin, Loader2, Info, Edit, Trash2, Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { apiFetch } from '../lib/api';
+import { apiFetch, STORAGE_BASE } from '../lib/api';
+import { openExternal } from '../lib/tauri';
 
 export type CourtType = 'CIVILE' | 'COMMERCIALE' | 'PENALE';
 export type CaseStage = 'PREMIERE_INSTANCE' | 'APPEL' | 'CASSATION';
@@ -27,6 +28,10 @@ export interface LegalCase {
     lawyerAddress: string;
     lawyerFees: number;
     judicialFees: number;
+
+    // File upload
+    document_path?: string;
+    documentFile?: File | null;
 }
 
 const initialFormState: Partial<LegalCase> = {
@@ -41,7 +46,8 @@ const initialFormState: Partial<LegalCase> = {
     lawyerPhone: '',
     lawyerAddress: '',
     lawyerFees: 0,
-    judicialFees: 0
+    judicialFees: 0,
+    documentFile: null
 };
 
 const Contentieux = () => {
@@ -61,7 +67,6 @@ const Contentieux = () => {
             setCases(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error("Failed to fetch contentieux", error);
-            // Ignore toast error if endpoint doesn't exist yet, we just initialize with empty
             if (cases.length > 0) {
                 toast.error("Erreur lors du chargement des dossiers contentieux.");
             }
@@ -101,14 +106,28 @@ const Contentieux = () => {
         }
 
         const isEditing = !!formData.id;
-        const method = isEditing ? 'PUT' : 'POST';
         const endpoint = isEditing ? `/contentieux/${formData.id}` : '/contentieux';
+
+        // Use FormData instead of JSON to support file uploads
+        const submitData = new FormData();
+        Object.keys(formData).forEach(key => {
+            if (key === 'documentFile' && formData[key]) {
+                submitData.append('document', formData[key] as File);
+            } else if (key !== 'document_path' && key !== 'documentFile' && formData[key as keyof LegalCase] !== undefined) {
+                submitData.append(key, formData[key as keyof LegalCase] as any);
+            }
+        });
+
+        // We use PUT method via method spoofing in Laravel for FormData boundary issues
+        if (isEditing) {
+            submitData.append('_method', 'PUT');
+        }
 
         try {
             toast.loading(isEditing ? "Modification..." : "Enregistrement...");
-            await apiFetch(endpoint, {
-                method,
-                body: JSON.stringify(formData)
+            await apiFetch(isEditing ? endpoint : '/contentieux', {
+                method: 'POST', // Laravel expects POST with _method=PUT for FormData
+                body: submitData
             });
             toast.dismiss();
             toast.success(`Dossier contentieux ${isEditing ? 'modifié' : 'enregistré'} !`);
@@ -140,7 +159,7 @@ const Contentieux = () => {
     };
 
     const openEditModal = (c: LegalCase) => {
-        setFormData({ ...c, date: c.date.split('T')[0] });
+        setFormData({ ...c, date: c.date.split('T')[0], documentFile: null });
         setIsAddEditModalOpen(true);
     };
 
@@ -183,7 +202,7 @@ const Contentieux = () => {
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                         <Scale className="text-amber-500" size={32} />
-                        Affaires Juridiques (Les CINQ ÉLÉMENTS)
+                        Affaires Juridiques (El Ouaha)
                     </h1>
                     <p className="text-slate-500 font-medium mt-1">Gestion juridique et suivi des affaires en cours pour la société El Ouaha.</p>
                 </div>
@@ -262,8 +281,8 @@ const Contentieux = () => {
                                         <td className="px-4 py-4 align-top">
                                             <div className="flex flex-col gap-1.5 items-start">
                                                 <span className={`px-2 py-0.5 text-[9px] font-black rounded-md uppercase tracking-widest ${c.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
-                                                        c.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
-                                                            'bg-rose-50 text-rose-600'
+                                                    c.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
+                                                        'bg-rose-50 text-rose-600'
                                                     }`}>
                                                     {c.courtType}
                                                 </span>
@@ -376,8 +395,8 @@ const Contentieux = () => {
                         <div className="p-8 space-y-6">
                             <div className="flex gap-4">
                                 <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${selectedCase.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
-                                        selectedCase.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
-                                            'bg-rose-50 text-rose-600'
+                                    selectedCase.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
+                                        'bg-rose-50 text-rose-600'
                                     }`}>
                                     Tribunal {selectedCase.courtType}
                                 </div>
@@ -429,12 +448,30 @@ const Contentieux = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-4">
                                 <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Jugement / Décision</h4>
                                 <div className="p-4 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl text-sm font-medium italic text-slate-600">
                                     {selectedCase.decision || "Aucune décision enregistrée."}
                                 </div>
                             </div>
+
+                            {selectedCase.document_path && (
+                                <div className="space-y-2">
+                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Document Attaché</h4>
+                                    <button
+                                        onClick={() => {
+                                            if (selectedCase.document_path) {
+                                                const url = encodeURI(`${STORAGE_BASE}/${selectedCase.document_path}`);
+                                                openExternal(url);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 p-4 bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-100 transition-colors w-fit font-bold"
+                                    >
+                                        <FileText size={20} />
+                                        Consulter le Scan / Document
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
@@ -619,18 +656,45 @@ const Contentieux = () => {
                                 </div>
                             </div>
 
-                            {/* Section 4: Décision */}
-                            <div className="space-y-1 relative">
-                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                    <Info size={14} className="text-amber-500" />
-                                    Décision / Jugement
-                                </label>
-                                <textarea
-                                    className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 min-h-[100px] resize-y"
-                                    placeholder="Indiquez le jugement s'il y en a un, ou la situation actuelle..."
-                                    value={formData.decision}
-                                    onChange={(e) => setFormData({ ...formData, decision: e.target.value })}
-                                />
+                            {/* Section 4: Décision & Scan */}
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <FileText size={16} className="text-amber-500" />
+                                    Suivi du Cas
+                                </h3>
+
+                                <div className="space-y-1 relative">
+                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <Info size={14} className="text-amber-500" />
+                                        Décision / Jugement
+                                    </label>
+                                    <textarea
+                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 min-h-[100px] resize-y"
+                                        placeholder="Indiquez le jugement s'il y en a un, ou la situation actuelle..."
+                                        value={formData.decision}
+                                        onChange={(e) => setFormData({ ...formData, decision: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-1 relative">
+                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <FileText size={14} className="text-amber-500" />
+                                        Scan / Pièce Jointe
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                setFormData({ ...formData, documentFile: e.target.files[0] });
+                                            }
+                                        }}
+                                    />
+                                    {formData.document_path && !formData.documentFile && (
+                                        <p className="text-xs font-medium text-emerald-600 mt-2 px-2">Un document est déjà rattaché à ce dossier. Vous pouvez le remplacer en choisissant un nouveau fichier.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

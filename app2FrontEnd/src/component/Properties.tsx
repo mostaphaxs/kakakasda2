@@ -309,7 +309,10 @@ const Properties = () => {
 
     return (
         <div className="space-y-6">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1"
+            >
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
@@ -341,7 +344,6 @@ const Properties = () => {
 
                 {/* Filter Controls */}
                 <div
-                    ref={headerRef}
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-6 border-t border-slate-100"
                 >
                     <div className="relative lg:col-span-1">
@@ -454,7 +456,7 @@ const Properties = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.02)] overflow-hidden">
+            <div className="bg-white border border-gray-100 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.02)]">
                 <table className="w-full text-sm text-left border-collapse">
                     <thead
                         className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
@@ -489,7 +491,7 @@ const Properties = () => {
                                                 {b.groupe_habitation ? <> - <MarkdownText text={b.groupe_habitation} /></> : ''}
                                                 {b.immeuble ? <> - Imm. <MarkdownText text={b.immeuble} /></> : ''}
                                                 {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
-                                                {b.num_appartement ? <> - Bloc <MarkdownText text={b.num_appartement} /></> : ''}
+                                                {b.num_appartement ? <> - N° <MarkdownText text={b.num_appartement} /></> : ''}
                                             </span>
                                             <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
                                         </div>
@@ -501,8 +503,8 @@ const Properties = () => {
                                     </td>
                                     <td className="px-4 py-3 text-center font-bold text-slate-500 text-xs">{b.surface_m2} m²</td>
                                     <td className="px-4 py-3 text-center">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                        <div className="flex flex-col items-center gap-1.5">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border whitespace-nowrap ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                                                 b.statut === 'Vendu' ? 'bg-rose-50 text-rose-500 border-rose-100' :
                                                     'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                 }`}>
@@ -511,7 +513,7 @@ const Properties = () => {
                                             {b.clients && b.clients.length > 0 && b.statut !== 'Libre' && (
                                                 <div className="flex flex-col items-center">
                                                     {b.clients.map((c: any) => (
-                                                        <span key={c.id} className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                                                        <span key={c.id} className="text-[9px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">
                                                             <MarkdownText text={`${c.nom} ${c.prenom}`} />
                                                         </span>
                                                     ))}
@@ -520,11 +522,11 @@ const Properties = () => {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                        <div className="flex items-center gap-3 min-w-[200px]">
                                             {/* GO Status Badge */}
-                                            <div className="flex items-center justify-between gap-2 bg-slate-50/50 px-2 py-1 rounded-lg border border-slate-100/50">
-                                                <span className="text-[8px] font-black uppercase text-slate-400 tracking-tighter shrink-0">Gros Œuvre</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${b.gros_oeuvre_pourcentage === 100
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-2.5 py-1.5 rounded-xl border border-slate-100/50">
+                                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter shrink-0">G.O</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${b.gros_oeuvre_pourcentage === 100
                                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                     : 'bg-white text-slate-400 border-slate-100'}`}>
                                                     {b.gros_oeuvre_pourcentage === 100 ? 'Fait' : 'En cours'}
@@ -532,9 +534,9 @@ const Properties = () => {
                                             </div>
 
                                             {/* FIN Status Badge Always visible */}
-                                            <div className="flex items-center justify-between gap-2 bg-slate-50/50 px-2 py-1 rounded-lg border border-slate-100/50 mt-1">
-                                                <span className="text-[8px] font-black uppercase text-slate-500 tracking-tighter shrink-0">Finition</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${b.finition_pourcentage === 100
+                                            <div className="flex items-center gap-2 bg-slate-50/50 px-2.5 py-1.5 rounded-xl border border-slate-100/50">
+                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter shrink-0">FIN</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${b.finition_pourcentage === 100
                                                     ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
                                                     : b.finition_pourcentage > 0
                                                         ? 'bg-blue-50 text-blue-600 border-blue-100'
