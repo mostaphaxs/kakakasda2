@@ -73,6 +73,29 @@ const Workers = () => {
     const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
+
     // Form Data
     const [workerForm, setWorkerForm] = useState({
         name: '',
@@ -362,7 +385,10 @@ const Workers = () => {
             </div>
 
             {/* Filters and Search Bar */}
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-700 mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row items-center gap-4 animate-in fade-in duration-700 mx-1"
+            >
                 <div className="relative flex-1 w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400" size={20} />
                     <input
@@ -398,10 +424,13 @@ const Workers = () => {
             </div>
 
             {/* Main Content Table (Horizontal) */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl italic">
                 <div className="overflow-x-auto custom-scrollbar-white">
                     <table className="w-full text-left border-collapse">
-                        <thead>
+                        <thead
+                            className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
+                            style={{ top: `${stickyOffset}px` }}
+                        >
                             <tr className="bg-gray-50/50 border-b border-gray-100">
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Ouvrier</th>
                                 <th className="px-6 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Spécialité</th>

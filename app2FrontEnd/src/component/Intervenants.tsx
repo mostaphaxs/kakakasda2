@@ -53,6 +53,29 @@ const Intervenants = () => {
     const [paymentFile, setPaymentFile] = useState<File | null>(null);
     const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
+
     // Custom category states
     const PREDEFINED_CATEGORIES = [
         "Architecture", "Bureau de contrôle", "Bureau d'études", "Notaire",
@@ -351,7 +374,10 @@ const Intervenants = () => {
 
     return (
         <div className="space-y-6">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1"
+            >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 uppercase tracking-tight">
@@ -429,7 +455,10 @@ const Intervenants = () => {
 
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                    <thead
+                        className="sticky z-20 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                        style={{ top: `${stickyOffset}px` }}
+                    >
                         <tr>
                             <th className="px-6 py-4 rounded-tl-xl whitespace-nowrap">Société / Intervenant</th>
                             <th className="px-6 py-4 whitespace-nowrap">Gérant / Contact</th>

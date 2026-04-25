@@ -68,6 +68,29 @@ const Salaries: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedSalarie, setSelectedSalarie] = useState<Salarie | null>(null);
 
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
+
     const [form, setForm] = useState({
         name: '',
         cin: '',
@@ -355,7 +378,10 @@ const Salaries: React.FC = () => {
             </div>
 
             {/* Filters and Search */}
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row gap-4 items-center justify-between mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row gap-4 items-center justify-between mx-1"
+            >
                 <div className="relative w-full md:w-96 group">
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input
@@ -378,10 +404,13 @@ const Salaries: React.FC = () => {
             </div>
 
             {/* List Table */}
-            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden mb-12">
-                <div className="overflow-x-auto overflow-y-hidden">
+            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl italic mb-12">
+                <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead>
+                        <thead
+                            className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
+                            style={{ top: `${stickyOffset}px` }}
+                        >
                             <tr className="bg-slate-50/50">
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Identité</th>
                                 <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Spécialité & Grade</th>
