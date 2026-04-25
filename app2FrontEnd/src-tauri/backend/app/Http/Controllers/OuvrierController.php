@@ -64,6 +64,7 @@ class OuvrierController extends Controller
         $ouvrier = Ouvrier::findOrFail($id);
         $validated = $request->validate([
             'terrain_id' => 'nullable|exists:terrains,id',
+            'bien_id' => 'nullable|exists:biens,id',
             'type' => 'required|in:journalier,periode,m2,ml,forfait',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date',
@@ -80,6 +81,7 @@ class OuvrierController extends Controller
         $mission = OuvrierMission::findOrFail($id);
         $validated = $request->validate([
             'terrain_id' => 'nullable|exists:terrains,id',
+            'bien_id' => 'nullable|exists:biens,id',
             'type' => 'required|in:journalier,periode,m2,ml,forfait',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date',

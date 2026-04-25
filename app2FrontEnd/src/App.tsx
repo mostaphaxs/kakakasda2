@@ -10,7 +10,10 @@ import AddProperty from './component/AddProperty.tsx';
 import AddTerrain from './component/AddTerrain.tsx';
 import AddClient from './component/AddClient.tsx';
 import Dashboard from './component/Dashboard.tsx'
+import Salaries from './component/Salaries.tsx';
+import Workers from './component/Workers.tsx';
 import Home from './component/Home.tsx'
+
 import Terrains from './component/Terrains.tsx'
 import Properties from './component/Properties.tsx'
 import Contractors from './component/Contractors.tsx'
@@ -80,6 +83,8 @@ const AppContent: React.FC = () => {
               <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
               <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
               <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
+              <Route path="/workers" element={<PrivateRoute><Workers /></PrivateRoute>} />
+              <Route path="/salaries" element={<PrivateRoute><Salaries /></PrivateRoute>} />
               <Route path="/add-supplier" element={<PrivateRoute><AddSupplier /></PrivateRoute>} />
               <Route path="/travaux" element={<PrivateRoute><GeneralWorks /></PrivateRoute>} />
               <Route path="/add-travaux" element={<PrivateRoute><AddGeneralWork /></PrivateRoute>} />

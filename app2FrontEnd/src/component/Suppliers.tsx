@@ -203,7 +203,7 @@ const Suppliers: React.FC = () => {
 
     return (
         <div className="p-4 space-y-4 bg-gray-50 min-h-screen font-sans">
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-xl border border-white shadow-xl shadow-gray-200/50 space-y-3 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-lg font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
