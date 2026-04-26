@@ -39,6 +39,29 @@ const Transactions: React.FC = () => {
     const [showExportMenu, setShowExportMenu] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
 
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -314,7 +337,10 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Filters Bar */}
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[24px] border border-white shadow-xl shadow-gray-200/50 flex flex-wrap items-center gap-3 mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[24px] border border-white shadow-xl shadow-gray-200/50 flex flex-wrap items-center gap-3 mx-1"
+            >
                 <div className="relative flex-grow min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
@@ -395,10 +421,13 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Main Table */}
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                        <thead>
+                        <thead
+                            className="sticky z-20 bg-white border-b border-slate-100 shadow-sm"
+                            style={{ top: `${stickyOffset}px` }}
+                        >
                             <tr className="bg-slate-50/50 border-b border-slate-100">
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Flux / Mode</th>
                                 <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date / ID</th>

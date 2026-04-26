@@ -687,7 +687,7 @@ const Clients = () => {
                 'ADRESSE': c.adresse || '-',
                 'CIN': c.cin?.toUpperCase(),
                 'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
-                'BLOCS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
+                'N° APPARTEMENT': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
                 'PRIX TOTAL (DH)': prixGlobal,
                 'VERSÉ (DH)': totalVerse,
                 'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
@@ -710,7 +710,7 @@ const Clients = () => {
                             <Users className="text-blue-600" size={32} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -1987,7 +1987,7 @@ const Clients = () => {
                                                 <p className="text-sm font-black text-gray-800 uppercase break-words">
                                                     <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
                                                     {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
-                                                    {b.num_appartement ? <> – <MarkdownText text={b.num_appartement} /></> : ''}
+                                                    {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                                     {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
                                                 </p>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase">

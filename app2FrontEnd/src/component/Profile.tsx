@@ -11,6 +11,7 @@ const Profile: React.FC = () => {
     const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
+    const [dbPath, setDbPath] = useState<string>('');
 
     // Profile form state
     const [name, setName] = useState('');
@@ -73,6 +74,23 @@ const Profile: React.FC = () => {
             setName(parsed.name || '');
             setEmail(parsed.email || '');
         }
+
+        // Fetch DB path
+        const fetchDbPath = async () => {
+            // Safety check for browser environment
+            if (!(window as any).__TAURI_INTERNALS__) {
+                setDbPath('Indisponible en mode navigateur');
+                return;
+            }
+            try {
+                const path = await invoke<string>('get_database_path');
+                setDbPath(path);
+            } catch (err) {
+                console.error("Failed to fetch DB path", err);
+                setDbPath('Erreur lors de la récupération');
+            }
+        };
+        fetchDbPath();
     }, []);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -275,10 +293,19 @@ const Profile: React.FC = () => {
                 <div className="p-8">
                     <div className="bg-purple-50/50 rounded-2xl p-6 border border-purple-100 mb-6">
                         <h4 className="text-purple-800 font-black uppercase tracking-wider text-[11px] mb-2">Importation de données</h4>
-                        <p className="text-purple-600 text-sm font-medium leading-relaxed">
+                        <p className="text-purple-600 text-sm font-medium leading-relaxed mb-4">
                             Vous pouvez importer une base de données existante (fichier .sqlite).
                             <span className="block mt-2 font-black text-purple-700">⚠️ Attention : Cette opération remplacera toutes vos données actuelles.</span>
                         </p>
+
+                        <div className="pt-4 border-t border-purple-100">
+                            <h4 className="text-purple-800 font-black uppercase tracking-wider text-[10px] mb-2 opacity-70">Emplacement de la base de données actuelle :</h4>
+                            <div className="bg-white/50 p-3 rounded-xl border border-purple-200 break-all">
+                                <code className="text-[11px] font-mono font-bold text-purple-900 leading-tight">
+                                    {dbPath || 'Chargement du chemin...'}
+                                </code>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

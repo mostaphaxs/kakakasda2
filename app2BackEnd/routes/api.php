@@ -24,6 +24,7 @@ use App\Http\Controllers\FactureController;
 use App\Http\Controllers\OuvrierController;
 use App\Http\Controllers\SalarieController;
 use App\Http\Controllers\FinancialController;
+use App\Http\Controllers\ContentieuxController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -126,6 +127,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('salaries', SalarieController::class);
     
+    // Contentieux (Dossiers Juridiques)
+    Route::apiResource('contentieux', ContentieuxController::class);
+
 });
 
 // 🖼️ UNIVERSAL DOCUMENT SERVE (Bypass web.php)

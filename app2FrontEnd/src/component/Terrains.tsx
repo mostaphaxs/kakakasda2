@@ -1,4 +1,4 @@
-// src/component/Terrains.tsx
+// Terrains.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Briefcase } from 'lucide-react';
@@ -113,14 +113,14 @@ const Terrains = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white/70 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6">
+            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                             <MapPin className="text-blue-600" size={32} />
                             Gestion des Projets
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Amical El Ouaha</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">

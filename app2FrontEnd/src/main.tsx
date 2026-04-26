@@ -2,8 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { QueryProvider } from './providers/QueryProvider.tsx'
-import { initializeApiConfig } from './lib/api.ts'
+import { QueryProvider } from './providers/QueryProvider'
+import { initializeApiConfig } from './lib/api'
 
 // Initialize API config from Tauri before rendering
 initializeApiConfig().then(() => {

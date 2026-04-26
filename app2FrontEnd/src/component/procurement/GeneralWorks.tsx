@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { apiFetch } from '../lib/api';
+import { apiFetch } from '../../lib/api';
 import { Wrench, Search, PlusCircle, Download, Edit2, Trash2, X, Save, Banknote, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { exportToExcel } from '../lib/excel';
+import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -33,6 +33,29 @@ const GeneralWorks: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedWork, setSelectedWork] = useState<GeneralWork | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
 
     const { register, handleSubmit, reset, watch } = useForm();
 
@@ -121,7 +144,10 @@ const GeneralWorks: React.FC = () => {
 
     return (
         <div className="p-4 space-y-4 bg-gray-50 min-h-screen">
-            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-xl border border-white shadow-xl shadow-gray-200/50 space-y-3 mx-1"
+            >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-lg font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
@@ -155,9 +181,12 @@ const GeneralWorks: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-sm">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm text-sm">
                 <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                    <thead
+                        className="sticky z-20 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                        style={{ top: `${stickyOffset}px` }}
+                    >
                         <tr>
                             <th className="px-4 py-2.5">Nature des Travaux</th>
                             <th className="px-4 py-2.5">Projet</th>

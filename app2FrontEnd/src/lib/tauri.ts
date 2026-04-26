@@ -22,9 +22,10 @@ export async function openExternal(url: string): Promise<void> {
         /\.(png|jpg|jpeg|webp|jfif|gif)$/.test(cleanUrl) ||
         url.includes('/scanned_docs/') ||
         url.includes('/receipts/') ||
-        url.includes('/clients/') ||    
+        url.includes('/clients/') ||
         url.includes('/ouvriers/') ||
         url.includes('/salaries/') ||
+        url.includes('/contentieux_docs/') ||
         url.includes('/contracts/');
 
     const isDoc = isInternal && isViewable;

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { apiFetch } from '../lib/api';
+import { apiFetch } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { User, Save, Trash2 } from 'lucide-react';
 

@@ -56,7 +56,7 @@ const AIAssistant: React.FC = () => {
             try {
                 const stats = await apiFetch<any>('/stats');
                 const context = `
-                    Société: Société les cinq éléments
+                    Société: Amical EL OUAHA
                     CA Total: ${stats.chiffre_affaires} MAD
                     Encaissé: ${stats.encaissements} MAD
                     Reste: ${stats.reste_a_recouvrer} MAD

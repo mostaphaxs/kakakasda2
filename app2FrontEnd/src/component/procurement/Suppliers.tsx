@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { apiFetch, STORAGE_BASE } from '../lib/api';
-import { openExternal } from '../lib/tauri';
+import { apiFetch, STORAGE_BASE } from '../../lib/api';
+import { openExternal } from '../../lib/tauri';
 import { Truck, Search, PlusCircle, Trash2, Download, Edit2, X, Save, User, Phone, MapPin, Briefcase, FileText, ExternalLink, Upload, Eye, ShoppingCart, Loader2, Check, Plus, Boxes, Banknote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { exportToExcel } from '../lib/excel';
+import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -46,6 +46,29 @@ const Suppliers: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
     const [contractFile, setContractFile] = useState<File | null>(null);
+
+    const headerRef = React.useRef<HTMLDivElement>(null);
+    const [stickyOffset, setStickyOffset] = React.useState(0);
+
+    React.useEffect(() => {
+        const updateOffset = () => {
+            if (headerRef.current) {
+                // Buffer for the sticky top-4 (1rem = 16px approx)
+                setStickyOffset(headerRef.current.offsetHeight + 16);
+            }
+        };
+
+        updateOffset();
+        window.addEventListener('resize', updateOffset);
+        const observer = new ResizeObserver(updateOffset);
+        if (headerRef.current) observer.observe(headerRef.current);
+
+        return () => {
+            window.removeEventListener('resize', updateOffset);
+            observer.disconnect();
+        };
+    }, []);
+
 
     // Guarantee Checks State
     const [isGuaranteeModalOpen, setIsGuaranteeModalOpen] = useState(false);
@@ -203,7 +226,10 @@ const Suppliers: React.FC = () => {
 
     return (
         <div className="p-4 space-y-4 bg-gray-50 min-h-screen font-sans">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-xl border border-white shadow-xl shadow-gray-200/50 space-y-3 mx-1">
+            <div
+                ref={headerRef}
+                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-xl border border-white shadow-xl shadow-gray-200/50 space-y-3 mx-1"
+            >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-lg font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
@@ -236,9 +262,12 @@ const Suppliers: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-sm">
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm italic">
+                <table className="w-full text-left border-collapse">
+                    <thead
+                        className="sticky z-20 bg-white border-b border-gray-100 shadow-sm text-gray-500 text-[10px] font-black uppercase tracking-widest"
+                        style={{ top: `${stickyOffset}px` }}
+                    >
                         <tr>
                             <th className="px-4 py-2.5">Société / Contact</th>
                             <th className="px-4 py-2.5">Identifiants</th>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { apiFetch } from '../lib/api';
+import { apiFetch } from '../../lib/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { Wrench, Save, ArrowLeft } from 'lucide-react';
