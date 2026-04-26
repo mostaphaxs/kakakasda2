@@ -425,7 +425,7 @@ const Workers = () => {
 
             {/* Main Content Table (Horizontal) */}
             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl italic">
-                <div className="overflow-x-auto custom-scrollbar-white">
+                <div className="custom-scrollbar-white">
                     <table className="w-full text-left border-collapse">
                         <thead
                             className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"

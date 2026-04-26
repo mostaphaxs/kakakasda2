@@ -402,7 +402,7 @@ const AddClient: React.FC = () => {
                                                     value={b.id}
                                                     disabled={b.statut !== 'Libre'}
                                                 >
-                                                    {b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} {b.immeuble ? `(Imm. ${b.immeuble})` : ''} {b.num_appartement ? `(Bloc ${b.num_appartement})` : ''} · {b.etage === 0 ? 'RDC' : `Étage ${b.etage}`} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                                    {b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} {b.immeuble ? `(Imm. ${b.immeuble})` : ''} {b.num_appartement ? `(N° Appartement ${b.num_appartement})` : ''} · {b.etage === 0 ? 'RDC' : `Étage ${b.etage}`} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
                                                 </option>
                                             ))}
                                         </select>

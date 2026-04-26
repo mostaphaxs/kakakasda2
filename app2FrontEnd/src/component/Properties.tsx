@@ -491,7 +491,7 @@ const Properties = () => {
                                                 {b.groupe_habitation ? <> - <MarkdownText text={b.groupe_habitation} /></> : ''}
                                                 {b.immeuble ? <> - Imm. <MarkdownText text={b.immeuble} /></> : ''}
                                                 {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
-                                                {b.num_appartement ? <> - N° <MarkdownText text={b.num_appartement} /></> : ''}
+                                                {b.num_appartement ? <> - N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                             </span>
                                             <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
                                         </div>

@@ -687,7 +687,7 @@ const Clients = () => {
                 'ADRESSE': c.adresse || '-',
                 'CIN': c.cin?.toUpperCase(),
                 'BIENS ASSIGNÉS': c.biens?.map(b => b.type_bien).join(', ') || 'N/A',
-                'BLOCS': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
+                'N° APPARTEMENT': c.biens?.map(b => b.num_appartement).filter(Boolean).join(', ') || 'N/A',
                 'PRIX TOTAL (DH)': prixGlobal,
                 'VERSÉ (DH)': totalVerse,
                 'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
@@ -1987,7 +1987,7 @@ const Clients = () => {
                                                 <p className="text-sm font-black text-gray-800 uppercase break-words">
                                                     <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
                                                     {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
-                                                    {b.num_appartement ? <> – <MarkdownText text={b.num_appartement} /></> : ''}
+                                                    {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                                     {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
                                                 </p>
                                                 <p className="text-[10px] text-gray-400 font-bold uppercase">

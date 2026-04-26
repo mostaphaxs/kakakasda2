@@ -181,7 +181,7 @@ const GeneralWorks: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden text-sm">
+            <div className="bg-white border border-gray-200 rounded-xl shadow-sm text-sm">
                 <table className="w-full text-left">
                     <thead
                         className="sticky z-20 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest shadow-sm"
