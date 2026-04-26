@@ -421,7 +421,7 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Main Table */}
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead
