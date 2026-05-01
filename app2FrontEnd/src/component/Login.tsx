@@ -120,12 +120,30 @@ export default function Login() {
                   <Loader2 size={20} className="animate-spin" />
                 ) : (
                   <>
-                    Connexion
+                    Connexion Admin
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
             </div>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                <span className="bg-white px-4 text-slate-300">Ou</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/portal/login')}
+              className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-amber-100 group shadow-sm shadow-amber-100/50"
+            >
+              Accéder à l'Espace Acquéreur
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </form>
 
           <div className="mt-10 text-center">

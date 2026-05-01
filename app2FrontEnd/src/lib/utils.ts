@@ -93,13 +93,46 @@ export const numberToFrenchWords = (n: number): string => {
 
 export const formatNumber = (val: any): string => {
     if (val === undefined || val === null || val === '') return '';
-    const num = typeof val === 'number' ? val : parseNumber(val);
-    if (isNaN(num)) return String(val);
+
+    if (typeof val === 'number') {
+        return new Intl.NumberFormat('fr-MA', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(val).replace(/\s/g, '.');
+    }
+
+    let str = String(val);
+
+    // Removing existing formatting to analyze raw entry
+    // We remove spaces and dots (which represent thousands in fr-MA)
+    str = str.replace(/\s/g, '').replace(/\./g, '');
+
+    if (str.includes(',')) {
+        const parts = str.split(',');
+        const intPart = parts[0];
+        // Ensure decimal part is digits only, max 2 chars
+        const decPart = parts.slice(1).join('').replace(/[^0-9]/g, '').slice(0, 2);
+
+        let formattedInt = '0';
+        if (intPart === '-') {
+            formattedInt = '-';
+        } else if (intPart !== '') {
+            const numInt = parseInt(intPart, 10);
+            if (!isNaN(numInt)) {
+                formattedInt = new Intl.NumberFormat('fr-MA').format(numInt).replace(/\s/g, '.');
+            }
+        }
+
+        return `${formattedInt},${decPart}`;
+    }
+
+    const num = parseNumber(val);
+    if (isNaN(num)) return str;
 
     return new Intl.NumberFormat('fr-MA', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2
-    }).format(num).replace(/\s/g, '.'); // Replace space with dot for thousands
+    }).format(num).replace(/\s/g, '.');
 };
 
 export const parseNumber = (val: any): number => {
@@ -119,4 +152,21 @@ export const parseNumber = (val: any): number => {
     const clean = str.replace(/\s/g, '').replace(/\./g, '').replace(/,/g, '.');
     const num = parseFloat(clean);
     return isNaN(num) ? 0 : num;
+};
+
+/**
+ * Parses a date string safely, supporting both ISO and French (d/m/Y) formats.
+ */
+export const parseDate = (dateStr: string | null | undefined): Date => {
+    if (!dateStr) return new Date();
+
+    // Check if it's in d/m/Y format (e.g., 29/04/2024)
+    const frenchMatch = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (frenchMatch) {
+        const [_, d, m, y] = frenchMatch;
+        return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    }
+
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
 };

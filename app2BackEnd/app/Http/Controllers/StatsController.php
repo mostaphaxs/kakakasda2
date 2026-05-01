@@ -32,7 +32,7 @@ class StatsController extends Controller
 
         // 4. Charges Bureau (Sum of specific charge columns)
         $chargesBureau = Charge::selectRaw('
-            SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
+            SUM(loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
         ')->value('total') ?? 0;
 
         // 5. Charges Intervenants (Sum of payments to Intervenants)
@@ -98,7 +98,7 @@ class StatsController extends Controller
 
         $allChargesBureauByTerrain = Charge::selectRaw('
                 terrain_id,
-                SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
+                SUM(loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total
             ')
             ->groupBy('terrain_id')
             ->pluck('total', 'terrain_id');
@@ -215,7 +215,7 @@ class StatsController extends Controller
             
             $expCharges = Charge::whereYear('periode', $month->year)
                 ->whereMonth('periode', $month->month)
-                ->selectRaw('SUM(frais_tel + internet + loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total')
+                ->selectRaw('SUM(loyer_bureau + fournitures_bureau + employes_bureau + impots + gasoil) as total')
                 ->value('total') ?? 0;
             
             $expContractors = ContractorPayment::whereYear('payment_date', $month->year)

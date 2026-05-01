@@ -61,6 +61,7 @@ const AddGeneralWork: React.FC = () => {
                         <div>
                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Type de Travail</label>
                             <select {...register('work_type', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 transition-all font-bold shadow-sm ring-0 outline-none">
+                                <option value="Travaux de construction">Travaux de construction</option>
                                 <option value="Décapage">Décapage</option>
                                 <option value="Nettoyage">Nettoyage</option>
                                 <option value="Atterrassement">Atterrassement</option>
@@ -75,6 +76,12 @@ const AddGeneralWork: React.FC = () => {
                                 <option value="">Aucun (Global)</option>
                                 {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_terrain}</option>)}
                             </select>
+                        </div>
+                        <div className="md:col-span-2 mt-[-10px]">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                Description du Travaux
+                            </label>
+                            <textarea {...register('description')} rows={3} placeholder="Détails du travail effectué..." className="w-full p-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-blue-500 transition-all font-bold text-sm outline-none shadow-sm resize-none"></textarea>
                         </div>
                     </div>
 

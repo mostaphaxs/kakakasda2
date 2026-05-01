@@ -14,7 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, parseDate } from '../lib/utils';
 import MarkdownText from './common/MarkdownText';
 
 interface Stats {
@@ -748,11 +748,12 @@ const Dashboard = () => {
           </div>
 
           <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4">Stock par Typologie</h4>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(stats.biens_types).map(([type, count]) => (
-              <div key={type} className="px-4 py-2 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold border border-slate-100 flex gap-3">
-                <span>{type}</span>
-                <span className="text-amber-600">{count as number}</span>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-slate-500">
+            {Object.entries(stats.biens_types).map(([type, count], i) => (
+              <div key={type} className="flex items-center gap-2">
+                {i > 0 && <span className="w-1 h-1 rounded-full bg-slate-200" />}
+                <span>{type}:</span>
+                <span className="text-amber-600 font-black">{count as number}</span>
               </div>
             ))}
           </div>
@@ -778,7 +779,7 @@ const Dashboard = () => {
                   </div>
                   <div>
                     <p className="text-sm font-black text-slate-800 uppercase tracking-tight">{p.client?.prenom} {p.client?.nom}</p>
-                    <p className="text-[10px] text-slate-400 font-bold">{new Date(p.payment_date).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-slate-400 font-bold">{parseDate(p.payment_date).toLocaleDateString()}</p>
                   </div>
                 </div>
                 {renderAmount(p.amount, "text-base", "text-emerald-600")}

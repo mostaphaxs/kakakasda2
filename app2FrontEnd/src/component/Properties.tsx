@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -252,30 +252,48 @@ const Properties = () => {
 
         if (filterStatut !== 'all' && b.statut !== filterStatut) return false;
         if (filterTerrain !== 'all' && b.terrain_id?.toString() !== filterTerrain) return false;
-        if (filterEtage !== 'all' && b.etage?.toString() !== filterEtage) return false;
+        if (filterEtage !== 'all') {
+            const bEtage = (b.etage === null || b.etage === undefined) ? 'none' : b.etage.toString();
+            if (bEtage !== filterEtage) return false;
+        }
         if (filterImmeuble !== 'all' && b.immeuble !== filterImmeuble) return false;
 
         return true;
     }).sort((a, b) => {
-        // 1. Sort by Project Name
-        const terrainA = a.terrain?.nom_projet || '';
-        const terrainB = b.terrain?.nom_projet || '';
-        if (terrainA !== terrainB) return terrainA.localeCompare(terrainB);
+        // 1. Project
+        const terrainA = (a.terrain?.nom_projet || '').trim().toLowerCase();
+        const terrainB = (b.terrain?.nom_projet || '').trim().toLowerCase();
+        if (terrainA !== terrainB) return terrainA.localeCompare(terrainB, 'fr-MA', { numeric: true });
 
-        // 2. Sort by Immeuble
-        const immA = a.immeuble || '';
-        const immB = b.immeuble || '';
-        if (immA !== immB) return immA.localeCompare(immB);
+        // 2. Bloc / Groupe (Combining Nom and Groupe to be safe)
+        const blockA = (a.nom || a.groupe_habitation || '').trim().toLowerCase();
+        const blockB = (b.nom || b.groupe_habitation || '').trim().toLowerCase();
+        if (blockA !== blockB) return blockA.localeCompare(blockB, 'fr-MA', { numeric: true });
 
-        // 3. Sort by Etage (Requested: gradually 1 to max)
-        if ((a.etage || 0) !== (b.etage || 0)) return (a.etage || 0) - (b.etage || 0);
+        // 3. Immeuble (KEEP BUILDINGS TOGETHER)
+        const immA = (a.immeuble || '').trim().toLowerCase();
+        const immB = (b.immeuble || '').trim().toLowerCase();
+        if (immA !== immB) return immA.localeCompare(immB, 'fr-MA', { numeric: true });
 
-        // 4. Sort by N° Bloc (numerical if possible)
-        const valA = parseInt(a.num_appartement);
-        const valB = parseInt(b.num_appartement);
-        if (!isNaN(valA) && !isNaN(valB)) return valA - valB;
-        return (a.num_appartement || '').localeCompare(b.num_appartement || '');
+        // 4. Etage
+        const etageA = a.etage || 0;
+        const etageB = b.etage || 0;
+        if (etageA !== etageB) return etageA - etageB;
+
+        // 5. N° Appartement (Final fallback)
+        const refA = (a.num_appartement || '').trim().toLowerCase();
+        const refB = (b.num_appartement || '').trim().toLowerCase();
+        return refA.localeCompare(refB, 'fr-MA', { numeric: true });
     });
+
+    const typeBreakdown = useMemo(() => {
+        const counts: Record<string, number> = {};
+        filteredBiens.forEach(b => {
+            const type = b.type_bien || 'Autre';
+            counts[type] = (counts[type] || 0) + 1;
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }, [filteredBiens]);
 
     const resetFilters = () => {
         setSearchTerm('');
@@ -410,6 +428,7 @@ const Properties = () => {
                                     {etage === 0 ? 'RDC' : `Étage ${etage}`}
                                 </option>
                             ))}
+                        <option value="none">Sans Étage</option>
                     </select>
 
                     <button
@@ -427,30 +446,48 @@ const Properties = () => {
                 <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
                     <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Layout size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Unités</p>
-                        <p className="text-2xl font-black text-slate-800">{biens.length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            {filteredBiens.length !== biens.length ? 'Résultats' : 'Total Unités'}
+                        </p>
+                        <div className="flex items-baseline gap-2">
+                            <p className="text-2xl font-black text-slate-800">{filteredBiens.length}</p>
+                            {filteredBiens.length !== biens.length && (
+                                <p className="text-[10px] font-bold text-slate-400">/ {biens.length}</p>
+                            )}
+                        </div>
+                        <div className="mt-2 flex items-center flex-wrap gap-x-2 gap-y-1 text-[8px] font-black uppercase tracking-tight text-slate-400">
+                            {typeBreakdown.map(([type, count]: [string, number], i) => (
+                                <React.Fragment key={type}>
+                                    {i > 0 && <span className="text-slate-200">/</span>}
+                                    <span className="text-slate-600 flex items-center gap-1">
+                                        <span className="text-amber-500 font-black">{count}</span>
+                                        {type}{type.endsWith('s') || type.endsWith('x') ? '' : count > 1 ? 's' : ''}
+                                    </span>
+                                </React.Fragment>
+                            ))}
+                        </div>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
                     <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Check size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réservés</p>
-                        <p className="text-2xl font-black text-slate-800">{biens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réservés / Vendus</p>
+                        <p className="text-2xl font-black text-slate-800">{filteredBiens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
                     <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><Boxes size={24} /></div>
                     <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Disponibles</p>
-                        <p className="text-2xl font-black text-slate-800">{biens.filter(b => b.statut === 'Libre').length}</p>
+                        <p className="text-2xl font-black text-slate-800">{filteredBiens.filter(b => b.statut === 'Libre').length}</p>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
                     <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl"><Landmark size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valeur Stock</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valeur Stock (Filtré)</p>
                         <p className="text-xl font-black text-slate-800 tracking-tighter">
-                            {formatNumber(biens.reduce((acc, b) => acc + Number(b.prix_global_finition), 0))} <span className="text-xs text-slate-400">MAD</span>
+                            {formatNumber(filteredBiens.reduce((acc, b) => acc + Number(getEffectivePrice(b, 'finition')), 0))} <span className="text-xs text-slate-400">MAD</span>
                         </p>
                     </div>
                 </div>
@@ -472,7 +509,7 @@ const Properties = () => {
                             <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 italic">
+                    <tbody className="divide-y divide-gray-100">
                         {loading ? (
                             <tr>
                                 <td colSpan={8} className="py-20 text-center text-gray-400">Chargement...</td>

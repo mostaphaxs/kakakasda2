@@ -26,6 +26,9 @@ export async function openExternal(url: string): Promise<void> {
         url.includes('/ouvriers/') ||
         url.includes('/salaries/') ||
         url.includes('/contentieux_docs/') ||
+        url.includes('/contentieux_scans/') ||
+        url.includes('/commissaire_scans/') ||
+        url.includes('/invoice_scans/') ||
         url.includes('/contracts/');
 
     const isDoc = isInternal && isViewable;

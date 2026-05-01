@@ -58,9 +58,10 @@ class BienController extends Controller
             : [];
 
         $terrainId = (string)$validated['terrain_id'];
-        $projectCfg     = $allSettings['projects'][$terrainId] ?? null;
-        $defaultFin     = $projectCfg['finition']    ?? $allSettings['default']['finition']    ?? 9000;
-        $defaultGros    = $projectCfg['gros_oeuvre'] ?? $allSettings['default']['gros_oeuvre'] ?? 7000;
+        $typeBien  = $validated['type_bien'];
+        $projectCfg     = $allSettings['projects'][$terrainId][$typeBien] ?? null;
+        $defaultFin     = $projectCfg['finition']    ?? $allSettings['default'][$typeBien]['finition']    ?? 9000;
+        $defaultGros    = $projectCfg['gros_oeuvre'] ?? $allSettings['default'][$typeBien]['gros_oeuvre'] ?? 7000;
 
         $validated['prix_par_m2_finition']    = $validated['prix_par_m2_finition']    ?? $defaultFin;
         $validated['prix_global_finition']    = $validated['surface_m2'] * $validated['prix_par_m2_finition'];

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { toast } from 'react-hot-toast';
+import { formatNumber, parseDate } from '../lib/utils';
 import { exportToExcel } from '../lib/excel';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -461,7 +462,7 @@ const Transactions: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-black text-slate-800">{new Date(tx.date).toLocaleDateString('fr-MA')}</span>
+                                                <span className="text-sm font-black text-slate-800">{parseDate(tx.date).toLocaleDateString('fr-MA')}</span>
                                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{tx.id}</span>
                                             </div>
                                         </td>
@@ -537,7 +538,7 @@ const Transactions: React.FC = () => {
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
                                     <p className="text-lg font-black text-slate-800 flex items-center justify-end gap-2">
                                         <Calendar size={18} className="text-slate-400" />
-                                        {new Date(selectedTx.date).toLocaleDateString('fr-MA', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                        {parseDate(selectedTx.date).toLocaleDateString('fr-MA', { day: 'numeric', month: 'long', year: 'numeric' })}
                                     </p>
                                 </div>
                             </div>

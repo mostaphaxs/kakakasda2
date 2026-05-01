@@ -8,8 +8,9 @@ import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
+import { Sparkles, Mail, FileSignature } from 'lucide-react';
+import { generateContract } from '../lib/ContractGenerator';
 import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
-import { Sparkles, Mail } from 'lucide-react';
 
 
 interface Bien {
@@ -144,6 +145,10 @@ const Clients = () => {
     const [isWhatsAppPhoneModalOpen, setIsWhatsAppPhoneModalOpen] = useState(false);
     const [whatsappTargetPhone, setWhatsappTargetPhone] = useState<string>('');
     const [isAILoading, setIsAILoading] = useState(false);
+
+    // Contract Generation State
+    const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+    const [contractTargetClient, setContractTargetClient] = useState<Client | null>(null);
 
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
@@ -733,6 +738,63 @@ const Clients = () => {
                     </div>
                 </div>
 
+                {/* Contract Selection Modal */}
+                {isContractModalOpen && contractTargetClient && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/50">
+                                <h3 className="font-bold text-gray-800">Générer un Contrat</h3>
+                                <button onClick={() => setIsContractModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <p className="text-xs text-gray-500 text-center font-medium">Quel type de document souhaitez-vous générer pour <span className="font-bold text-slate-800">{contractTargetClient.nom} {contractTargetClient.prenom}</span> ?</p>
+
+                                <button
+                                    onClick={() => {
+                                        const bien = contractTargetClient.biens?.[0];
+                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
+                                        generateContract('RESERVATION',
+                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
+                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
+                                        );
+                                        setIsContractModalOpen(false);
+                                        toast.success("Contrat de réservation généré !");
+                                    }}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-slate-800 group-hover:text-amber-700">Contrat de Réservation</p>
+                                        <p className="text-[10px] text-slate-400">Pour une nouvelle réservation</p>
+                                    </div>
+                                    <FileSignature size={20} className="text-slate-300 group-hover:text-amber-500" />
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        const bien = contractTargetClient.biens?.[0];
+                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
+                                        generateContract('COMPROMIS',
+                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
+                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
+                                        );
+                                        setIsContractModalOpen(false);
+                                        toast.success("Compromis de vente généré !");
+                                    }}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Compromis de Vente</p>
+                                        <p className="text-[10px] text-slate-400">Document légal définitif</p>
+                                    </div>
+                                    <Check size={20} className="text-slate-300 group-hover:text-blue-500" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Filter Controls */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-6 border-t border-slate-100">
                     <div className="relative lg:col-span-2">
@@ -954,6 +1016,15 @@ const Clients = () => {
                                                     <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-all" >
                                                         <Trash2 size={16} />
                                                     </button>
+                                                    {c.statut !== 'Annulé' && (
+                                                        <button
+                                                            onClick={() => { setContractTargetClient(c); setIsContractModalOpen(true); }}
+                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                                            title="Générer Contrat (PDF)"
+                                                        >
+                                                            <FileSignature size={18} />
+                                                        </button>
+                                                    )}
                                                     {c.statut !== 'Annulé' && (
                                                         <button
                                                             onClick={() => handleOpenCancelClient(c)}

@@ -4,7 +4,7 @@ import {
     Plus, Loader2, Trash2, Edit2, X, User, Phone, FileText,
     Calendar, Search, Download, Briefcase, Ruler, Maximize,
     Clock, CheckCircle2, Banknote, Eye, Info,
-    ChevronRight, TrendingUp, UserCheck, PlusCircle, Home
+    ChevronRight, TrendingUp, UserCheck, Home
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
@@ -130,7 +130,7 @@ const Workers = () => {
 
     const SPECIALITIES = [
         "Maçon", "Peintre", "Electricien", "Plombier", "Menuisier",
-        "Ferrailleur", "Coffreur", "Carreleur", "Staffeur", "Autre"
+        "Ferrailleur", "Coffreur", "Carreleur", "Staffeur", "Gardien de chantier", "Autre"
     ];
 
     const MISSION_TYPES = [
@@ -469,7 +469,7 @@ const Workers = () => {
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-gray-900 text-sm">{worker.name}</p>
-                                                    <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1 italic">
+                                                    <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1">
                                                         <Phone size={10} /> {worker.phone || 'Non renseigné'}
                                                     </p>
                                                 </div>

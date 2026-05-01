@@ -23,6 +23,7 @@ interface GeneralWork {
     created_at: string;
     terrain_id?: number;
     terrain?: { nom_terrain: string };
+    description?: string | null;
 }
 
 const GeneralWorks: React.FC = () => {
@@ -59,7 +60,7 @@ const GeneralWorks: React.FC = () => {
 
     const { register, handleSubmit, reset, watch } = useForm();
 
-    const WORK_TYPES = ['Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable', 'Solaire'];
+    const WORK_TYPES = ['Travaux de construction', 'Décapage', 'Nettoyage', 'Atterrassement', 'Débarquement', 'Déplacement terre/sable', 'Solaire'];
 
     const { data: works = [], isLoading: loading } = useQuery({
         queryKey: ['general-works'],
@@ -117,6 +118,7 @@ const GeneralWorks: React.FC = () => {
             reference_no: work.reference_no,
             bank_name: work.bank_name,
             rib: work.rib || '',
+            description: work.description || '',
         });
         setIsEditModalOpen(true);
     };
@@ -254,8 +256,8 @@ const GeneralWorks: React.FC = () => {
             {/* Edit Modal */}
             {isEditModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                        <div className="shrink-0 px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-orange-50">
                             <h3 className="font-black text-gray-800 text-base uppercase tracking-widest flex items-center gap-2">
                                 <Wrench size={18} /> Modifier Travaux
                             </h3>
@@ -264,7 +266,7 @@ const GeneralWorks: React.FC = () => {
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit(onSubmitUpdate)} className="p-8 space-y-6">
+                        <form onSubmit={handleSubmit(onSubmitUpdate)} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar-white">
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
@@ -291,6 +293,12 @@ const GeneralWorks: React.FC = () => {
                                     <select {...register('terrain_id', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-600 transition-all font-bold text-sm outline-none shadow-sm">
                                         {terrains.map(t => <option key={t.id} value={t.id}>{t.nom_terrain}</option>)}
                                     </select>
+                                </div>
+                                <div className="mt-2">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                        Description du Travaux
+                                    </label>
+                                    <textarea {...register('description')} rows={3} placeholder="Détails..." className="w-full p-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-orange-600 transition-all font-bold text-sm outline-none shadow-sm resize-none"></textarea>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
@@ -366,8 +374,8 @@ const GeneralWorks: React.FC = () => {
             {/* Details Modal */}
             {isDetailsModalOpen && selectedWork && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+                        <div className="shrink-0 px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div>
                                 <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
                                     Détails Travaux
@@ -381,7 +389,7 @@ const GeneralWorks: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-6 overflow-y-auto max-h-[70vh] custom-scrollbar">
+                        <div className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar-white">
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Prestataire</label>
@@ -391,10 +399,16 @@ const GeneralWorks: React.FC = () => {
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Type de Travail</label>
                                     <p className="text-sm font-bold text-gray-700">{selectedWork.work_type}</p>
                                 </div>
-                                <div className="col-span-2">
+                                <div>
                                     <label className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">Projet (Terrain)</label>
                                     <p className="text-sm font-bold text-blue-600 uppercase italic">{selectedWork.terrain?.nom_terrain || 'Non spécifié'}</p>
                                 </div>
+                                {selectedWork.description && (
+                                    <div className="col-span-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Description du Travaux</label>
+                                        <p className="text-xs font-medium text-gray-700 whitespace-pre-line">{selectedWork.description}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="pt-6 border-t border-gray-100 grid grid-cols-2 gap-6">
@@ -435,7 +449,7 @@ const GeneralWorks: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
+                        <div className="shrink-0 p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
                             <button
                                 onClick={() => {
                                     setIsDetailsModalOpen(false);

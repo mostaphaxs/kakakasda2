@@ -22,6 +22,10 @@ class Contentieux extends Model
         'lawyerAddress',
         'lawyerFees',
         'judicialFees',
-        'document_path'
+        'document_path',
+        'judicial_fees_scan_path',
+        'commissaire_nom',
+        'commissaire_fees',
+        'commissaire_scan_path'
     ];
 }

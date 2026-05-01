@@ -26,6 +26,7 @@ class GeneralWorkController extends Controller
             'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name' => 'nullable|string',
             'rib' => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         return GeneralWork::create($validated);
@@ -49,6 +50,7 @@ class GeneralWorkController extends Controller
             'reference_no' => ['nullable', 'string', new UniqueReference('general_works', $generalWork->id)],
             'bank_name' => 'nullable|string',
             'rib' => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         $generalWork->update($validated);

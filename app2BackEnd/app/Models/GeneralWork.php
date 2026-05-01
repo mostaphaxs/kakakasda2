@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class GeneralWork extends Model
 {
-    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'bank_commission', 'balance', 'terrain_id', 'method', 'reference_no', 'bank_name', 'rib'];
-
+    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'bank_commission', 'balance', 'terrain_id', 'method', 'reference_no', 'bank_name', 'rib', 'description'];
     public function terrain()
     {
         return $this->belongsTo(Terrain::class);

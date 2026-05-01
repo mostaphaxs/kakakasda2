@@ -1,12 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import {
-    Users,
-    Layers,
-    ShieldCheck,
-    MapPin,
     Building2,
     ArrowRight,
-    TrendingUp
+    TrendingUp,
+    WalletCards,
+    Building,
+    Wrench,
+    HardHat,
+    Scale,
+    History,
+    Users,
+    Layers,
+    MapPin
 } from 'lucide-react';
 
 const Home = () => {
@@ -32,6 +37,48 @@ const Home = () => {
             description: "Vue d'ensemble sur les blocs, locaux et bureaux.",
             icon: <Building2 className="text-slate-900" size={24} />,
             path: "/properties",
+            color: "slate"
+        },
+        {
+            title: "Charges Fixes",
+            description: "Loyer, salaires, fournitures et frais de fonctionnement.",
+            icon: <WalletCards className="text-slate-900" size={24} />,
+            path: "/charges",
+            color: "slate"
+        },
+        {
+            title: "Sociétés Services",
+            description: "Gestion des factures d'eau, électricité et télécom.",
+            icon: <Building className="text-slate-900" size={24} />,
+            path: "/services-tiers",
+            color: "slate"
+        },
+        {
+            title: "Travaux Généraux",
+            description: "Suivi des chantiers, décapage et gros œuvres.",
+            icon: <Wrench className="text-slate-900" size={24} />,
+            path: "/travaux",
+            color: "slate"
+        },
+        {
+            title: "Construction",
+            description: "Gestion des entreprises de BTP et contrats.",
+            icon: <HardHat className="text-slate-900" size={24} />,
+            path: "/contractors",
+            color: "slate"
+        },
+        {
+            title: "Affaires Juridiques",
+            description: "Suivi des contentieux et dossiers légaux.",
+            icon: <Scale className="text-slate-900" size={24} />,
+            path: "/contentieux",
+            color: "slate"
+        },
+        {
+            title: "Historique",
+            description: "Journal complet de toutes les transactions.",
+            icon: <History className="text-slate-900" size={24} />,
+            path: "/transactions",
             color: "slate"
         }
     ];
@@ -90,6 +137,34 @@ const Home = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* Modules Grid */}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Accès Rapide</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {modules.map((module, i) => (
+                        <div
+                            key={i}
+                            onClick={() => navigate(module.path)}
+                            className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:translate-y-[-4px] transition-all cursor-pointer group flex flex-col items-start gap-6"
+                        >
+                            <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-amber-50 group-hover:text-amber-600 transition-colors">
+                                {module.icon}
+                            </div>
+                            <div className="space-y-2 text-left">
+                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">{module.title}</h3>
+                                <p className="text-slate-500 text-xs font-medium leading-relaxed">{module.description}</p>
+                            </div>
+                            <div className="mt-auto pt-6 border-t border-slate-50 w-full flex justify-between items-center group-hover:border-amber-100">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-amber-600">Ouvrir le module</span>
+                                <ArrowRight size={16} className="text-slate-300 group-hover:text-amber-600 transition-colors" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

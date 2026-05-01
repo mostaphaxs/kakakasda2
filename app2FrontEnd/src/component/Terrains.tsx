@@ -5,7 +5,7 @@ import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Br
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, parseDate } from '../lib/utils';
 
 interface Terrain {
     id: number;
@@ -101,7 +101,7 @@ const Terrains = () => {
             'FRAIS IMMAT. (DH)': t.frais_immatriculation || 0,
             'FRAIS NOTAIRE (DH)': t.honoraires_notaire || 0,
             'TOTAL INVESTI (DH)': t.total || 0,
-            'DATE ACQUISITION': t.created_at ? new Date(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
+            'DATE ACQUISITION': t.created_at ? parseDate(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
             'F. CONSTRUCTION (DH)': t.autorisation_construction || 0,
             "F. d'equipement (DH)": t.autorisation_equipement || 0, // Changed from autorisation_lotissement
             'F. POMPIER (DH)': t.frais_pompier || 0
