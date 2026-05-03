@@ -28,12 +28,26 @@ class ContentieuxController extends Controller
             'lawyerAddress' => 'nullable|string',
             'lawyerFees' => 'numeric|nullable',
             'judicialFees' => 'numeric|nullable',
+            'commissaire_nom' => 'nullable|string',
+            'commissaire_fees' => 'numeric|nullable',
             'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            'judicial_fees_scan' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            'commissaire_scan' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
         ]);
 
         if ($request->hasFile('document')) {
             $path = $request->file('document')->store('contentieux_docs', 'public');
             $validated['document_path'] = $path;
+        }
+
+        if ($request->hasFile('judicial_fees_scan')) {
+            $path = $request->file('judicial_fees_scan')->store('contentieux_scans', 'public');
+            $validated['judicial_fees_scan_path'] = $path;
+        }
+        
+        if ($request->hasFile('commissaire_scan')) {
+            $path = $request->file('commissaire_scan')->store('commissaire_scans', 'public');
+            $validated['commissaire_scan_path'] = $path;
         }
 
         $contentieux = Contentieux::create($validated);
@@ -63,7 +77,11 @@ class ContentieuxController extends Controller
             'lawyerAddress' => 'nullable|string',
             'lawyerFees' => 'numeric|nullable',
             'judicialFees' => 'numeric|nullable',
+            'commissaire_nom' => 'nullable|string',
+            'commissaire_fees' => 'numeric|nullable',
             'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            'judicial_fees_scan' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            'commissaire_scan' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
         ]);
 
         if ($request->hasFile('document')) {
@@ -75,6 +93,22 @@ class ContentieuxController extends Controller
             $validated['document_path'] = $path;
         }
 
+        if ($request->hasFile('judicial_fees_scan')) {
+            if ($contentieux->judicial_fees_scan_path && Storage::disk('public')->exists($contentieux->judicial_fees_scan_path)) {
+                Storage::disk('public')->delete($contentieux->judicial_fees_scan_path);
+            }
+            $path = $request->file('judicial_fees_scan')->store('contentieux_scans', 'public');
+            $validated['judicial_fees_scan_path'] = $path;
+        }
+
+        if ($request->hasFile('commissaire_scan')) {
+            if ($contentieux->commissaire_scan_path && Storage::disk('public')->exists($contentieux->commissaire_scan_path)) {
+                Storage::disk('public')->delete($contentieux->commissaire_scan_path);
+            }
+            $path = $request->file('commissaire_scan')->store('commissaire_scans', 'public');
+            $validated['commissaire_scan_path'] = $path;
+        }
+
         $contentieux->update($validated);
         return response()->json($contentieux);
     }
@@ -84,6 +118,12 @@ class ContentieuxController extends Controller
         $contentieux = Contentieux::findOrFail($id);
         if ($contentieux->document_path && Storage::disk('public')->exists($contentieux->document_path)) {
             Storage::disk('public')->delete($contentieux->document_path);
+        }
+        if ($contentieux->judicial_fees_scan_path && Storage::disk('public')->exists($contentieux->judicial_fees_scan_path)) {
+            Storage::disk('public')->delete($contentieux->judicial_fees_scan_path);
+        }
+        if ($contentieux->commissaire_scan_path && Storage::disk('public')->exists($contentieux->commissaire_scan_path)) {
+            Storage::disk('public')->delete($contentieux->commissaire_scan_path);
         }
         $contentieux->delete();
         return response()->json(['message' => 'Deleted successfully']);

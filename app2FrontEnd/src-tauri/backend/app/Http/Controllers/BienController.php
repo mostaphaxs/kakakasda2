@@ -34,10 +34,10 @@ class BienController extends Controller
             'num_appartement'   => [
                 'nullable',
                 'string',
-                'max:20',
+                'max:100',
                 Rule::unique('biens')->where('terrain_id', $request->terrain_id)
             ],
-            'surface_m2'        => 'required|numeric|min:1|max:999999',
+            'surface_m2'        => 'required|numeric|min:1|max:9999999',
             'description'       => 'nullable|string|max:1000',
             'statut'            => 'nullable|in:Libre,Reserve,Vendu',
             'prix_par_m2_finition'       => 'nullable|numeric|min:0',
@@ -58,9 +58,10 @@ class BienController extends Controller
             : [];
 
         $terrainId = (string)$validated['terrain_id'];
-        $projectCfg     = $allSettings['projects'][$terrainId] ?? null;
-        $defaultFin     = $projectCfg['finition']    ?? $allSettings['default']['finition']    ?? 9000;
-        $defaultGros    = $projectCfg['gros_oeuvre'] ?? $allSettings['default']['gros_oeuvre'] ?? 7000;
+        $typeBien  = $validated['type_bien'];
+        $projectCfg     = $allSettings['projects'][$terrainId][$typeBien] ?? null;
+        $defaultFin     = $projectCfg['finition']    ?? $allSettings['default'][$typeBien]['finition']    ?? 9000;
+        $defaultGros    = $projectCfg['gros_oeuvre'] ?? $allSettings['default'][$typeBien]['gros_oeuvre'] ?? 7000;
 
         $validated['prix_par_m2_finition']    = $validated['prix_par_m2_finition']    ?? $defaultFin;
         $validated['prix_global_finition']    = $validated['surface_m2'] * $validated['prix_par_m2_finition'];

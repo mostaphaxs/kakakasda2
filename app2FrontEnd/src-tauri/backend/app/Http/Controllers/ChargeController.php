@@ -20,18 +20,27 @@ class ChargeController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'frais_tel' => 'nullable|numeric',
-            'internet' => 'nullable|numeric',
-            'loyer_bureau' => 'nullable|numeric',
-            'fournitures_bureau' => 'nullable|numeric',
-            'employes_bureau' => 'nullable|numeric',
-            'impots' => 'nullable|numeric',
-            'gasoil' => 'nullable|numeric',
+        $categories = ['loyer_bureau', 'fournitures_bureau', 'employes_bureau', 'impots', 'gasoil'];
+        $rules = [
             'periode' => 'required|date',
             'terrain_id' => 'nullable|exists:terrains,id',
             'rib' => 'nullable|string|max:255',
-        ]);
+        ];
+
+        foreach ($categories as $cat) {
+            $rules[$cat] = 'nullable|numeric';
+            $rules["{$cat}_ref"] = 'nullable|string|max:255';
+            $rules["{$cat}_scan"] = 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048';
+        }
+
+        $validated = $request->validate($rules);
+
+        foreach ($categories as $cat) {
+            if ($request->hasFile("{$cat}_scan")) {
+                $path = $request->file("{$cat}_scan")->store('scans/charges', 'public');
+                $validated["{$cat}_scan"] = $path;
+            }
+        }
 
         $charge = Charge::create($validated);
         return response()->json($charge, 201);
@@ -50,17 +59,30 @@ class ChargeController extends Controller
      */
     public function update(Request $request, Charge $charge)
     {
-        $validated = $request->validate([
-            'frais_tel' => 'nullable|numeric',
-            'internet' => 'nullable|numeric',
-            'loyer_bureau' => 'nullable|numeric',
-            'fournitures_bureau' => 'nullable|numeric',
-            'employes_bureau' => 'nullable|numeric',
-            'impots' => 'nullable|numeric',
-            'gasoil' => 'nullable|numeric',
+        $categories = ['loyer_bureau', 'fournitures_bureau', 'employes_bureau', 'impots', 'gasoil'];
+        $rules = [
             'periode' => 'required|date',
             'rib' => 'nullable|string|max:255',
-        ]);
+        ];
+
+        foreach ($categories as $cat) {
+            $rules[$cat] = 'nullable|numeric';
+            $rules["{$cat}_ref"] = 'nullable|string|max:255';
+            $rules["{$cat}_scan"] = 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048';
+        }
+
+        $validated = $request->validate($rules);
+
+        foreach ($categories as $cat) {
+            if ($request->hasFile("{$cat}_scan")) {
+                // Delete old file if exists
+                if ($charge->{"{$cat}_scan"}) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($charge->{"{$cat}_scan"});
+                }
+                $path = $request->file("{$cat}_scan")->store('scans/charges', 'public');
+                $validated["{$cat}_scan"] = $path;
+            }
+        }
 
         $charge->update($validated);
         return response()->json($charge);

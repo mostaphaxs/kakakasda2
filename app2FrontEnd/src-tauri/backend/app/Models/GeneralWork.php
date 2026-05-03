@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class GeneralWork extends Model
 {
-    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'bank_commission', 'balance', 'terrain_id', 'method', 'reference_no', 'bank_name', 'rib'];
-
+    protected $fillable = ['supplier_id', 'work_type', 'total_amount', 'paid_amount', 'bank_commission', 'balance', 'terrain_id', 'method', 'reference_no', 'bank_name', 'rib', 'description', 'payment_date'];
     public function terrain()
     {
         return $this->belongsTo(Terrain::class);
@@ -17,13 +16,13 @@ class GeneralWork extends Model
 
     public function getCalculatedBalanceAttribute()
     {
-        return $this->total_amount - ($this->paid_amount - ($this->bank_commission ?? 0));
+        return max(0, $this->total_amount - ($this->paid_amount - ($this->bank_commission ?? 0)));
     }
 
     protected static function booted()
     {
         static::saving(function ($work) {
-            $work->balance = $work->total_amount - ($work->paid_amount - ($work->bank_commission ?? 0));
+            $work->balance = max(0, $work->total_amount - ($work->paid_amount - ($work->bank_commission ?? 0)));
         });
     }
 

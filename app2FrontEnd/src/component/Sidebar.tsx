@@ -83,14 +83,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
-        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: Building, label: 'Sociétés Services', path: '/services-tiers' },
-        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
-        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
-        { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
     ];
 
     const exportItems = [

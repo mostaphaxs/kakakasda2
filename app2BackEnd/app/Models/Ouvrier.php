@@ -14,10 +14,12 @@ class Ouvrier extends Model
         'cin',
         'speciality',
         'phone',
+        'phone_whatsapp',
         'scan_cin',
         'total_earned',
         'paid_amount',
         'rib',
+        'status',
     ];
 
     public function missions()
