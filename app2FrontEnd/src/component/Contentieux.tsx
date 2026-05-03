@@ -217,9 +217,9 @@ const Contentieux = () => {
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
                         <Scale className="text-amber-500" size={32} />
-                        Affaires Juridiques (El Ouaha)
+                        Affaires Juridiques (Les Cinq Élements)
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">Gestion juridique et suivi des affaires en cours pour la société El Ouaha.</p>
+                    <p className="text-slate-500 font-medium mt-1">Gestion juridique et suivi des affaires en cours pour la société Les Cinq Élements.</p>
                 </div>
 
                 <button
