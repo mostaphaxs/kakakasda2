@@ -640,6 +640,10 @@ const Clients = () => {
     };
 
     const filteredClients = clients.filter(c => {
+        // 0. If deep-linked for a specific client, prioritize that
+        const targetClientId = searchParams.get('client_id');
+        if (targetClientId && c.id !== Number(targetClientId)) return false;
+
         // 1. Search term
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || (
@@ -753,6 +757,26 @@ const Clients = () => {
                         </button>
                     </div>
                 </div>
+
+                {searchParams.get('client_id') && (
+                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                                <Info size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">Affichage filtré</p>
+                                <p className="text-[10px] text-slate-500 font-medium font-bold uppercase tracking-widest">Vous visualisez le dossier spécifique lié à la sélection de la carte.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/clients')}
+                            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                        >
+                            Afficher Tous
+                        </button>
+                    </div>
+                )}
 
                 {/* Contract Selection Modal */}
                 {isContractModalOpen && contractTargetClient && (
