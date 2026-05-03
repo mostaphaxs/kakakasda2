@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "LES CINQ ELEMENTS",
+  "productName": "LesCinqElements",
   "version": "0.1.0",
   "identifier": "com.mustapha.myamical",
   "build": {
