@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Link } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
+import { Sparkles, Mail, FileSignature } from 'lucide-react';
+import { generateContract } from '../lib/ContractGenerator';
 import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
-import { Sparkles, Mail } from 'lucide-react';
 
 
 interface Bien {
@@ -75,6 +76,7 @@ interface Client {
 
 const Clients = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [clients, setClients] = useState<Client[]>([]);
     // suiviBien removed – the Suivi Réalisation is now embedded in the edit property page
     const [loading, setLoading] = useState(true);
@@ -145,6 +147,10 @@ const Clients = () => {
     const [whatsappTargetPhone, setWhatsappTargetPhone] = useState<string>('');
     const [isAILoading, setIsAILoading] = useState(false);
 
+    // Contract Generation State
+    const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+    const [contractTargetClient, setContractTargetClient] = useState<Client | null>(null);
+
     // Search & Filter State
     const [searchTerm, setSearchTerm] = useState('');
     const [filterFinition, setFilterFinition] = useState<'all' | 'avec' | 'sans'>('all');
@@ -185,6 +191,21 @@ const Clients = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Handle Deep Linking / Auto-open payment modal
+    useEffect(() => {
+        if (!loading && searchParams.get('action') === 'payment') {
+            const clientIdAttr = searchParams.get('client_id');
+            if (clientIdAttr) {
+                const client = clients.find(c => c.id === Number(clientIdAttr));
+                if (client) {
+                    handleOpenPaymentModal(client);
+                    // Clear params to avoid reopening on refresh if needed, 
+                    // though usually keeping them is fine for deep links.
+                }
+            }
+        }
+    }, [loading, searchParams, clients]);
 
     const handleOpenCancelClient = (client: Client) => {
         setClientToCancel(client);
@@ -619,6 +640,10 @@ const Clients = () => {
     };
 
     const filteredClients = clients.filter(c => {
+        // 0. If deep-linked for a specific client, prioritize that
+        const targetClientId = searchParams.get('client_id');
+        if (targetClientId && c.id !== Number(targetClientId)) return false;
+
         // 1. Search term
         const search = searchTerm.toLowerCase().trim();
         const matchesSearch = !search || (
@@ -710,7 +735,7 @@ const Clients = () => {
                             <Users className="text-blue-600" size={32} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -732,6 +757,83 @@ const Clients = () => {
                         </button>
                     </div>
                 </div>
+
+                {searchParams.get('client_id') && (
+                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl animate-in slide-in-from-top-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                                <Info size={20} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-slate-800">Affichage filtré</p>
+                                <p className="text-[10px] text-slate-500 font-medium font-bold uppercase tracking-widest">Vous visualisez le dossier spécifique lié à la sélection de la carte.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/clients')}
+                            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                        >
+                            Afficher Tous
+                        </button>
+                    </div>
+                )}
+
+                {/* Contract Selection Modal */}
+                {isContractModalOpen && contractTargetClient && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/50">
+                                <h3 className="font-bold text-gray-800">Générer un Contrat</h3>
+                                <button onClick={() => setIsContractModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <p className="text-xs text-gray-500 text-center font-medium">Quel type de document souhaitez-vous générer pour <span className="font-bold text-slate-800">{contractTargetClient.nom} {contractTargetClient.prenom}</span> ?</p>
+
+                                <button
+                                    onClick={() => {
+                                        const bien = contractTargetClient.biens?.[0];
+                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
+                                        generateContract('RESERVATION',
+                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
+                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
+                                        );
+                                        setIsContractModalOpen(false);
+                                        toast.success("Contrat de réservation généré !");
+                                    }}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-slate-800 group-hover:text-amber-700">Contrat de Réservation</p>
+                                        <p className="text-[10px] text-slate-400">Pour une nouvelle réservation</p>
+                                    </div>
+                                    <FileSignature size={20} className="text-slate-300 group-hover:text-amber-500" />
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        const bien = contractTargetClient.biens?.[0];
+                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
+                                        generateContract('COMPROMIS',
+                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
+                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
+                                        );
+                                        setIsContractModalOpen(false);
+                                        toast.success("Compromis de vente généré !");
+                                    }}
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Compromis de Vente</p>
+                                        <p className="text-[10px] text-slate-400">Document légal définitif</p>
+                                    </div>
+                                    <Check size={20} className="text-slate-300 group-hover:text-blue-500" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Filter Controls */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-6 border-t border-slate-100">
@@ -954,6 +1056,15 @@ const Clients = () => {
                                                     <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-all" >
                                                         <Trash2 size={16} />
                                                     </button>
+                                                    {c.statut !== 'Annulé' && (
+                                                        <button
+                                                            onClick={() => { setContractTargetClient(c); setIsContractModalOpen(true); }}
+                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                                            title="Générer Contrat (PDF)"
+                                                        >
+                                                            <FileSignature size={18} />
+                                                        </button>
+                                                    )}
                                                     {c.statut !== 'Annulé' && (
                                                         <button
                                                             onClick={() => handleOpenCancelClient(c)}

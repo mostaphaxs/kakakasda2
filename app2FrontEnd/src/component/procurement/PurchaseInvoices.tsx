@@ -5,7 +5,7 @@ import { ShoppingCart, Search, PlusCircle, Download, Edit2, Trash2, X, Save, Fil
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
-import { formatNumber, parseNumber } from '../../lib/utils';
+import { formatNumber, parseNumber, parseDate } from '../../lib/utils';
 import { useForm, useFieldArray } from 'react-hook-form';
 
 interface PurchaseInvoiceItem {
@@ -379,7 +379,7 @@ const PurchaseInvoices: React.FC = () => {
                     'TOTAL HT (DH)': item.price_ht,
                     'TVA (%)': item.vat_rate,
                     'TOTAL TTC (DH)': item.price_ttc,
-                    'DATE FACTURE': new Date(i.created_at).toLocaleDateString()
+                    'DATE FACTURE': parseDate(i.created_at).toLocaleDateString()
                 });
             });
         });
@@ -541,7 +541,7 @@ const PurchaseInvoices: React.FC = () => {
                                             </span>
                                         )}
                                         <span className="text-[10px] text-emerald-600/70 font-black">
-                                            {new Date(inv.created_at).toLocaleDateString('fr-MA')}
+                                            {parseDate(inv.created_at).toLocaleDateString('fr-MA')}
                                         </span>
                                     </div>
                                 </td>

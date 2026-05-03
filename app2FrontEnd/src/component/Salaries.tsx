@@ -7,7 +7,7 @@ import {
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseNumber } from '../lib/utils';
+import { formatNumber, parseNumber, parseDate } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 
 interface Salarie {
@@ -907,7 +907,7 @@ const Salaries: React.FC = () => {
                                             <input type="date" value={form.payment_date} onChange={e => setForm({ ...form, payment_date: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700" />
                                             {form.payment_date && (
                                                 <p className="text-[9px] font-bold text-indigo-400 mt-2 ml-1 italic">
-                                                    Cycle mensuel : le prochain sera vers le {new Date(new Date(form.payment_date).setMonth(new Date(form.payment_date).getMonth() + 1)).toLocaleDateString('fr-MA')}
+                                                    Cycle mensuel : le prochain sera vers le {new Date(parseDate(form.payment_date).setMonth(parseDate(form.payment_date).getMonth() + 1)).toLocaleDateString('fr-MA')}
                                                 </p>
                                             )}
                                         </div>
@@ -1020,7 +1020,7 @@ const Salaries: React.FC = () => {
                                     <div className="space-y-1">
                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Naissance & Statut</p>
                                         <p className="font-bold text-gray-800 text-sm">
-                                            {selectedSalarie.birth_date ? new Date(selectedSalarie.birth_date).toLocaleDateString() : 'N/A'}
+                                            {selectedSalarie.birth_date ? parseDate(selectedSalarie.birth_date).toLocaleDateString() : 'N/A'}
                                             {selectedSalarie.marital_status ? ` • ${selectedSalarie.marital_status}` : ''}
                                         </p>
                                     </div>
@@ -1039,7 +1039,7 @@ const Salaries: React.FC = () => {
                                                 <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Mode & Cycle</p>
                                                 <p className="font-bold text-gray-800 text-sm">
                                                     {selectedSalarie.payment_method || 'Mode de paiement non spécifié'}
-                                                    {selectedSalarie.payment_date && ` • Début: ${new Date(selectedSalarie.payment_date).toLocaleDateString('fr-MA')}`}
+                                                    {selectedSalarie.payment_date && ` • Début: ${parseDate(selectedSalarie.payment_date).toLocaleDateString('fr-MA')}`}
                                                 </p>
                                             </div>
                                             <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-4">

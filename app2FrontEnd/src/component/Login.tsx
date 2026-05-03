@@ -53,14 +53,14 @@ export default function Login() {
           <div className="flex flex-col items-center mb-12 group">
             <div className="mb-8 p-8 bg-slate-900 rounded-[50px] border border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 group-hover:scale-110">
               <img
-                src="/assets/logoLogin.png"
-                alt="EL OUAHA"
+                src="/assets/LogoNavbar.png"
+                alt="Société les cinq elements"
                 className="h-40 w-auto"
               />
             </div>
             <div className="flex flex-col items-center">
               <h2 className="text-4xl font-black text-slate-900 tracking-tighter text-center uppercase leading-none">
-                EL <span className="text-amber-500">OUAHA</span>
+                LES CINQ <span className="text-amber-500">ELEMENTS</span>
               </h2>
               <p className="mt-3 text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] text-center">Gestion Immobilière & Travaux</p>
             </div>
@@ -120,16 +120,34 @@ export default function Login() {
                   <Loader2 size={20} className="animate-spin" />
                 ) : (
                   <>
-                    Connexion
+                    Connexion Admin
                     <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
             </div>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-100"></div>
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                <span className="bg-white px-4 text-slate-300">Ou</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/portal/login')}
+              className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-amber-100 group shadow-sm shadow-amber-100/50"
+            >
+              Accéder à l'Espace Acquéreur
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </form>
 
           <div className="mt-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 EL OUAHA. Tous droits réservés.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 Société les cinq elements. Tous droits réservés.</p>
           </div>
         </div>
       </div>

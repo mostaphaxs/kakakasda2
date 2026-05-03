@@ -5,7 +5,7 @@ import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Br
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber } from '../lib/utils';
+import { formatNumber, parseDate } from '../lib/utils';
 
 interface Terrain {
     id: number;
@@ -101,7 +101,7 @@ const Terrains = () => {
             'FRAIS IMMAT. (DH)': t.frais_immatriculation || 0,
             'FRAIS NOTAIRE (DH)': t.honoraires_notaire || 0,
             'TOTAL INVESTI (DH)': t.total || 0,
-            'DATE ACQUISITION': t.created_at ? new Date(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
+            'DATE ACQUISITION': t.created_at ? parseDate(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
             'F. CONSTRUCTION (DH)': t.autorisation_construction || 0,
             "F. d'equipement (DH)": t.autorisation_equipement || 0, // Changed from autorisation_lotissement
             'F. POMPIER (DH)': t.frais_pompier || 0
@@ -120,7 +120,7 @@ const Terrains = () => {
                             <MapPin className="text-blue-600" size={32} />
                             Gestion des Projets
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -224,6 +224,9 @@ const Terrains = () => {
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => handleOpenDetails(t)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Détails">
                                                 <FileText size={16} />
+                                            </button>
+                                            <button onClick={() => navigate(`/terrain-map/${t.id}`)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Voir la Carte Interactive">
+                                                <Briefcase size={16} />
                                             </button>
                                             <button onClick={() => navigate(`/edit-terrain/${t.id}`)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Modifier">
                                                 <Edit2 size={16} />

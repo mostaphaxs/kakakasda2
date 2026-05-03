@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Scale, Gavel, FileText, Search, Plus, X,
     Users, WalletCards, Phone, MapPin, Loader2, Info, Edit, Trash2, Eye
@@ -32,6 +32,12 @@ export interface LegalCase {
     // File upload
     document_path?: string;
     documentFile?: File | null;
+    judicial_fees_scan_path?: string;
+    judicialFeesScanFile?: File | null;
+    commissaire_nom: string;
+    commissaire_fees: number;
+    commissaire_scan_path?: string;
+    commissaireScanFile?: File | null;
 }
 
 const initialFormState: Partial<LegalCase> = {
@@ -47,7 +53,11 @@ const initialFormState: Partial<LegalCase> = {
     lawyerAddress: '',
     lawyerFees: 0,
     judicialFees: 0,
-    documentFile: null
+    commissaire_nom: '',
+    commissaire_fees: 0,
+    documentFile: null,
+    judicialFeesScanFile: null,
+    commissaireScanFile: null
 };
 
 const Contentieux = () => {
@@ -95,8 +105,9 @@ const Contentieux = () => {
         const totalCases = cases.length;
         const totalLawyerFees = cases.reduce((acc, c) => acc + (Number(c.lawyerFees) || 0), 0);
         const totalJudicialFees = cases.reduce((acc, c) => acc + (Number(c.judicialFees) || 0), 0);
+        const totalCommissaireFees = cases.reduce((acc, c) => acc + (Number(c.commissaire_fees) || 0), 0);
 
-        return { totalCases, totalLawyerFees, totalJudicialFees };
+        return { totalCases, totalLawyerFees, totalJudicialFees, totalCommissaireFees };
     }, [cases]);
 
     const handleSave = async () => {
@@ -113,7 +124,11 @@ const Contentieux = () => {
         Object.keys(formData).forEach(key => {
             if (key === 'documentFile' && formData[key]) {
                 submitData.append('document', formData[key] as File);
-            } else if (key !== 'document_path' && key !== 'documentFile' && formData[key as keyof LegalCase] !== undefined) {
+            } else if (key === 'judicialFeesScanFile' && formData[key]) {
+                submitData.append('judicial_fees_scan', formData[key] as File);
+            } else if (key === 'commissaireScanFile' && formData[key]) {
+                submitData.append('commissaire_scan', formData[key] as File);
+            } else if (!['document_path', 'documentFile', 'judicial_fees_scan_path', 'judicialFeesScanFile', 'commissaire_scan_path', 'commissaireScanFile'].includes(key) && formData[key as keyof LegalCase] !== undefined) {
                 submitData.append(key, formData[key as keyof LegalCase] as any);
             }
         });
@@ -159,7 +174,7 @@ const Contentieux = () => {
     };
 
     const openEditModal = (c: LegalCase) => {
-        setFormData({ ...c, date: c.date.split('T')[0], documentFile: null });
+        setFormData({ ...c, date: c.date.split('T')[0], documentFile: null, judicialFeesScanFile: null, commissaireScanFile: null });
         setIsAddEditModalOpen(true);
     };
 
@@ -233,8 +248,14 @@ const Contentieux = () => {
                     <h2 className="text-2xl font-black text-amber-700">{formatCurrency(stats.totalLawyerFees)}</h2>
                 </div>
                 <div className="bg-slate-50 p-5 rounded-[24px] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Frais Judiciaires (Tribunal)</p>
-                    <h2 className="text-2xl font-black text-slate-800">{formatCurrency(stats.totalJudicialFees)}</h2>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Frais Judiciaires & Commissaires</p>
+                    <h2 className="text-2xl font-black text-slate-800 flex flex-col">
+                        <span>{formatCurrency(stats.totalJudicialFees + stats.totalCommissaireFees)}</span>
+                        <div className="flex gap-4 mt-1">
+                            <span className="text-[10px] font-bold text-emerald-600">Tribunal: {formatCurrency(stats.totalJudicialFees)}</span>
+                            <span className="text-[10px] font-bold text-blue-600">Commissaire: {formatCurrency(stats.totalCommissaireFees)}</span>
+                        </div>
+                    </h2>
                 </div>
             </div>
 
@@ -304,18 +325,20 @@ const Contentieux = () => {
 
                                         {/* Parties */}
                                         <td className="px-4 py-4 align-top">
-                                            <div className="flex flex-col gap-2">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">
-                                                        {c.courtType === 'PENALE' ? 'Plaignant (المشتكي)' : 'Demandeur'}
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                                                        {c.courtType === 'PENALE' ? 'Plaint.' : 'Dem.'}:
                                                     </span>
-                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1">{c.plaintiff}</span>
+                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1 truncate">{c.plaintiff}</span>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-[8px] font-black text-rose-600 uppercase tracking-widest">
-                                                        {c.courtType === 'PENALE' ? 'Accusé (المشتكي عليه)' : 'Défendeur'}
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                                                        {c.courtType === 'PENALE' ? 'Accusé' : 'Déf.'}:
                                                     </span>
-                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1">{c.defendant}</span>
+                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1 truncate">{c.defendant}</span>
                                                 </div>
                                             </div>
                                         </td>
@@ -338,10 +361,41 @@ const Contentieux = () => {
                                         {/* Coûts */}
                                         <td className="px-4 py-4 align-top text-right">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-black text-slate-900">{formatCurrency((Number(c.lawyerFees) || 0) + (Number(c.judicialFees) || 0))}</span>
+                                                <span className="text-xs font-black text-slate-900">{formatCurrency((Number(c.lawyerFees) || 0) + (Number(c.judicialFees) || 0) + (Number(c.commissaire_fees) || 0))}</span>
                                                 <div className="flex flex-col text-[9px] font-bold text-slate-400 mt-1">
-                                                    <span className="flex justify-between gap-3"><span>Hon.:</span> <span>{formatCurrency(c.lawyerFees)}</span></span>
-                                                    <span className="flex justify-between gap-3"><span>Trib.:</span> <span>{formatCurrency(c.judicialFees)}</span></span>
+                                                    <span className="flex justify-between gap-3 font-semibold"><span>Avocat:</span> <span>{formatCurrency(c.lawyerFees)}</span></span>
+                                                    <span className={`flex justify-between gap-3 px-1 rounded ${c.judicial_fees_scan_path ? 'bg-emerald-50 text-emerald-600' : ''}`}>
+                                                        <span>Tribunal:</span>
+                                                        <span className="flex items-center gap-1">
+                                                            {c.judicial_fees_scan_path && (
+                                                                <button
+                                                                    onClick={(e) => { e.stopPropagation(); openExternal(encodeURI(`${STORAGE_BASE}/${c.judicial_fees_scan_path}`)); }}
+                                                                    className="hover:scale-110 transition-transform"
+                                                                    title="Voir le scan des frais"
+                                                                >
+                                                                    <FileText size={10} />
+                                                                </button>
+                                                            )}
+                                                            {formatCurrency(c.judicialFees)}
+                                                        </span>
+                                                    </span>
+                                                    {c.commissaire_fees > 0 && (
+                                                        <span className={`flex justify-between gap-3 px-1 rounded ${c.commissaire_scan_path ? 'bg-blue-50 text-blue-600' : ''}`}>
+                                                            <span>Commissaire:</span>
+                                                            <span className="flex items-center gap-1">
+                                                                {c.commissaire_scan_path && (
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); openExternal(encodeURI(`${STORAGE_BASE}/${c.commissaire_scan_path}`)); }}
+                                                                        className="hover:scale-110 transition-transform"
+                                                                        title="Voir le scan du commissaire"
+                                                                    >
+                                                                        <FileText size={10} />
+                                                                    </button>
+                                                                )}
+                                                                {formatCurrency(c.commissaire_fees)}
+                                                            </span>
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -438,11 +492,42 @@ const Contentieux = () => {
                                         </div>
                                         <div className="flex justify-between items-center text-sm font-bold text-slate-700">
                                             <span>Frais Tribunal:</span>
-                                            <span>{formatCurrency(selectedCase.judicialFees)}</span>
+                                            <div className="flex items-center gap-2">
+                                                {selectedCase.judicial_fees_scan_path && (
+                                                    <button
+                                                        onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedCase.judicial_fees_scan_path}`))}
+                                                        className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] rounded flex items-center gap-1 hover:bg-emerald-100 transition-colors"
+                                                        title="Voir le justificatif"
+                                                    >
+                                                        <FileText size={10} /> SCAN
+                                                    </button>
+                                                )}
+                                                <span>{formatCurrency(selectedCase.judicialFees)}</span>
+                                            </div>
                                         </div>
+                                        {selectedCase.commissaire_fees > 0 && (
+                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700">
+                                                <span className="flex flex-col">
+                                                    <span>Commissaire:</span>
+                                                    <span className="text-[10px] text-slate-400">{selectedCase.commissaire_nom}</span>
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    {selectedCase.commissaire_scan_path && (
+                                                        <button
+                                                            onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedCase.commissaire_scan_path}`))}
+                                                            className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] rounded flex items-center gap-1 hover:bg-blue-100 transition-colors"
+                                                            title="Voir le justificatif du commissaire"
+                                                        >
+                                                            <FileText size={10} /> SCAN
+                                                        </button>
+                                                    )}
+                                                    <span>{formatCurrency(selectedCase.commissaire_fees)}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center text-base font-black text-slate-900">
                                             <span>Coût Total:</span>
-                                            <span>{formatCurrency((Number(selectedCase.lawyerFees) || 0) + (Number(selectedCase.judicialFees) || 0))}</span>
+                                            <span>{formatCurrency((Number(selectedCase.lawyerFees) || 0) + (Number(selectedCase.judicialFees) || 0) + (Number(selectedCase.commissaire_fees) || 0))}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -633,9 +718,9 @@ const Contentieux = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                    <div className="space-y-4">
                                         <div className="space-y-1 relative">
-                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Honoraires Avocat (MAD)</label>
+                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1"> Honoraires Avocat (MAD)</label>
                                             <input
                                                 type="number"
                                                 className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
@@ -643,14 +728,77 @@ const Contentieux = () => {
                                                 onChange={(e) => setFormData({ ...formData, lawyerFees: parseFloat(e.target.value) || 0 })}
                                             />
                                         </div>
-                                        <div className="space-y-1 relative">
-                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Frais Judiciaires (MAD)</label>
-                                            <input
-                                                type="number"
-                                                className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
-                                                value={formData.judicialFees || ''}
-                                                onChange={(e) => setFormData({ ...formData, judicialFees: parseFloat(e.target.value) || 0 })}
-                                            />
+                                        <div className="flex gap-2">
+                                            <div className="space-y-1 relative flex-1">
+                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Frais Judiciaires (MAD)</label>
+                                                <input
+                                                    type="number"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                    value={formData.judicialFees || ''}
+                                                    onChange={(e) => setFormData({ ...formData, judicialFees: parseFloat(e.target.value) || 0 })}
+                                                />
+                                            </div>
+                                            <div className="space-y-1 relative">
+                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Justificatif (Scan)</label>
+                                                <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all h-[44px] ${formData.judicialFeesScanFile ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : (formData.judicial_fees_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
+                                                    <FileText size={16} />
+                                                    <span className="text-[10px] font-black uppercase">
+                                                        {formData.judicialFeesScanFile ? 'Ajouté' : (formData.judicial_fees_scan_path ? 'Modif.' : '+ Scan')}
+                                                    </span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*,.pdf"
+                                                        className="hidden"
+                                                        onChange={(e) => {
+                                                            if (e.target.files && e.target.files.length > 0) {
+                                                                setFormData({ ...formData, judicialFeesScanFile: e.target.files[0] });
+                                                            }
+                                                        }}
+                                                    />
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-slate-100 space-y-4">
+                                            <div className="space-y-1 relative">
+                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Commissaire Judiciaire (Nom)</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                    value={formData.commissaire_nom || ''}
+                                                    onChange={(e) => setFormData({ ...formData, commissaire_nom: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="space-y-1 relative flex-1">
+                                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Frais Commissaire (MAD)</label>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                        value={formData.commissaire_fees || ''}
+                                                        onChange={(e) => setFormData({ ...formData, commissaire_fees: parseFloat(e.target.value) || 0 })}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1 relative">
+                                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Scan Commissaire</label>
+                                                    <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all h-[44px] ${formData.commissaireScanFile ? 'bg-blue-50 border-blue-300 text-blue-700' : (formData.commissaire_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
+                                                        <FileText size={16} />
+                                                        <span className="text-[10px] font-black uppercase">
+                                                            {formData.commissaireScanFile ? 'Ajouté' : (formData.commissaire_scan_path ? 'Modif.' : '+ Scan')}
+                                                        </span>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*,.pdf"
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                    setFormData({ ...formData, commissaireScanFile: e.target.files[0] });
+                                                                }
+                                                            }}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

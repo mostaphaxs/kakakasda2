@@ -294,7 +294,7 @@ const AddProperty: React.FC = () => {
                                                 value={field.value || ''}
                                                 onChange={field.onChange}
                                                 className={inputCls(!!errors.groupe_habitation)}
-                                                placeholder="Ex: Résidence Al Andalous"
+                                                placeholder="Ex: A, B, C..."
                                             />
                                         )}
                                     />
@@ -312,7 +312,7 @@ const AddProperty: React.FC = () => {
                                                 value={field.value || ''}
                                                 onChange={field.onChange}
                                                 className={inputCls(!!errors.immeuble)}
-                                                placeholder="Ex: Bâtiment B"
+                                                placeholder="Ex: 1, 2, 3..."
                                             />
                                         )}
                                     />
@@ -356,7 +356,7 @@ const AddProperty: React.FC = () => {
                                                 value={field.value || ''}
                                                 onChange={field.onChange}
                                                 className={inputCls(!!errors.num_appartement)}
-                                                placeholder="Ex: A12"
+                                                placeholder="Ex: A12, 112..."
                                             />
                                         )}
                                     />

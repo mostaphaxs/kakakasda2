@@ -10,22 +10,23 @@ interface Terrain {
     nom_projet: string;
 }
 
-interface ProjectConfig {
+interface TypePricing {
     finition: number;
     gros_oeuvre: number;
 }
 
 interface PricingSettings {
-    default_prix_m2_finition: number;
-    default_prix_m2_gros_oeuvre: number;
-    projects: Record<string, ProjectConfig>;
+    default: Record<string, TypePricing>;
+    projects: Record<string, Record<string, TypePricing>>;
 }
+
+const PROPERTY_TYPES = ['Appartement', 'Villa', 'Lot Villa', 'Local Commercial', 'Bureau', 'Autre'];
 
 const ConfigPrixBiens: React.FC = () => {
     const queryClient = useQueryClient();
 
-    // Per-project state: { [terrainId]: { fin, gros } }
-    const [projectPrices, setProjectPrices] = useState<Record<string, { fin: string; gros: string }>>({});
+    // Per-project state: { [terrainId]: { [type_bien]: { fin, gros } } }
+    const [projectPrices, setProjectPrices] = useState<Record<string, Record<string, { fin: string; gros: string }>>>({});
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -41,12 +42,16 @@ const ConfigPrixBiens: React.FC = () => {
 
     useEffect(() => {
         if (!settings?.projects) return;
-        const initial: Record<string, { fin: string; gros: string }> = {};
+        const initial: Record<string, Record<string, { fin: string; gros: string }>> = {};
         Object.entries(settings.projects).forEach(([tid, cfg]) => {
-            initial[tid] = {
-                fin: formatNumber(cfg.finition),
-                gros: formatNumber(cfg.gros_oeuvre),
-            };
+            initial[tid] = {};
+            PROPERTY_TYPES.forEach(type => {
+                const typeCfg = cfg[type] || settings.default[type] || { finition: 0, gros_oeuvre: 0 };
+                initial[tid][type] = {
+                    fin: formatNumber(typeCfg.finition),
+                    gros: formatNumber(typeCfg.gros_oeuvre),
+                };
+            });
         });
         setProjectPrices(initial);
     }, [settings]);
@@ -69,19 +74,35 @@ const ConfigPrixBiens: React.FC = () => {
     const handleProjectSave = (terrainId: number) => {
         const key = String(terrainId);
         setSavingId(key);
-        const vals = projectPrices[key] || { fin: '9000', gros: '7000' };
+        const vals = projectPrices[key] || {};
+
+        const payloadPrices: Record<string, any> = {};
+        PROPERTY_TYPES.forEach(type => {
+            const typeVals = vals[type] || { fin: '9000', gros: '7000' };
+            payloadPrices[type] = {
+                finition: parseNumber(typeVals.fin) || 0,
+                gros_oeuvre: parseNumber(typeVals.gros) || 0,
+            };
+        });
+
         projectMutation.mutate({
             terrain_id: terrainId,
-            prix_m2_finition: parseNumber(vals.fin) || 0,
-            prix_m2_gros_oeuvre: parseNumber(vals.gros) || 0,
+            prices: payloadPrices,
         });
     };
 
-    const setProjectVal = (tid: string, field: 'fin' | 'gros', raw: string) => {
-        setProjectPrices(prev => ({
-            ...prev,
-            [tid]: { ...(prev[tid] || { fin: '', gros: '' }), [field]: formatNumber(raw) },
-        }));
+    const setProjectVal = (tid: string, type: string, field: 'fin' | 'gros', raw: string) => {
+        setProjectPrices(prev => {
+            const currentProj = prev[tid] || {};
+            const currentType = currentProj[type] || { fin: '', gros: '' };
+            return {
+                ...prev,
+                [tid]: {
+                    ...currentProj,
+                    [type]: { ...currentType, [field]: formatNumber(raw) }
+                }
+            };
+        });
     };
 
     const toggleExpanded = (tid: string) =>
@@ -96,20 +117,20 @@ const ConfigPrixBiens: React.FC = () => {
     }
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-12 mt-12">
+        <div className="max-w-4xl mx-auto px-4 py-12 mt-12">
             {/* Header */}
             <div className="mb-10 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-3 mb-2">
                     <Settings2 size={20} className="text-slate-400" />
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paramètres de Tarification</h1>
+                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paramètres de Tarification par Type</h1>
                 </div>
-                <p className="text-slate-500 text-sm">Configurez les prix unitaires par projet pour le calcul automatique des biens.</p>
+                <p className="text-slate-500 text-sm">Configurez les prix unitaires par projet pour chaque type de bien.</p>
             </div>
 
             <div className="space-y-4">
                 {terrains.map((terrain) => {
                     const key = String(terrain.id);
-                    const vals = projectPrices[key] || { fin: '', gros: '' };
+                    const prjVals = projectPrices[key] || {};
                     const isOpen = !!expanded[key];
                     const cfg = settings?.projects?.[key];
                     const isSaving = savingId === key;
@@ -130,13 +151,9 @@ const ConfigPrixBiens: React.FC = () => {
                                         <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-tight">{terrain.nom_projet}</h3>
                                         <div className="flex items-center gap-3 mt-1">
                                             {cfg ? (
-                                                <div className="flex items-center gap-3 text-[10px] text-slate-500 font-medium uppercase tracking-tight">
-                                                    <span>Finition: <span className="text-slate-900 font-bold">{formatNumber(cfg.finition)} DH</span></span>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                                                    <span>Gros œuvre: <span className="text-slate-900 font-bold">{formatNumber(cfg.gros_oeuvre)} DH</span></span>
-                                                </div>
+                                                <span className="text-[10px] text-emerald-600 font-bold uppercase">Tarifs spécifiques configurés</span>
                                             ) : (
-                                                <span className="text-[10px] text-slate-400 font-medium">Non configuré</span>
+                                                <span className="text-[10px] text-slate-400 font-medium">Tarifs par défaut appliqués</span>
                                             )}
                                         </div>
                                     </div>
@@ -149,31 +166,44 @@ const ConfigPrixBiens: React.FC = () => {
                             {/* Settings Panel */}
                             {isOpen && (
                                 <div className="px-5 pb-6 pt-2 bg-slate-50/30 border-t border-slate-100 animate-in fade-in duration-300">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Prix avec finition (DH / m²)</label>
-                                            <div className="relative group">
-                                                <input
-                                                    type="text"
-                                                    value={vals.fin}
-                                                    onChange={e => setProjectVal(key, 'fin', e.target.value)}
-                                                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-md text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all placeholder:text-slate-300"
-                                                    placeholder="9.000"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider ml-1">Prix gros œuvre (DH / m²)</label>
-                                            <div className="relative group">
-                                                <input
-                                                    type="text"
-                                                    value={vals.gros}
-                                                    onChange={e => setProjectVal(key, 'gros', e.target.value)}
-                                                    className="w-full h-11 px-4 bg-white border border-slate-200 rounded-md text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all placeholder:text-slate-300"
-                                                    placeholder="7.000"
-                                                />
-                                            </div>
-                                        </div>
+                                    <div className="overflow-x-auto mb-6">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr>
+                                                    <th className="pb-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Type de Bien</th>
+                                                    <th className="pb-3 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Prix avec finition (DH / m²)</th>
+                                                    <th className="pb-3 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Prix gros œuvre (DH / m²)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 border-t border-slate-100">
+                                                {PROPERTY_TYPES.map(type => {
+                                                    const typeVals = prjVals[type] || { fin: '', gros: '' };
+                                                    return (
+                                                        <tr key={type} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="py-2 text-sm font-semibold text-slate-700">{type}</td>
+                                                            <td className="py-2 px-2 text-right">
+                                                                <input
+                                                                    type="text"
+                                                                    value={typeVals.fin}
+                                                                    onChange={e => setProjectVal(key, type, 'fin', e.target.value)}
+                                                                    className="w-32 h-9 px-3 bg-white border border-slate-200 rounded text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-right transition-all"
+                                                                    placeholder="9.000"
+                                                                />
+                                                            </td>
+                                                            <td className="py-2 px-2 text-right">
+                                                                <input
+                                                                    type="text"
+                                                                    value={typeVals.gros}
+                                                                    onChange={e => setProjectVal(key, type, 'gros', e.target.value)}
+                                                                    className="w-32 h-9 px-3 bg-white border border-slate-200 rounded text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-right transition-all"
+                                                                    placeholder="7.000"
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
 
                                     <div className="flex justify-end">
@@ -196,7 +226,7 @@ const ConfigPrixBiens: React.FC = () => {
 
             <div className="mt-12 pt-8 border-t border-slate-100 flex items-center justify-center sm:justify-start gap-4">
                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Calculateur de prix global actif</p>
+                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Calculateur de prix par type actif</p>
             </div>
         </div>
     );

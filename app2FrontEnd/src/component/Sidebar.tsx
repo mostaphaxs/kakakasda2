@@ -4,12 +4,13 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck, History, Scale
+    ChevronRight, BarChart3, UserCheck, History, Scale, Building
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
 import { toast } from 'react-hot-toast';
+import { formatNumber, parseDate } from '../lib/utils';
 
 interface SidebarProps {
     isMobileOpen: boolean;
@@ -72,17 +73,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const navItems = [
         { icon: Home, label: 'Accueil', path: '/home' },
         { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
-        { icon: History, label: 'Historique Transactions', path: '/transactions' },
+        { icon: History, label: 'Historique', path: '/transactions' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
         { icon: Building2, label: 'Biens', path: '/properties' },
         { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
-        { icon: UserCheck, label: 'Gestion Personnes', path: '/workers' },
+        { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
         { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
+        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
+        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
+        { icon: Building, label: 'Sociétés Services', path: '/services-tiers' },
+        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
+        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
+        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
+        { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
     ];
 
     const exportItems = [
@@ -104,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     'NUMÉRO TF': t.numero_TF || 'N/A', 'PRIX ACHAT (DH)': t.cout_global || 0,
                     'FRAIS ENREG. (DH)': t.frais_enregistrement || 0, 'FRAIS IMMAT. (DH)': t.frais_immatriculation || 0,
                     'FRAIS NOTAIRE (DH)': t.honoraires_notaire || 0, 'TOTAL INVESTI (DH)': t.total || 0,
-                    'DATE ACQUISITION': t.created_at ? new Date(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
+                    'DATE ACQUISITION': t.created_at ? parseDate(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
                     "F. Construction (DH)": t.autorisation_construction || 0,
                     "F. d'equipement (DH)": t.autorisation_equipement || 0, "F. Pompier (DH)": t.frais_pompier || 0,
                 }));
@@ -121,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     return {
                         'ID': c.id, 'CLIENT NOM': c.nom?.toUpperCase(), 'CLIENT PRÉNOM': c.prenom?.toUpperCase(),
                         'TEL': c.tel, 'CIN': c.cin?.toUpperCase(),
-                        'DATE SIGNATURE': c.date_reservation ? new Date(c.date_reservation).toLocaleDateString('fr-MA') : 'N/A',
+                        'DATE SIGNATURE': c.date_reservation ? parseDate(c.date_reservation).toLocaleDateString('fr-MA') : 'N/A',
                         'BIEN ASSIGNÉ': c.bien?.type_bien || 'N/A', 'BLOC': c.bien?.num_appartement || 'N/A',
                         'PRIX VENTE (DH)': prixGlobal, 'TOTAL VERSÉ (DH)': totalVerse,
                         'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
@@ -146,7 +154,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     const totalMois = Number(c.frais_tel) + Number(c.internet) + Number(c.loyer_bureau) +
                         Number(c.fournitures_bureau) + Number(c.employes_bureau) + Number(c.impots) + Number(c.gasoil);
                     return {
-                        'ID': c.id, 'MOIS / PÉRIODE': new Date(c.periode).toLocaleDateString('fr-MA').toUpperCase(),
+                        'ID': c.id, 'MOIS / PÉRIODE': parseDate(c.periode).toLocaleDateString('fr-MA').toUpperCase(),
                         'TOTAL GÉNÉRAL (DH)': totalMois, 'LOYER (DH)': c.loyer_bureau, 'SALAIRES (DH)': c.employes_bureau,
                         'FOURNITURES (DH)': c.fournitures_bureau,
                         'COMMUNICATIONS (DH)': Number(c.frais_tel) + Number(c.internet), 'LOGISTIQUE (DH)': c.gasoil,
@@ -229,8 +237,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/50 flex-shrink-0">
                     {!isCollapsed && (
                         <div className="flex items-center gap-3 overflow-hidden">
-                            <img src="/assets/logoLogin.png" alt="" className="h-7 w-auto flex-shrink-0" />
-                            <span className="font-semibold text-white tracking-tight text-sm truncate">Amical EL OUAHA</span>
+                            <img src="/assets/LogoNavbar.png" alt="" className="h-7 w-auto flex-shrink-0" />
+                            <span className="font-semibold text-white tracking-tight text-sm truncate">CINQ ÉLÉMENTS</span>
                         </div>
                     )}
                     <button
@@ -263,8 +271,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                                             : 'hover:bg-slate-800/50 hover:text-white'}
                                     `}
                                 >
-                                    <item.icon size={18} className={isActive ? 'text-amber-500' : ''} />
-                                    {!isCollapsed && <span>{item.label}</span>}
+                                    <item.icon size={18} className={`flex-shrink-0 ${isActive ? 'text-amber-500' : ''}`} />
+                                    {!isCollapsed && <span className="truncate whitespace-nowrap">{item.label}</span>}
                                 </button>
                             );
                         })}
