@@ -120,7 +120,7 @@ const Terrains = () => {
                             <MapPin className="text-blue-600" size={32} />
                             Gestion des Projets
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">AMICAL EL OUAHA</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">

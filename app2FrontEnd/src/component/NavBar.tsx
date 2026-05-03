@@ -294,7 +294,7 @@ const Navbar: React.FC = () => {
 
                             />
                             <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                                Société les <span className="text-amber-500 font-black">cinq elements</span>
+                                AMICAL <span className="text-amber-500 font-black">EL OUAHA</span>
                             </span>
                         </div>
                     </div>

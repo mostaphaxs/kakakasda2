@@ -121,7 +121,7 @@ const AIAssistant = () => {
         setIsLoading(true);
 
         try {
-            const context = "Assistante Nova - Service Client Pro. Société les cinq éléments.";
+            const context = "Assistante Nova - Service Client Pro. Amical EL Ouaha.";
             const response = await executeAICommand(userMessage, currentFile, context);
 
             if (response.type === 'ACTION' && response.action) {

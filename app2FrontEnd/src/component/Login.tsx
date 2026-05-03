@@ -53,14 +53,14 @@ export default function Login() {
           <div className="flex flex-col items-center mb-12 group">
             <div className="mb-8 p-8 bg-slate-900 rounded-[50px] border border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 group-hover:scale-110">
               <img
-                src="/assets/LogoNavbar.png"
-                alt="Société les cinq elements"
+                src="/assets/logoLogin.png"
+                alt="Amical EL OUAHA"
                 className="h-40 w-auto"
               />
             </div>
             <div className="flex flex-col items-center">
               <h2 className="text-4xl font-black text-slate-900 tracking-tighter text-center uppercase leading-none">
-                LES CINQ <span className="text-amber-500">ELEMENTS</span>
+                El <span className="text-amber-500">OUAHA</span>
               </h2>
               <p className="mt-3 text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] text-center">Gestion Immobilière & Travaux</p>
             </div>
@@ -147,7 +147,7 @@ export default function Login() {
           </form>
 
           <div className="mt-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 Société les cinq elements. Tous droits réservés.</p>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026 Amical El Ouaha. Tous droits réservés.</p>
           </div>
         </div>
       </div>

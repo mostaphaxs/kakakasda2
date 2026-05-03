@@ -97,7 +97,7 @@ const AppContent: React.FC = () => {
             <div onClick={() => { }} className="flex items-center cursor-pointer group">
               <img src="/assets/LogoNavbar.png" alt="Logo" className="h-8 w-auto mr-3" />
               <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                Société les <span className="text-amber-500 font-black">cinq elements</span>
+                Amical <span className="text-amber-500 font-black">El Ouaha</span>
               </span>
             </div>
           </header>
