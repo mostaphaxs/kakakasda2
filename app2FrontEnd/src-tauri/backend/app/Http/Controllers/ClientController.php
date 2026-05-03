@@ -270,9 +270,28 @@ class ClientController extends Controller
      */
     public function searchByCin(string $cin): JsonResponse
     {
-        $client = Client::where('cin', $cin)->first();
+        $cleanInput = trim(strtoupper($cin));
+        
+        // 1. Try exact match (but normalized)
+        $client = Client::whereRaw('UPPER(TRIM(cin)) = ?', [$cleanInput])
+            ->with(['biens.terrain', 'payments'])
+            ->first();
+            
+        // 2. Try match without any spaces if not found
         if (!$client) {
-            return response()->json(['message' => 'Non trouvé'], 404);
+            $client = Client::where('cin', 'like', "%{$cleanInput}%")
+                ->with(['biens.terrain', 'payments'])
+                ->first();
+        }
+
+        if (!$client) {
+            // Very safe suggestion logic
+            $suggestions = \DB::table('clients')->limit(5)->pluck('cin')->toArray();
+            
+            return response()->json([
+                'message' => "CIN \"{$cin}\" introuvable.",
+                'suggestions' => $suggestions
+            ], 404);
         }
         return response()->json($client);
     }

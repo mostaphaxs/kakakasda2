@@ -8,14 +8,13 @@ use App\Traits\HasFrenchDates;
 class Charge extends Model
 {
     use HasFrenchDates;
+
     protected $fillable = [
-        'frais_tel',
-        'internet',
-        'loyer_bureau',
-        'fournitures_bureau',
-        'employes_bureau',
-        'impots',
-        'gasoil',
+        'loyer_bureau', 'loyer_bureau_ref', 'loyer_bureau_scan',
+        'fournitures_bureau', 'fournitures_bureau_ref', 'fournitures_bureau_scan',
+        'employes_bureau', 'employes_bureau_ref', 'employes_bureau_scan',
+        'impots', 'impots_ref', 'impots_scan',
+        'gasoil', 'gasoil_ref', 'gasoil_scan',
         'periode',
         'terrain_id',
         'rib',

@@ -11,7 +11,7 @@ class OuvrierController extends Controller
 {
     public function index()
     {
-        return Ouvrier::with(['missions', 'payments'])->get();
+        return Ouvrier::with(['missions.partner', 'missions.terrain', 'payments'])->get();
     }
 
     public function store(Request $request)
@@ -21,9 +21,10 @@ class OuvrierController extends Controller
             'cin' => 'nullable|string',
             'speciality' => 'required|string',
             'phone' => 'nullable|string',
-            'phone' => 'nullable|string',
-            'scan_cin' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'phone_whatsapp' => 'nullable|string',
+            'scan_cin' => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'rib' => 'nullable|string|max:255',
+            'status' => 'nullable|in:active,inactive',
         ]);
 
         if ($request->hasFile('scan_cin')) {
@@ -35,7 +36,7 @@ class OuvrierController extends Controller
 
     public function show($id)
     {
-        return Ouvrier::with(['missions.terrain', 'payments'])->findOrFail($id);
+        return Ouvrier::with(['missions.terrain', 'missions.partner', 'payments'])->findOrFail($id);
     }
 
     public function update(Request $request, $id)
@@ -46,9 +47,10 @@ class OuvrierController extends Controller
             'cin' => 'nullable|string',
             'speciality' => 'required|string',
             'phone' => 'nullable|string',
-            'phone' => 'nullable|string',
-            'scan_cin' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            'phone_whatsapp' => 'nullable|string',
+            'scan_cin' => 'sometimes|nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'rib' => 'nullable|string|max:255',
+            'status' => 'required|in:active,inactive',
         ]);
 
         if ($request->hasFile('scan_cin')) {
@@ -68,9 +70,12 @@ class OuvrierController extends Controller
             'type' => 'required|in:journalier,periode,m2,ml,forfait',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date',
-            'quantity' => 'required|numeric',
-            'unit_price' => 'required|numeric',
+            'quantity' => 'required|numeric|min:0',
+            'unit_price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
+            'partner_name' => 'nullable|string',
+            'partner_id' => 'nullable|exists:ouvriers,id',
+            'partner_share' => 'nullable|numeric|min:0',
         ]);
 
         return $ouvrier->missions()->create($validated);
@@ -85,9 +90,12 @@ class OuvrierController extends Controller
             'type' => 'required|in:journalier,periode,m2,ml,forfait',
             'start_date' => 'required|date',
             'end_date' => 'nullable|date',
-            'quantity' => 'required|numeric',
-            'unit_price' => 'required|numeric',
+            'quantity' => 'required|numeric|min:0',
+            'unit_price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
+            'partner_name' => 'nullable|string',
+            'partner_id' => 'nullable|exists:ouvriers,id',
+            'partner_share' => 'nullable|numeric|min:0',
             'status' => 'required|in:pending,completed',
         ]);
 

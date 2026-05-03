@@ -24,9 +24,14 @@ use App\Http\Controllers\FactureController;
 use App\Http\Controllers\OuvrierController;
 use App\Http\Controllers\SalarieController;
 use App\Http\Controllers\FinancialController;
+use App\Http\Controllers\ContentieuxController;
+use App\Http\Controllers\ServiceProviderController;
+use App\Http\Controllers\ProviderInvoiceController;
+use App\Http\Controllers\TerrainMapController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
+Route::get('/clients/portal-login/{cin}', [ClientController::class, 'searchByCin']);
 
 // Protected routes – require valid Sanctum token
 Route::middleware('auth:sanctum')->group(function () {
@@ -47,9 +52,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/biens/{bien}', [BienController::class, 'update']);
     Route::delete('/biens/{bienId}', [BienController::class, 'destroy']);
 
+    // Digital Twin - Terrain Map
+    Route::get('/terrain-map/{terrainId}', [TerrainMapController::class, 'show']);
+    Route::put('/terrain-map/{terrainId}', [TerrainMapController::class, 'update']);
+
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);
-    Route::get('/clients/search-by-cin/{cin}', [ClientController::class, 'searchByCin']);
     Route::post('/clients', [ClientController::class, 'store']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
@@ -126,6 +134,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('salaries', SalarieController::class);
     
+    // Contentieux (Dossiers Juridiques)
+    Route::apiResource('contentieux', ContentieuxController::class);
+
+    // Sociétés de Services
+    Route::apiResource('service-providers', ServiceProviderController::class);
+    Route::apiResource('provider-invoices', ProviderInvoiceController::class);
+
 });
 
 // 🖼️ UNIVERSAL DOCUMENT SERVE (Bypass web.php)
