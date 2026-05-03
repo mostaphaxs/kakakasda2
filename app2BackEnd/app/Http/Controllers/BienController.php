@@ -34,10 +34,10 @@ class BienController extends Controller
             'num_appartement'   => [
                 'nullable',
                 'string',
-                'max:20',
+                'max:100',
                 Rule::unique('biens')->where('terrain_id', $request->terrain_id)
             ],
-            'surface_m2'        => 'required|numeric|min:1|max:999999',
+            'surface_m2'        => 'required|numeric|min:1|max:9999999',
             'description'       => 'nullable|string|max:1000',
             'statut'            => 'nullable|in:Libre,Reserve,Vendu',
             'prix_par_m2_finition'       => 'nullable|numeric|min:0',

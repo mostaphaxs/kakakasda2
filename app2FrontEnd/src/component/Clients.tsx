@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Link } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
@@ -76,6 +76,7 @@ interface Client {
 
 const Clients = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [clients, setClients] = useState<Client[]>([]);
     // suiviBien removed – the Suivi Réalisation is now embedded in the edit property page
     const [loading, setLoading] = useState(true);
@@ -190,6 +191,21 @@ const Clients = () => {
     useEffect(() => {
         fetchData();
     }, []);
+
+    // Handle Deep Linking / Auto-open payment modal
+    useEffect(() => {
+        if (!loading && searchParams.get('action') === 'payment') {
+            const clientIdAttr = searchParams.get('client_id');
+            if (clientIdAttr) {
+                const client = clients.find(c => c.id === Number(clientIdAttr));
+                if (client) {
+                    handleOpenPaymentModal(client);
+                    // Clear params to avoid reopening on refresh if needed, 
+                    // though usually keeping them is fine for deep links.
+                }
+            }
+        }
+    }, [loading, searchParams, clients]);
 
     const handleOpenCancelClient = (client: Client) => {
         setClientToCancel(client);

@@ -299,3 +299,48 @@ export async function executeAICommand(message: string, file: File | null, conte
         throw error;
     }
 }
+
+/**
+ * Extracts structured mission data from a voice transcript (Voice-to-Action)
+ */
+export async function extractMissionFromVoice(
+    transcript: string,
+    workers: { id: number; name: string }[],
+    terrains: { id: number; nom_projet: string }[]
+): Promise<Record<string, string>> {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const prompt = `Tu es un assistant de chantier. Extrais les informations d'une commande vocale en français et retourne un JSON structuré.
+
+Commande vocale : "${transcript}"
+Ouvriers : ${JSON.stringify(workers.map(w => ({ id: w.id, name: w.name })))}
+Projets : ${JSON.stringify(terrains.map(t => ({ id: t.id, nom: t.nom_projet })))}
+Aujourd'hui : ${today} | Hier : ${yesterday}
+
+Types possibles: "journalier" (1 jour), "periode" (multi-jours), "m2" (mètre carré), "ml" (mètre linéaire), "forfait" (montant fixe)
+
+Réponds UNIQUEMENT avec ce JSON (null si inconnu) :
+{"ouvrier_id":"id ou null","terrain_id":"id ou null","type":"journalier|periode|m2|ml|forfait ou null","quantity":"nombre ou null","unit_price":"prix DH ou null","description":"travail effectué","start_date":"YYYY-MM-DD ou null"}`;
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            const cleaned: Record<string, string> = {};
+            for (const [k, v] of Object.entries(parsed)) {
+                if (v !== null && v !== undefined && String(v).trim() !== '' && String(v) !== 'null') {
+                    cleaned[k] = String(v);
+                }
+            }
+            return cleaned;
+        }
+        return {};
+    } catch (error) {
+        console.error("Voice extraction error:", error);
+        return {};
+    }
+}
+

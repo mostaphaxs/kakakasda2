@@ -225,6 +225,9 @@ const Terrains = () => {
                                             <button onClick={() => handleOpenDetails(t)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Détails">
                                                 <FileText size={16} />
                                             </button>
+                                            <button onClick={() => navigate(`/terrain-map/${t.id}`)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Voir la Carte Interactive">
+                                                <Briefcase size={16} />
+                                            </button>
                                             <button onClick={() => navigate(`/edit-terrain/${t.id}`)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Modifier">
                                                 <Edit2 size={16} />
                                             </button>

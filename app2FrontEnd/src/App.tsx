@@ -44,6 +44,7 @@ import FacturesList from './component/FacturesList';
 import AIAssistant from './component/AIAssistant';
 import ClientLogin from './component/ClientLogin';
 import ClientDashboard from './component/ClientDashboard';
+import TerrainMap from './component/TerrainMap';
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -118,6 +119,7 @@ const AppContent: React.FC = () => {
               <Route path="/edit-property/:id" element={<PrivateRoute><AddProperty /></PrivateRoute>} />
               <Route path="/add-terrain" element={<PrivateRoute><AddTerrain /></PrivateRoute>} />
               <Route path="/edit-terrain/:id" element={<PrivateRoute><EditTerrain /></PrivateRoute>} />
+              <Route path="/terrain-map/:id" element={<PrivateRoute><TerrainMap /></PrivateRoute>} />
               <Route path="/add-client" element={<PrivateRoute><AddClient /></PrivateRoute>} />
               <Route path="/contractors" element={<PrivateRoute><Contractors /></PrivateRoute>} />
               <Route path="/intervenants" element={<PrivateRoute><Intervenants /></PrivateRoute>} />

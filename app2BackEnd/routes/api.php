@@ -27,6 +27,7 @@ use App\Http\Controllers\FinancialController;
 use App\Http\Controllers\ContentieuxController;
 use App\Http\Controllers\ServiceProviderController;
 use App\Http\Controllers\ProviderInvoiceController;
+use App\Http\Controllers\TerrainMapController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -50,6 +51,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/biens/{bien}', [BienController::class, 'show']);
     Route::put('/biens/{bien}', [BienController::class, 'update']);
     Route::delete('/biens/{bienId}', [BienController::class, 'destroy']);
+
+    // Digital Twin - Terrain Map
+    Route::get('/terrain-map/{terrainId}', [TerrainMapController::class, 'show']);
+    Route::put('/terrain-map/{terrainId}', [TerrainMapController::class, 'update']);
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);

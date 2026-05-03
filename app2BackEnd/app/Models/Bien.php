@@ -28,6 +28,10 @@ class Bien extends Model
         'prix_global_non_finition',
         'document_path',
         'gros_oeuvre_pourcentage',
+        'map_x',
+        'map_y',
+        'map_w',
+        'map_h',
     ];
 
     public function terrain()
