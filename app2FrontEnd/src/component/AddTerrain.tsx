@@ -23,7 +23,7 @@ interface TerrainFormInputs {
     autorisation_construction: number;
     autorisation_equipement: number;
     frais_pompier: number;
-    frais_intermediaire: number;
+    frais_autorisation_intermediaire: number;
     total: number;
     description?: string;
 }
@@ -72,13 +72,13 @@ const AddTerrain: React.FC = () => {
             autorisation_construction: 0,
             autorisation_equipement: 0,
             frais_pompier: 0,
-            frais_intermediaire: 0,
+            frais_autorisation_intermediaire: 0,
             total: 0,
         },
     });
 
     // ── Auto-calc total ─────────────────────────────────────────────────────────
-    const [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie] = watch(['cout_global', 'frais_enregistrement', 'frais_immatriculation', 'honoraires_notaire', 'autorisation_construction', 'autorisation_equipement', 'frais_pompier', 'frais_intermediaire']);
+    const [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie] = watch(['cout_global', 'frais_enregistrement', 'frais_immatriculation', 'honoraires_notaire', 'autorisation_construction', 'autorisation_equipement', 'frais_pompier', 'frais_autorisation_intermediaire']);
 
     React.useEffect(() => {
         const sum = (parseNumber(String(cout)) || 0) +
@@ -109,7 +109,7 @@ const AddTerrain: React.FC = () => {
                     autorisation_construction: parseNumber(String(data.autorisation_construction)),
                     autorisation_equipement: parseNumber(String(data.autorisation_equipement)),
                     frais_pompier: parseNumber(String(data.frais_pompier)),
-                    frais_intermediaire: parseNumber(String(data.frais_intermediaire)),
+                    frais_autorisation_intermediaire: parseNumber(String(data.frais_autorisation_intermediaire)),
                 }),
             });
 
@@ -306,13 +306,13 @@ const AddTerrain: React.FC = () => {
                                 />
                             </FieldWrapper>
 
-                            <FieldWrapper label="Frais d'intermediaire (DH)" error={errors.frais_intermediaire?.message} fieldError={fieldErrors.frais_intermediaire}>
+                            <FieldWrapper label="Frais d'intermediaire (DH)" error={errors.frais_autorisation_intermediaire?.message} fieldError={fieldErrors.frais_autorisation_intermediaire}>
                                 <input
                                     type="text"
-                                    {...register('frais_intermediaire', {
-                                        onChange: (e) => setValue('frais_intermediaire', formatNumber(e.target.value) as any)
+                                    {...register('frais_autorisation_intermediaire', {
+                                        onChange: (e) => setValue('frais_autorisation_intermediaire', formatNumber(e.target.value) as any)
                                     })}
-                                    className={`${inputCls(!!errors.frais_intermediaire)} font-bold text-lg`}
+                                    className={`${inputCls(!!errors.frais_autorisation_intermediaire)} font-bold text-lg`}
                                     placeholder="0"
                                 />
                             </FieldWrapper>
