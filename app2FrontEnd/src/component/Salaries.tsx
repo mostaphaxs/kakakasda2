@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Plus, Loader2, Trash2, Edit2, X, User, Phone, Search, Download,
-    Briefcase, GraduationCap, ShieldCheck, Eye, Info, UserCheck, FileText, Banknote
+    Briefcase, GraduationCap, ShieldCheck, Eye, Info, UserCheck, FileText, Banknote,
+    Printer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
@@ -66,6 +67,7 @@ const Salaries: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingSalarie, setEditingSalarie] = useState<Salarie | null>(null);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [isBulletinModalOpen, setIsBulletinModalOpen] = useState(false);
     const [selectedSalarie, setSelectedSalarie] = useState<Salarie | null>(null);
 
     const headerRef = React.useRef<HTMLDivElement>(null);
@@ -140,6 +142,11 @@ const Salaries: React.FC = () => {
     const GRADUATIONS = [
         "Bac + 1", "Bac + 2", "Bac + 3", "Bac + 4", "Bac + 5", "Bac + 6", "Bac + 7", "Bac + 8", "Sans Diplôme", "Autre"
     ];
+
+    const handlePrintBulletin = (salarie: Salarie) => {
+        setSelectedSalarie(salarie);
+        setIsBulletinModalOpen(true);
+    };
 
     const fetchSalaries = async () => {
         try {
@@ -1068,9 +1075,228 @@ const Salaries: React.FC = () => {
                                             </button>
                                         </div>
                                     )}
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-indigo-600 text-white rounded-xl">
+                                                <FileText size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] font-black text-gray-800 uppercase">Bulletin de Paie Mensuel</p>
+                                                <p className="text-[9px] font-bold text-gray-400 capitalize">Détails des cotisations et primes</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handlePrintBulletin(selectedSalarie)}
+                                            className="px-4 py-2 bg-white text-indigo-600 rounded-xl border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+                                        >
+                                            <Printer size={14} /> Aperçu & Imprimer
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+            {/* Bulletin de Paie Modal (Printable) */}
+            {isBulletinModalOpen && selectedSalarie && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="px-8 py-4 border-b border-gray-100 flex items-center justify-between no-print">
+                            <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest">Aperçu du Bulletin de Paie</h3>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                                    type="button"
+                                >
+                                    <Printer size={16} /> Imprimer Bulletin
+                                </button>
+                                <button onClick={() => setIsBulletinModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors" type="button">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-white overflow-y-auto max-h-[80vh] custom-scrollbar-white print:max-h-none print:p-0" id="bulletin-content">
+                            {/* Professional Payslip Template */}
+                            <div className="border-[1px] border-gray-900 p-8 relative min-h-[1000px] flex flex-col">
+                                {/* Header / Company Details */}
+                                <div className="flex justify-between items-start mb-10">
+                                    <div>
+                                        <h1 className="text-xl font-black text-gray-900 uppercase mb-1">BULLETIN DE PAIE</h1>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Période : {selectedSalarie.payment_date ? new Date(parseDate(selectedSalarie.payment_date)).toLocaleDateString('fr-MA', { month: 'long', year: 'numeric' }) : 'N/A'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-sm uppercase">Référence : BDP-{selectedSalarie.id}-{new Date().getFullYear()}</p>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 italic">Confidentiel</p>
+                                    </div>
+                                </div>
+
+                                {/* Employee & Employment Info */}
+                                <div className="grid grid-cols-2 gap-8 mb-10 border-y border-gray-100 py-6">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Nom & Prénom :</span>
+                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.name}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Matricule :</span>
+                                            <span className="font-black text-gray-900">{selectedSalarie.id.toString().padStart(5, '0')}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">CIN :</span>
+                                            <span className="font-black text-gray-900">{selectedSalarie.cin || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Fonction :</span>
+                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.speciality}</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Date d'embauche :</span>
+                                            <span className="font-black text-gray-900">{selectedSalarie.hiring_date || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Ancienneté :</span>
+                                            <span className="font-black text-gray-900">{selectedSalarie.taux_anciennete || 0}%</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">N° CNSS :</span>
+                                            <span className="font-black text-gray-900">{selectedSalarie.cnss_number || '#######'}</span>
+                                        </div>
+                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
+                                            <span className="font-bold text-gray-400 uppercase">Mode de Paie :</span>
+                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.payment_method || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Salary Details Table */}
+                                <div className="flex-1">
+                                    <table className="w-full text-[10px]">
+                                        <thead>
+                                            <tr className="bg-gray-50 text-gray-400 font-black uppercase tracking-widest border-b border-gray-200">
+                                                <th className="py-2 px-4 text-left">Désignation</th>
+                                                <th className="py-2 px-2 text-center">Nombre/Base</th>
+                                                <th className="py-2 px-2 text-center">Taux</th>
+                                                <th className="py-2 px-4 text-right">Gains</th>
+                                                <th className="py-2 px-4 text-right">Retenues</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="font-medium text-gray-700">
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-3 px-4 font-black">Salaire de base</td>
+                                                <td className="py-3 px-2 text-center">{selectedSalarie.jours_travail || 26}</td>
+                                                <td className="py-3 px-2 text-center">{(Number(selectedSalarie.monthly_salary) / 26).toFixed(2)}</td>
+                                                <td className="py-3 px-4 text-right">{Number(selectedSalarie.monthly_salary).toLocaleString('fr-MA')}</td>
+                                                <td className="py-3 px-4 text-right"></td>
+                                            </tr>
+                                            {selectedSalarie.montant_anciennete && selectedSalarie.montant_anciennete > 0 && (
+                                                <tr className="border-b border-gray-50">
+                                                    <td className="py-2 px-4">Prime d'ancienneté</td>
+                                                    <td className="py-2 px-2 text-center"></td>
+                                                    <td className="py-2 px-2 text-center">{selectedSalarie.taux_anciennete}%</td>
+                                                    <td className="py-2 px-4 text-right">{selectedSalarie.montant_anciennete.toLocaleString('fr-MA')}</td>
+                                                    <td className="py-2 px-4 text-right"></td>
+                                                </tr>
+                                            )}
+                                            {/* Cotisations */}
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-2 px-4 pl-8">Cotisation CNSS</td>
+                                                <td className="py-2 px-2 text-center">6000.00</td>
+                                                <td className="py-2 px-2 text-center">{selectedSalarie.taux_cnss || 4.48}%</td>
+                                                <td className="py-2 px-4 text-right"></td>
+                                                <td className="py-2 px-4 text-right text-red-600">{(selectedSalarie.retenue_cnss || 0).toLocaleString('fr-MA')}</td>
+                                            </tr>
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-2 px-4 pl-8">Cotisation AMO</td>
+                                                <td className="py-2 px-2 text-center">{selectedSalarie.salaire_brut?.toLocaleString('fr-MA')}</td>
+                                                <td className="py-2 px-2 text-center">{selectedSalarie.taux_amo || 2.26}%</td>
+                                                <td className="py-2 px-4 text-right"></td>
+                                                <td className="py-2 px-4 text-right text-red-600">{(selectedSalarie.retenue_amo || 0).toLocaleString('fr-MA')}</td>
+                                            </tr>
+                                            <tr className="border-b border-gray-50">
+                                                <td className="py-2 px-4 pl-8">Impôt sur le Revenu (I.R)</td>
+                                                <td className="py-2 px-2 text-center"></td>
+                                                <td className="py-2 px-2 text-center">{selectedSalarie.taux_ir || 0}%</td>
+                                                <td className="py-2 px-4 text-right"></td>
+                                                <td className="py-2 px-4 text-right text-red-600">{(selectedSalarie.retenue_ir || 0).toLocaleString('fr-MA')}</td>
+                                            </tr>
+                                            {/* Primes */}
+                                            {selectedSalarie.indemnite_transport && selectedSalarie.indemnite_transport > 0 && (
+                                                <tr className="border-b border-gray-50 text-gray-500 italic">
+                                                    <td className="py-2 px-4">Indemnité de Transport</td>
+                                                    <td className="py-2 px-2" colSpan={2}></td>
+                                                    <td className="py-2 px-4 text-right">{selectedSalarie.indemnite_transport.toLocaleString('fr-MA')}</td>
+                                                    <td className="py-2 px-4 text-right"></td>
+                                                </tr>
+                                            )}
+                                            {selectedSalarie.prime_panier && selectedSalarie.prime_panier > 0 && (
+                                                <tr className="border-b border-gray-50 text-gray-500 italic">
+                                                    <td className="py-2 px-4">Prime de Panier</td>
+                                                    <td className="py-2 px-2" colSpan={2}></td>
+                                                    <td className="py-2 px-4 text-right">{selectedSalarie.prime_panier.toLocaleString('fr-MA')}</td>
+                                                    <td className="py-2 px-4 text-right"></td>
+                                                </tr>
+                                            )}
+                                            {selectedSalarie.prime_rendement && selectedSalarie.prime_rendement > 0 && (
+                                                <tr className="border-b border-gray-50">
+                                                    <td className="py-2 px-4">Prime de Rendement</td>
+                                                    <td className="py-2 px-2" colSpan={2}></td>
+                                                    <td className="py-2 px-4 text-right">{selectedSalarie.prime_rendement.toLocaleString('fr-MA')}</td>
+                                                    <td className="py-2 px-4 text-right"></td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="bg-gray-900 text-white font-black uppercase text-[11px]">
+                                                <td className="py-3 px-4" colSpan={3}>NET À PAYER (DH)</td>
+                                                <td className="py-3 px-4 text-right" colSpan={2}>{(selectedSalarie.net_a_payer || 0).toLocaleString('fr-MA')} DH</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+
+                                {/* Footer Signatures */}
+                                <div className="mt-12 grid grid-cols-2 gap-20 pt-10 border-t border-gray-100">
+                                    <div className="text-center">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-12">L'employeur</p>
+                                        <div className="text-[8px] font-bold text-gray-300 italic">Cachet et Signature</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-12">Le Salarié</p>
+                                        <div className="text-[8px] font-bold text-gray-300 italic">Précédé de la mention "Lu et approuvé"</div>
+                                    </div>
+                                </div>
+
+                                {/* Watermark */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none rotate-12">
+                                    <ShieldCheck size={400} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <style>{`
+                            @media print {
+                                body * {
+                                    visibility: hidden;
+                                }
+                                #bulletin-content, #bulletin-content * {
+                                    visibility: visible;
+                                }
+                                #bulletin-content {
+                                    position: absolute;
+                                    left: 0;
+                                    top: 0;
+                                    width: 100%;
+                                }
+                                .no-print {
+                                    display: none !important;
+                                }
+                            }
+                        `}</style>
                     </div>
                 </div>
             )}

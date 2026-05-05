@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
     Plus, Loader2, Trash2, Edit2, X, User, Phone, FileText,
     Calendar, Search, Download, Briefcase, Ruler, Maximize,
-    Clock, CheckCircle2, Banknote, Eye, Info,
+    Clock, CheckCircle2, Banknote, Eye, Info, Printer,
     ChevronRight, TrendingUp, UserCheck, Home, Users, Sparkles, Mic, MicOff
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -74,6 +74,8 @@ const Workers = () => {
     const [isGlobalMissionModalOpen, setIsGlobalMissionModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<WorkerPayment | null>(null);
     const [activeTab, setActiveTab] = useState<'missions' | 'payments'>('missions');
 
     // Selected Data
@@ -609,6 +611,14 @@ const Workers = () => {
         }
     };
 
+    const handlePrintReceipt = (payment: WorkerPayment, worker: Worker) => {
+        setSelectedWorker(worker);
+        setSelectedPayment(payment);
+        setIsReceiptModalOpen(true);
+        // We'll use a slight delay to ensure the modal content is rendered before printing if needed,
+        // or just rely on the user clicking the print button in the receipt modal for better control.
+    };
+
     const handleExport = () => {
         const data = workers.map((w: Worker) => ({
             'NOM': w.name,
@@ -670,10 +680,10 @@ const Workers = () => {
                         onClick={handleVoiceDictation}
                         disabled={isVoiceProcessing}
                         className={`flex items-center gap-2 px-5 py-3 rounded-2xl border font-black text-xs uppercase tracking-widest shadow-sm transition-all relative ${isVoiceListening
-                                ? 'bg-rose-500 text-white border-rose-400 animate-pulse shadow-rose-200'
-                                : isVoiceProcessing
-                                    ? 'bg-violet-50 text-violet-500 border-violet-100 opacity-70'
-                                    : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100 hover:border-violet-200'
+                            ? 'bg-rose-500 text-white border-rose-400 animate-pulse shadow-rose-200'
+                            : isVoiceProcessing
+                                ? 'bg-violet-50 text-violet-500 border-violet-100 opacity-70'
+                                : 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100 hover:border-violet-200'
                             }`}
                         title="Dicter un pointage à voix haute"
                     >
@@ -1713,12 +1723,23 @@ const Workers = () => {
                                                                         </p>
                                                                     </div>
                                                                 </div>
-                                                                <button
-                                                                    onClick={() => handleDeletePayment(p.id)}
-                                                                    className="text-[10px] font-black text-rose-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"
-                                                                >
-                                                                    Supprimer
-                                                                </button>
+                                                                <div className="flex items-center gap-2">
+                                                                    <button
+                                                                        onClick={() => handlePrintReceipt(p, selectedWorker)}
+                                                                        className="p-2 bg-white text-indigo-600 rounded-xl border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm group"
+                                                                        title="Imprimer Reçu"
+                                                                        type="button"
+                                                                    >
+                                                                        <Printer size={14} className="group-hover:scale-110 transition-transform" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeletePayment(p.id)}
+                                                                        className="text-[10px] font-black text-rose-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity hover:text-rose-600"
+                                                                        type="button"
+                                                                    >
+                                                                        Supprimer
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         ))
                                                 ) : (
@@ -1734,125 +1755,123 @@ const Workers = () => {
                             </div>
                         </div>
                     </div>
-                )
-            }
+                )}
 
             {/* Payment Modal */}
-            {
-                isPaymentModalOpen && selectedWorker && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar-white animate-in zoom-in-95 duration-300">
-                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
-                                        <Banknote size={20} />
-                                    </div>
-                                    <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Nouveau Paiement</h3>
+            {isPaymentModalOpen && selectedWorker && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto custom-scrollbar-white animate-in zoom-in-95 duration-300">
+                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
+                                    <Banknote size={20} />
                                 </div>
-                                <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm border border-transparent hover:border-gray-100">
-                                    <X size={20} />
-                                </button>
+                                <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">Nouveau Paiement</h3>
+                            </div>
+                            <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm border border-transparent hover:border-gray-100">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleAddPayment} className="p-8 space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Montant versé (DH)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-sm uppercase">DH</span>
+                                    <input
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        value={paymentForm.amount}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, amount: formatNumber(e.target.value) })}
+                                        placeholder="0"
+                                        className="w-full pl-12 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-2xl text-emerald-600"
+                                    />
+                                </div>
+                                <div className="mt-2 flex justify-between items-center px-1">
+                                    <p className="text-[10px] text-rose-500 font-bold uppercase">Solde: {(selectedWorker.total_earned - selectedWorker.paid_amount).toLocaleString('fr-MA')} DH</p>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaymentForm({ ...paymentForm, amount: formatNumber(String(selectedWorker.total_earned - selectedWorker.paid_amount)) })}
+                                        className="text-[9px] font-black text-indigo-600 hover:underline uppercase"
+                                    >
+                                        Payer le reste
+                                    </button>
+                                </div>
                             </div>
 
-                            <form onSubmit={handleAddPayment} className="p-8 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Montant versé (DH)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-sm uppercase">DH</span>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Date</label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={paymentForm.payment_date}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
+                                        className="w-full px-4 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Méthode</label>
+                                    <select
+                                        value={paymentForm.method}
+                                        onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
+                                        className="w-full px-3 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-[10px] uppercase tracking-widest appearance-none cursor-pointer"
+                                    >
+                                        <option value="Espèces">Espèces</option>
+                                        <option value="Virement">Virement</option>
+                                        <option value="Chèque">Chèque</option>
+                                        <option value="Effet">Effet</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {paymentForm.method !== 'Espèces' && (
+                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Référence N°</label>
                                         <input
                                             type="text"
-                                            required
-                                            autoFocus
-                                            value={paymentForm.amount}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, amount: formatNumber(e.target.value) })}
-                                            placeholder="0"
-                                            className="w-full pl-12 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-2xl text-emerald-600"
+                                            value={paymentForm.reference_no}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, reference_no: e.target.value })}
+                                            placeholder="N° Chèque/Virement"
+                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
                                         />
                                     </div>
-                                    <div className="mt-2 flex justify-between items-center px-1">
-                                        <p className="text-[10px] text-rose-500 font-bold uppercase">Solde: {(selectedWorker.total_earned - selectedWorker.paid_amount).toLocaleString('fr-MA')} DH</p>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPaymentForm({ ...paymentForm, amount: formatNumber(String(selectedWorker.total_earned - selectedWorker.paid_amount)) })}
-                                            className="text-[9px] font-black text-indigo-600 hover:underline uppercase"
-                                        >
-                                            Payer le reste
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Date</label>
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Banque</label>
                                         <input
-                                            type="date"
-                                            required
-                                            value={paymentForm.payment_date}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, payment_date: e.target.value })}
-                                            className="w-full px-4 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
+                                            type="text"
+                                            value={paymentForm.bank_name}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, bank_name: e.target.value })}
+                                            placeholder="Nom de la banque"
+                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Méthode</label>
-                                        <select
-                                            value={paymentForm.method}
-                                            onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
-                                            className="w-full px-3 py-3.5 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-[10px] uppercase tracking-widest appearance-none cursor-pointer"
-                                        >
-                                            <option value="Espèces">Espèces</option>
-                                            <option value="Virement">Virement</option>
-                                            <option value="Chèque">Chèque</option>
-                                            <option value="Effet">Effet</option>
-                                        </select>
+                                    <div className="col-span-full">
+                                        <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Commission Bancaire (DH)</label>
+                                        <input
+                                            type="text"
+                                            value={paymentForm.bank_commission}
+                                            onChange={(e) => setPaymentForm({ ...paymentForm, bank_commission: formatNumber(e.target.value) })}
+                                            className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
+                                        />
                                     </div>
                                 </div>
+                            )}
 
-                                {paymentForm.method !== 'Espèces' && (
-                                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Référence N°</label>
-                                            <input
-                                                type="text"
-                                                value={paymentForm.reference_no}
-                                                onChange={(e) => setPaymentForm({ ...paymentForm, reference_no: e.target.value })}
-                                                placeholder="N° Chèque/Virement"
-                                                className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Banque</label>
-                                            <input
-                                                type="text"
-                                                value={paymentForm.bank_name}
-                                                onChange={(e) => setPaymentForm({ ...paymentForm, bank_name: e.target.value })}
-                                                placeholder="Nom de la banque"
-                                                className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
-                                            />
-                                        </div>
-                                        <div className="col-span-full">
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Commission Bancaire (DH)</label>
-                                            <input
-                                                type="text"
-                                                value={paymentForm.bank_commission}
-                                                onChange={(e) => setPaymentForm({ ...paymentForm, bank_commission: formatNumber(e.target.value) })}
-                                                className="w-full px-4 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold text-xs"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 disabled:opacity-50"
-                                >
-                                    {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> <span>Confirmer le Paiement</span></>}
-                                </button>
-                            </form>
-                        </div>
+                            <button
+                                type="submit"
+                                disabled={isSubmitting}
+                                className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                            >
+                                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <><CheckCircle2 size={20} /> <span>Confirmer le Paiement</span></>}
+                            </button>
+                        </form>
                     </div>
-                )
-            }
+                </div>
+            )}
+
             {/* Global Mission Modal (Travail Associé) */}
             {isGlobalMissionModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
@@ -2164,76 +2183,182 @@ const Workers = () => {
             )}
 
             {/* WhatsApp Confirmation Modal */}
-            {isWhatsAppModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50 text-emerald-900 leading-none">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
-                                    <Sparkles size={20} />
+            {
+                isWhatsAppModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50 text-emerald-900 leading-none">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-100">
+                                        <Sparkles size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-black text-sm uppercase tracking-widest">Aperçu du Relevé (IA)</h3>
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1 text-left">Vérifiez et envoyez sur WhatsApp</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-black text-sm uppercase tracking-widest">Aperçu du Relevé (IA)</h3>
-                                    <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1 text-left">Vérifiez et envoyez sur WhatsApp</p>
+                                <button onClick={() => setIsWhatsAppModalOpen(false)} className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm border border-transparent hover:border-gray-100">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="p-8 space-y-6 text-left">
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Message Préparé</label>
+                                    <textarea
+                                        className="w-full h-64 p-6 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-mono text-sm leading-relaxed custom-scrollbar-white resize-none"
+                                        value={whatsappMessage}
+                                        onChange={(e) => setWhatsappMessage(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Envoyer vers :</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {whatsappNumbers.map((num, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => setSelectedWNumber(num.value)}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWNumber === num.value
+                                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
+                                                    : 'bg-gray-50 border-transparent text-gray-400 hover:bg-gray-100'
+                                                    }`}
+                                            >
+                                                <span className="text-[10px] font-black uppercase tracking-tight">{num.label}</span>
+                                                <span className="text-[9px] font-bold opacity-60 tracking-wider">+{num.value}</span>
+                                            </button>
+                                        ))}
+                                        {whatsappNumbers.length === 0 && (
+                                            <div className="col-span-full p-4 bg-rose-50 text-rose-500 text-[10px] font-bold uppercase text-center rounded-2xl">
+                                                Aucun numéro de téléphone disponible
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-2">
+                                    <button
+                                        onClick={() => setIsWhatsAppModalOpen(false)}
+                                        className="flex-1 py-4 bg-gray-50 text-gray-400 rounded-2xl font-black uppercase tracking-[0.1em] text-xs hover:bg-gray-100 transition-all"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        onClick={finalSendWhatsApp}
+                                        disabled={!selectedWNumber}
+                                        className="flex-[2] px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                                    >
+                                        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72 1.041 3.926 1.589 5.717 1.59h.005C18.612 24 23.945 18.665 23.948 12.108c0-3.176-1.232-6.165-3.463-8.397"></path></svg>
+                                        <span>Envoyer</span>
+                                    </button>
                                 </div>
                             </div>
-                            <button onClick={() => setIsWhatsAppModalOpen(false)} className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm border border-transparent hover:border-gray-100">
-                                <X size={20} />
-                            </button>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Receipt Modal (Printable) */}
+            {isReceiptModalOpen && selectedWorker && selectedPayment && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="px-8 py-4 border-b border-gray-100 flex items-center justify-between no-print">
+                            <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest">Aperçu du Reçu de Paiement</h3>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                                    type="button"
+                                >
+                                    <Printer size={16} /> Imprimer
+                                </button>
+                                <button onClick={() => setIsReceiptModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors" type="button">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
 
-                        <div className="p-8 space-y-6 text-left">
-                            <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Message Préparé</label>
-                                <textarea
-                                    className="w-full h-64 p-6 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-mono text-sm leading-relaxed custom-scrollbar-white resize-none"
-                                    value={whatsappMessage}
-                                    onChange={(e) => setWhatsappMessage(e.target.value)}
-                                />
-                            </div>
+                        <div className="p-12 bg-white print:p-0" id="receipt-content">
+                            {/* Receipt Design */}
+                            <div className="border-[3px] border-double border-gray-900 p-8 relative">
+                                {/* Header */}
+                                <div className="flex justify-between items-start mb-10 pb-6 border-b-2 border-gray-900 border-dotted">
+                                    <div>
+                                        <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tighter mb-1">REÇU DE PAIEMENT</h1>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">Réf: PAY-OUV-{selectedPayment.id}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-sm uppercase tracking-tight">Date: {selectedPayment.payment_date}</p>
+                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 tracking-widest">Document officiel</p>
+                                    </div>
+                                </div>
 
-                            <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Envoyer vers :</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {whatsappNumbers.map((num, idx) => (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            onClick={() => setSelectedWNumber(num.value)}
-                                            className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${selectedWNumber === num.value
-                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm'
-                                                : 'bg-gray-50 border-transparent text-gray-400 hover:bg-gray-100'
-                                                }`}
-                                        >
-                                            <span className="text-[10px] font-black uppercase tracking-tight">{num.label}</span>
-                                            <span className="text-[9px] font-bold opacity-60 tracking-wider">+{num.value}</span>
-                                        </button>
-                                    ))}
-                                    {whatsappNumbers.length === 0 && (
-                                        <div className="col-span-full p-4 bg-rose-50 text-rose-500 text-[10px] font-bold uppercase text-center rounded-2xl">
-                                            Aucun numéro de téléphone disponible
+                                {/* Body */}
+                                <div className="space-y-8 py-4 text-gray-800">
+                                    <div className="flex items-baseline gap-4">
+                                        <span className="text-xs font-black uppercase tracking-widest text-gray-400 min-w-[120px]">Bénéficiaire :</span>
+                                        <span className="text-lg font-black uppercase border-b border-gray-200 flex-1">{selectedWorker.name}</span>
+                                    </div>
+
+                                    <div className="flex items-baseline gap-4">
+                                        <span className="text-xs font-black uppercase tracking-widest text-gray-400 min-w-[120px]">Montant réglé :</span>
+                                        <div className="flex-1 flex items-baseline gap-2">
+                                            <span className="text-2xl font-black text-emerald-600">{selectedPayment.amount.toLocaleString('fr-MA')}</span>
+                                            <span className="text-sm font-black text-gray-400 uppercase">Dirhams (DH)</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-baseline gap-4">
+                                        <span className="text-xs font-black uppercase tracking-widest text-gray-400 min-w-[120px]">Mode de règlement:</span>
+                                        <span className="text-sm font-bold uppercase">{selectedPayment.method} {selectedPayment.reference_no && `• Réf: ${selectedPayment.reference_no}`}</span>
+                                    </div>
+
+                                    {selectedPayment.notes && (
+                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 italic text-xs text-gray-500">
+                                            " {selectedPayment.notes} "
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            <div className="flex gap-4 pt-2">
-                                <button
-                                    onClick={() => setIsWhatsAppModalOpen(false)}
-                                    className="flex-1 py-4 bg-gray-50 text-gray-400 rounded-2xl font-black uppercase tracking-[0.1em] text-xs hover:bg-gray-100 transition-all"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    onClick={finalSendWhatsApp}
-                                    disabled={!selectedWNumber}
-                                    className="flex-[2] px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase tracking-[0.1em] text-xs hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 disabled:opacity-50"
-                                >
-                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.335-1.662c1.72 1.041 3.926 1.589 5.717 1.59h.005C18.612 24 23.945 18.665 23.948 12.108c0-3.176-1.232-6.165-3.463-8.397"></path></svg>
-                                    <span>Envoyer</span>
-                                </button>
+                                {/* Signatures */}
+                                <div className="mt-16 grid grid-cols-2 gap-20 pt-10">
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-16">Signature de l'ouvrier</p>
+                                        <div className="border-t border-gray-300 pt-2 text-[9px] font-bold text-gray-300 italic">Lu et approuvé</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-16">Cachet de la société</p>
+                                        <div className="border-t border-gray-300 pt-2 text-[9px] font-bold text-gray-300 italic">Signature & Cachet</div>
+                                    </div>
+                                </div>
+
+                                {/* Decorative watermark */}
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none -rotate-12">
+                                    <Banknote size={300} />
+                                </div>
                             </div>
                         </div>
+
+                        <style>{`
+                            @media print {
+                                body * {
+                                    visibility: hidden;
+                                }
+                                #receipt-content, #receipt-content * {
+                                    visibility: visible;
+                                }
+                                #receipt-content {
+                                    position: absolute;
+                                    left: 0;
+                                    top: 0;
+                                    width: 100%;
+                                }
+                                .no-print {
+                                    display: none !important;
+                                }
+                            }
+                        `}</style>
                     </div>
                 </div>
             )}

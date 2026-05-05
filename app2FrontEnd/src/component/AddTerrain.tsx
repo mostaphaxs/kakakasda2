@@ -4,9 +4,9 @@ import { useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { MapPin, ArrowLeft, Save, Loader2, Info } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
-import { formatNumber, parseNumber } from '../lib/utils';
+import MediaManager from './media/MediaManager';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,18 +15,8 @@ interface TerrainFormInputs {
     nom_projet: string;
     numero_TF?: string;
     date_acquisition?: string;
-    cout_global: number;
-    frais_enregistrement: number;
-    frais_immatriculation: number;
-    honoraires_notaire: number;
-    autorisation_construction: number;
-    autorisation_equipement: number;
-    frais_pompier: number;
-    frais_intermediaire: number;
-    total: number;
     description?: string;
 }
-
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -57,66 +47,30 @@ const AddTerrain: React.FC = () => {
     const {
         register,
         handleSubmit,
-        watch,
-        setValue,
         formState: { errors, isSubmitting },
     } = useForm<TerrainFormInputs>({
         defaultValues: {
             nom_terrain: '',
             numero_TF: '',
-            cout_global: undefined,
-            frais_enregistrement: 0,
-            frais_immatriculation: 0,
-            honoraires_notaire: 0,
-            autorisation_construction: 0,
-            autorisation_equipement: 0,
-            frais_pompier: 0,
-            frais_intermediaire: 0,
-            total: 0,
         },
     });
-
-    // ── Auto-calc total ─────────────────────────────────────────────────────────
-    const [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie] = watch(['cout_global', 'frais_enregistrement', 'frais_immatriculation', 'honoraires_notaire', 'autorisation_construction', 'autorisation_equipement', 'frais_pompier', 'frais_intermediaire']);
-
-    React.useEffect(() => {
-        const sum = (parseNumber(String(cout)) || 0) +
-            (parseNumber(String(fraisE)) || 0) +
-            (parseNumber(String(fraisI)) || 0) +
-            (parseNumber(String(hono)) || 0) +
-            (parseNumber(String(autC)) || 0) +
-            (parseNumber(String(pompier)) || 0) +
-            (parseNumber(String(intermediarie)) || 0) +
-            (parseNumber(String(autE)) || 0);
-
-        setValue('total', parseFloat(sum.toFixed(2)));
-    }, [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie, setValue]);
 
     // ── Submit ──────────────────────────────────────────────────────────────────
     const onSubmit: SubmitHandler<TerrainFormInputs> = async (data) => {
         setServerError('');
         try {
-            await apiFetch('/terrains', {
+            const res = await apiFetch<{ id: number; terrain: { id: number } }>('/terrains', {
                 method: 'POST',
-                body: JSON.stringify({
-                    ...data,
-                    cout_global: parseNumber(String(data.cout_global)),
-                    frais_enregistrement: parseNumber(String(data.frais_enregistrement)),
-                    frais_immatriculation: parseNumber(String(data.frais_immatriculation)),
-                    honoraires_notaire: parseNumber(String(data.honoraires_notaire)),
-                    total: parseNumber(String(data.total)),
-                    autorisation_construction: parseNumber(String(data.autorisation_construction)),
-                    autorisation_equipement: parseNumber(String(data.autorisation_equipement)),
-                    frais_pompier: parseNumber(String(data.frais_pompier)),
-                    frais_intermediaire: parseNumber(String(data.frais_intermediaire)),
-                }),
+                body: JSON.stringify(data),
             });
 
-            toast.success('Terrain ajouté avec succès !', {
+            toast.success('Projet créé ! Vous pouvez maintenant ajouter des documents.', {
                 icon: '🗺️',
+                duration: 4000,
                 style: { borderRadius: '10px', background: '#1e3a5f', color: '#fff' },
             });
-            navigate('/dashboard');
+            // Redirect to edit page so the Plan de travail + is enabled immediately
+            navigate(`/edit-terrain/${res.id}`);
         } catch (err: any) {
             if (err.errors) {
                 setFieldErrors(err.errors);
@@ -130,12 +84,12 @@ const AddTerrain: React.FC = () => {
     // ── Render ──────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-gray-50 py-6 px-4">
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-6xl mx-auto">
 
                 {/* Header */}
                 <div className="flex items-center gap-4 mb-6">
                     <button
-                        onClick={() => navigate('/dashboard')}
+                        onClick={() => navigate('/terrains')}
                         className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
                         title="Retour"
                     >
@@ -158,214 +112,123 @@ const AddTerrain: React.FC = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                        {/* ── Section: Identification ── */}
-                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">1 – Identification</h2>
-                        </div>
-                        <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
-                            <div className="sm:col-span-2">
-                                <FieldWrapper label="Nom du Projet *" error={errors.nom_projet?.message} fieldError={fieldErrors.nom_projet} hint="Ce nom sert à lier les charges et biens (Ex: Projet Résidence Al Amal)">
-                                    <input
-                                        type="text"
-                                        {...register('nom_projet', { required: 'Le nom du projet est obligatoire' })}
-                                        className={inputCls(!!errors.nom_projet)}
-                                        placeholder="Nom du Projet"
-                                    />
-                                </FieldWrapper>
-                            </div>
+                    {/* ──── Left Column: Form (8 cols) ──── */}
+                    <div className="lg:col-span-8 space-y-8 pb-12">
+                        <form onSubmit={handleSubmit(onSubmit)} noValidate>
+                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
 
-                            <FieldWrapper label="Nom du Terrain" error={errors.nom_terrain?.message} fieldError={fieldErrors.nom_terrain} hint="Nom d'origine (Ex: Lotissement 5A)">
-                                <input
-                                    type="text"
-                                    {...register('nom_terrain')}
-                                    className={inputCls(!!errors.nom_terrain)}
-                                    placeholder="Nom descriptif"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Numéro TF" error={errors.numero_TF?.message} fieldError={fieldErrors.numero_TF} hint="Numéro du Titre Foncier (Ex: 12345/64)">
-                                <input
-                                    type="text"
-                                    {...register('numero_TF')}
-                                    className={inputCls(!!errors.numero_TF)}
-                                    placeholder="Ex: 12345/64"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Date d'acquisition" error={errors.date_acquisition?.message} fieldError={fieldErrors.date_acquisition}>
-                                <input
-                                    type="text"
-                                    {...register('date_acquisition', {
-                                        pattern: {
-                                            value: /^\d{2}\/\d{2}\/\d{4}$/,
-                                            message: 'Format requis: JJ/MM/AAAA',
-                                        },
-                                    })}
-                                    className={inputCls(!!errors.date_acquisition)}
-                                    placeholder="JJ/MM/AAAA"
-                                />
-                            </FieldWrapper>
-                        </div>
-
-                        {/* ── Section: Coûts ── */}
-                        <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">2 – Coûts d'acquisition</h2>
-                        </div>
-                        <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-
-                            <div className="sm:col-span-2">
-                                <FieldWrapper label="Prix d'achat du projet avant frais *" error={errors.cout_global?.message} fieldError={fieldErrors.cout_global}
-                                    hint="Prix d'achat du projet avant frais">
-                                    <input
-                                        type="text"
-                                        {...register('cout_global', {
-                                            required: 'Le coût global est requis.',
-                                            onChange: (e) => setValue('cout_global', formatNumber(e.target.value) as any)
-                                        })}
-                                        className={`${inputCls(!!errors.cout_global)} font-bold text-lg`}
-                                        placeholder="Ex: 1.500.000"
-                                    />
-                                </FieldWrapper>
-                            </div>
-
-                            <FieldWrapper label="Frais d'enregistrement (DH)" error={errors.frais_enregistrement?.message} fieldError={fieldErrors.frais_enregistrement}>
-                                <input
-                                    type="text"
-                                    {...register('frais_enregistrement', {
-                                        onChange: (e) => setValue('frais_enregistrement', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.frais_enregistrement)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Frais d'immatriculation (DH)" error={errors.frais_immatriculation?.message} fieldError={fieldErrors.frais_immatriculation}>
-                                <input
-                                    type="text"
-                                    {...register('frais_immatriculation', {
-                                        onChange: (e) => setValue('frais_immatriculation', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.frais_immatriculation)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Honoraires notaire (DH)" error={errors.honoraires_notaire?.message} fieldError={fieldErrors.honoraires_notaire}>
-                                <input
-                                    type="text"
-                                    {...register('honoraires_notaire', {
-                                        onChange: (e) => setValue('honoraires_notaire', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.honoraires_notaire)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
-                        </div>
-
-                        {/* ── Section: Autorisations ── */}
-                        <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">3 – Autorisations</h2>
-                        </div>
-                        <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                            <FieldWrapper label="Frais Autorisation de Construction (DH)" error={errors.autorisation_construction?.message} fieldError={fieldErrors.autorisation_construction}>
-                                <input
-                                    type="text"
-                                    {...register('autorisation_construction', {
-                                        onChange: (e) => setValue('autorisation_construction', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.autorisation_construction)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
-
-                            <FieldWrapper label="Frais d'equipement (DH)" error={errors.autorisation_equipement?.message} fieldError={fieldErrors.autorisation_equipement}>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        {...register('autorisation_equipement', {
-                                            onChange: (e) => setValue('autorisation_equipement', formatNumber(e.target.value) as any)
-                                        })}
-                                        className={`${inputCls(!!errors.autorisation_equipement)} font-bold text-lg`}
-                                        placeholder="0"
-                                    />
+                                {/* ── Section: Identification ── */}
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
+                                    <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Identification du Projet</h2>
                                 </div>
-                            </FieldWrapper>
+                                <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
+                                    <div className="sm:col-span-2">
+                                        <FieldWrapper label="Nom du Projet *" error={errors.nom_projet?.message} fieldError={fieldErrors.nom_projet} hint="Ce nom sert à lier les charges et biens (Ex: Projet Résidence Al Amal)">
+                                            <input
+                                                type="text"
+                                                {...register('nom_projet', { required: 'Le nom du projet est obligatoire' })}
+                                                className={inputCls(!!errors.nom_projet)}
+                                                placeholder="Nom du Projet"
+                                            />
+                                        </FieldWrapper>
+                                    </div>
 
-                            <FieldWrapper label="Frais Pompier (DH)" error={errors.frais_pompier?.message} fieldError={fieldErrors.frais_pompier}>
-                                <input
-                                    type="text"
-                                    {...register('frais_pompier', {
-                                        onChange: (e) => setValue('frais_pompier', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.frais_pompier)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
+                                    <FieldWrapper label="Nom du Terrain" error={errors.nom_terrain?.message} fieldError={fieldErrors.nom_terrain} hint="Nom d'origine (Ex: Lotissement 5A)">
+                                        <input
+                                            type="text"
+                                            {...register('nom_terrain')}
+                                            className={inputCls(!!errors.nom_terrain)}
+                                            placeholder="Nom descriptif"
+                                        />
+                                    </FieldWrapper>
 
-                            <FieldWrapper label="Frais d'intermediaire (DH)" error={errors.frais_intermediaire?.message} fieldError={fieldErrors.frais_intermediaire}>
-                                <input
-                                    type="text"
-                                    {...register('frais_intermediaire', {
-                                        onChange: (e) => setValue('frais_intermediaire', formatNumber(e.target.value) as any)
-                                    })}
-                                    className={`${inputCls(!!errors.frais_intermediaire)} font-bold text-lg`}
-                                    placeholder="0"
-                                />
-                            </FieldWrapper>
+                                    <FieldWrapper label="Numéro TF" error={errors.numero_TF?.message} fieldError={fieldErrors.numero_TF} hint="Numéro du Titre Foncier (Ex: 12345/64)">
+                                        <input
+                                            type="text"
+                                            {...register('numero_TF')}
+                                            className={inputCls(!!errors.numero_TF)}
+                                            placeholder="Ex: 12345/64"
+                                        />
+                                    </FieldWrapper>
 
-                            <div className="sm:col-span-2">
-                                <FieldWrapper label="Observations / Description" error={errors.description?.message} fieldError={fieldErrors.description}>
-                                    <textarea
-                                        {...register('description')}
-                                        rows={3}
-                                        className={`${inputCls(!!errors.description)} resize-none`}
-                                        placeholder="Notez ici les détails particuliers du projet..."
-                                    />
-                                </FieldWrapper>
-                            </div>
+                                    <FieldWrapper label="Date d'acquisition" error={errors.date_acquisition?.message} fieldError={fieldErrors.date_acquisition}>
+                                        <input
+                                            type="text"
+                                            {...register('date_acquisition', {
+                                                pattern: {
+                                                    value: /^\d{2}\/\d{2}\/\d{4}$/,
+                                                    message: 'Format requis: JJ/MM/AAAA',
+                                                },
+                                            })}
+                                            className={inputCls(!!errors.date_acquisition)}
+                                            placeholder="JJ/MM/AAAA"
+                                        />
+                                    </FieldWrapper>
 
-
-                            {/* Total – read-only auto-calc */}
-                            <div className="sm:col-span-2 mt-4 pt-4 border-t border-gray-100">
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
-                                    TOTAL GÉNÉRAL INVESTI (DH)
-                                </label>
-                                <div className="flex items-center gap-3 w-full px-5 py-4 rounded-xl border border-indigo-200 bg-indigo-50/80 text-indigo-900 font-black text-xl tracking-wide shadow-sm">
-                                    <Info size={22} className="shrink-0 opacity-70 text-indigo-600" />
-                                    {watch('total') > 0
-                                        ? formatNumber(watch('total')) + ' DH'
-                                        : '—'}
+                                    <div className="sm:col-span-2">
+                                        <FieldWrapper label="Observations / Description" error={errors.description?.message} fieldError={fieldErrors.description}>
+                                            <textarea
+                                                {...register('description')}
+                                                rows={3}
+                                                className={`${inputCls(!!errors.description)} resize-none`}
+                                                placeholder="Notez ici les détails particuliers du projet..."
+                                            />
+                                        </FieldWrapper>
+                                    </div>
                                 </div>
-                                <input type="hidden" {...register('total')} />
+
+                                {/* ── Footer ── */}
+                                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate('/terrains')}
+                                        className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition"
+                                    >
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition shadow-md hover:shadow-lg"
+                                    >
+                                        {isSubmitting ? (
+                                            <><Loader2 size={16} className="animate-spin" /> Enregistrement…</>
+                                        ) : (
+                                            <><Save size={16} /> Enregistrer le projet</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
+                        </form>
+                    </div>
+
+                    {/* ──── Right Column: Sidebar (4 cols) ──── */}
+                    <div className="lg:col-span-4 space-y-8 sticky top-8">
+
+                        {/* Media Management - Photos */}
+                        <div className="bg-white border border-slate-200 shadow-xl p-6 rounded-xl space-y-6">
+                            <MediaManager
+                                modelType="Terrain"
+                                modelId={''}
+                                category="photo"
+                                title="Galerie Bien"
+                            />
                         </div>
 
-                        {/* ── Footer ── */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={() => navigate('/dashboard')}
-                                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition"
-                            >
-                                Annuler
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isSubmitting}
-                                className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition shadow-md hover:shadow-lg"
-                            >
-                                {isSubmitting ? (
-                                    <><Loader2 size={16} className="animate-spin" /> Enregistrement…</>
-                                ) : (
-                                    <><Save size={16} /> Enregistrer le terrain</>
-                                )}
-                            </button>
+                        {/* Media Management - Documents */}
+                        <div className="bg-white border border-slate-200 shadow-xl p-6 rounded-xl space-y-6">
+                            <MediaManager
+                                modelType="Terrain"
+                                modelId={''}
+                                category="document"
+                                title="Plan de travail"
+                            />
                         </div>
                     </div>
-                </form>
+
+                </div>
             </div>
         </div>
     );

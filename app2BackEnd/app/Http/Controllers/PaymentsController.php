@@ -35,7 +35,7 @@ class PaymentsController extends Controller
             'bien_id'      => 'nullable|exists:biens,id',
             'amount'       => 'required|numeric|min:0.01',
             'payment_date' => 'required|date',
-            'type'         => 'required|in:Avance,Tranche,Reliquat,Caution',
+            'type'         => 'required|in:Avance,Tranche,Reliquat,Caution,Reprise',
             'method'       => 'required|string',
             'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name'    => 'nullable|string',
@@ -124,7 +124,7 @@ class PaymentsController extends Controller
         $validated = $request->validate([
             'amount'       => 'nullable|numeric|min:0.01',
             'payment_date' => 'nullable|date',
-            'type'         => 'nullable|in:Avance,Tranche,Reliquat,Caution',
+            'type'         => 'nullable|in:Avance,Tranche,Reliquat,Caution,Reprise',
             'method'       => 'nullable|string',
             'reference_no' => ['nullable', 'string', new UniqueReference('payments', $payment->id)],
             'bank_name'    => 'nullable|string',

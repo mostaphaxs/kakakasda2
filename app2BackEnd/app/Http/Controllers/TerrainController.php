@@ -26,23 +26,34 @@ class TerrainController extends Controller
             'nom_terrain'             => 'nullable|string|max:255',
             'nom_projet'              => 'required|string|max:255',
             'numero_TF'               => 'nullable|string|max:255',
-            'cout_global'             => 'required|numeric|min:0',
-            'frais_enregistrement'    => 'required|numeric|min:0',
-            'frais_immatriculation'   => 'required|numeric|min:0',
-            'honoraires_notaire'      => 'required|numeric|min:0',
+            'date_acquisition'        => 'nullable|string|max:20',
+            'cout_global'             => 'nullable|numeric|min:0',
+            'frais_enregistrement'    => 'nullable|numeric|min:0',
+            'frais_immatriculation'   => 'nullable|numeric|min:0',
+            'honoraires_notaire'      => 'nullable|numeric|min:0',
             'autorisation_construction' => 'nullable|numeric|min:0',
             'autorisation_equipement'  => 'nullable|numeric|min:0',
             'frais_pompier'             => 'nullable|numeric|min:0',
             'frais_autorisation_intermediaire' => 'nullable|numeric|min:0',
-            'total'                   => 'required|numeric|min:0',
+            'total'                   => 'nullable|numeric|min:0',
             'description'             => 'nullable|string',
         ]);
 
+        $validated['cout_global'] = $validated['cout_global'] ?? 0;
+        $validated['frais_enregistrement'] = $validated['frais_enregistrement'] ?? 0;
+        $validated['frais_immatriculation'] = $validated['frais_immatriculation'] ?? 0;
+        $validated['honoraires_notaire'] = $validated['honoraires_notaire'] ?? 0;
+        $validated['autorisation_construction'] = $validated['autorisation_construction'] ?? 0;
+        $validated['autorisation_equipement'] = $validated['autorisation_equipement'] ?? 0;
+        $validated['frais_pompier'] = $validated['frais_pompier'] ?? 0;
+        $validated['frais_autorisation_intermediaire'] = $validated['frais_autorisation_intermediaire'] ?? 0;
+        $validated['total'] = $validated['total'] ?? 0;
 
         $terrain = Terrain::create($validated);
 
         return response()->json([
             'message' => 'Terrain ajouté avec succès.',
+            'id'      => $terrain->id,
             'terrain' => $terrain,
         ], 201);
     }
@@ -64,18 +75,28 @@ class TerrainController extends Controller
             'nom_terrain'             => 'nullable|string|max:255',
             'nom_projet'              => 'required|string|max:255',
             'numero_TF'               => 'nullable|string|max:255',
-            'cout_global'             => 'required|numeric|min:0',
-            'frais_enregistrement'    => 'required|numeric|min:0',
-            'frais_immatriculation'   => 'required|numeric|min:0',
-            'honoraires_notaire'      => 'required|numeric|min:0',
+            'date_acquisition'        => 'nullable|string|max:20',
+            'cout_global'             => 'nullable|numeric|min:0',
+            'frais_enregistrement'    => 'nullable|numeric|min:0',
+            'frais_immatriculation'   => 'nullable|numeric|min:0',
+            'honoraires_notaire'      => 'nullable|numeric|min:0',
             'autorisation_construction' => 'nullable|numeric|min:0',
             'autorisation_equipement'  => 'nullable|numeric|min:0',
             'frais_pompier'             => 'nullable|numeric|min:0',
             'frais_autorisation_intermediaire' => 'nullable|numeric|min:0',
-            'total'                   => 'required|numeric|min:0',
+            'total'                   => 'nullable|numeric|min:0',
             'description'             => 'nullable|string',
         ]);
 
+        $validated['cout_global'] = $validated['cout_global'] ?? 0;
+        $validated['frais_enregistrement'] = $validated['frais_enregistrement'] ?? 0;
+        $validated['frais_immatriculation'] = $validated['frais_immatriculation'] ?? 0;
+        $validated['honoraires_notaire'] = $validated['honoraires_notaire'] ?? 0;
+        $validated['autorisation_construction'] = $validated['autorisation_construction'] ?? 0;
+        $validated['autorisation_equipement'] = $validated['autorisation_equipement'] ?? 0;
+        $validated['frais_pompier'] = $validated['frais_pompier'] ?? 0;
+        $validated['frais_autorisation_intermediaire'] = $validated['frais_autorisation_intermediaire'] ?? 0;
+        $validated['total'] = $validated['total'] ?? 0;
 
         $terrain->update($validated);
 

@@ -5,7 +5,8 @@ import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Br
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseDate } from '../lib/utils';
+import { parseDate } from '../lib/utils';
+import MediaManager from './media/MediaManager';
 
 interface Terrain {
     id: number;
@@ -96,15 +97,7 @@ const Terrains = () => {
             'NOM DU PROJET': t.nom_projet?.toUpperCase() || `PROJET #${t.id}`,
             'NOM DU PROJET (ORIGINE)': t.nom_terrain || 'N/A',
             'NUMÉRO TF': t.numero_TF || 'N/A',
-            'PRIX ACHAT (DH)': t.cout_global || 0,
-            'FRAIS ENREG. (DH)': t.frais_enregistrement || 0,
-            'FRAIS IMMAT. (DH)': t.frais_immatriculation || 0,
-            'FRAIS NOTAIRE (DH)': t.honoraires_notaire || 0,
-            'TOTAL INVESTI (DH)': t.total || 0,
             'DATE ACQUISITION': t.created_at ? parseDate(t.created_at).toLocaleDateString('fr-MA') : 'N/A',
-            'F. CONSTRUCTION (DH)': t.autorisation_construction || 0,
-            "F. d'equipement (DH)": t.autorisation_equipement || 0, // Changed from autorisation_lotissement
-            'F. POMPIER (DH)': t.frais_pompier || 0
         }));
 
         exportToExcel(dataToExport, `terrains_export_${new Date().toLocaleDateString('fr-MA').replace(/\//g, '-')}`, true);
@@ -170,10 +163,8 @@ const Terrains = () => {
                 <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
                         <tr>
-                            <th className="px-6 py-4 rounded-tl-xl whitespace-nowrap">Désignation</th>
-                            <th className="px-6 py-4 whitespace-nowrap">Coût Acquisition</th>
-                            <th className="px-6 py-4 text-center whitespace-nowrap">Autorisations</th>
-                            <th className="px-6 py-4 rounded-tr-xl text-right whitespace-nowrap">Actions</th>
+                            <th className="px-6 py-4 rounded-tl-xl flex-1 whitespace-nowrap">Désignation</th>
+                            <th className="px-6 py-4 rounded-tr-xl flex-shrink-0 text-right whitespace-nowrap">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -187,40 +178,16 @@ const Terrains = () => {
                         ) : filteredTerrains.length > 0 ? (
                             filteredTerrains.map((t) => (
                                 <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 flex-1">
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-gray-800">{t.nom_projet || `Projet #${t.id}`}</span>
-                                            {t.nom_terrain && <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Origine: {t.nom_terrain}</p>}
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
-                                                {t.numero_TF ? `TF: ${t.numero_TF} ` : ''}
+                                            <span className="font-bold text-gray-800 text-sm">{t.nom_projet || `Projet #${t.id}`}</span>
+                                            {t.nom_terrain && <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">Origine: {t.nom_terrain}</p>}
+                                            <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                                                {t.numero_TF ? `TF: ${t.numero_TF}` : ''}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-black text-gray-800">{formatNumber(t.total)} DH</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <div className="flex flex-col gap-1 items-center">
-                                            {t.autorisation_construction > 0 ? (
-                                                <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-black rounded-md border border-emerald-100">CONST: {formatNumber(t.autorisation_construction)} DH</span>
-                                            ) : (
-                                                <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[10px] font-black rounded-md border border-gray-100">CONST: 0 DH</span>
-                                            )}
-                                            {t.autorisation_equipement > 0 ? (
-                                                <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[10px] font-black rounded-md border border-blue-100">EQUIP: {formatNumber(t.autorisation_equipement)} DH</span>
-                                            ) : (
-                                                <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[10px] font-black rounded-md border border-gray-100">EQUIP: 0 DH</span>
-                                            )}
-                                            {t.frais_pompier > 0 ? (
-                                                <span className="px-2 py-1 bg-red-50 text-red-600 text-[10px] font-black rounded-md border border-red-100">POMPIER: {formatNumber(t.frais_pompier)} DH</span>
-                                            ) : (
-                                                <span className="px-2 py-1 bg-gray-50 text-gray-400 text-[10px] font-black rounded-md border border-gray-100">POMPIER: 0 DH</span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4 text-right flex-shrink-0">
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => handleOpenDetails(t)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Détails">
                                                 <FileText size={16} />
@@ -269,79 +236,41 @@ const Terrains = () => {
 
                             <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
                                 {/* Key Stats */}
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl text-center">
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Coût d'Achat</p>
-                                        <p className="text-lg font-black text-indigo-700">{formatNumber(selectedTerrain.cout_global)} DH</p>
-                                    </div>
-                                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
-                                        <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Total TTC</p>
-                                        <p className="text-lg font-black text-emerald-700">{formatNumber(selectedTerrain.total)} DH</p>
-                                    </div>
+                                <div className="grid grid-cols-1 gap-4">
                                     <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-center">
                                         <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Dossier TF</p>
                                         <p className="text-lg font-black text-blue-700">{selectedTerrain.numero_TF || '-'}</p>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-8">
-                                    <div className="space-y-6">
-                                        <div>
-                                            <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Répartition des Frais</label>
-                                            <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Enregistrement:</span>
-                                                    <span className="font-bold text-gray-800">{formatNumber(selectedTerrain.frais_enregistrement)} DH</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Immatriculation:</span>
-                                                    <span className="font-bold text-gray-800">{formatNumber(selectedTerrain.frais_immatriculation)} DH</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Notaire:</span>
-                                                    <span className="font-bold text-gray-800">{formatNumber(selectedTerrain.honoraires_notaire)} DH</span>
-                                                </div>
-                                            </div>
+                                {selectedTerrain.description && (
+                                    <div className="mt-4">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Observations / Description</label>
+                                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                            <p className="text-sm text-gray-600 leading-relaxed italic">{selectedTerrain.description}</p>
                                         </div>
+                                    </div>
+                                )}
 
-                                        {selectedTerrain.description && (
-                                            <div className="mt-4">
-                                                <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Observations / Description</label>
-                                                <div className="p-4 bg-gray-50 rounded-2xl">
-                                                    <p className="text-xs text-gray-600 leading-relaxed italic">{selectedTerrain.description}</p>
-                                                </div>
-                                            </div>
-                                        )}
+                                <div className="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100">
+                                    {/* Media Management - Photos */}
+                                    <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl">
+                                        <MediaManager
+                                            modelType="Terrain"
+                                            modelId={selectedTerrain.id}
+                                            category="photo"
+                                            title="Galerie Bien"
+                                        />
                                     </div>
 
-
-                                    <div className="space-y-6">
-                                        <div>
-                                            <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Autorisations Légales</label>
-                                            <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Construction:</span>
-                                                    <span className="font-bold">{formatNumber(selectedTerrain.autorisation_construction || 0)} DH</span>
-                                                </div>
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Équipement:</span>
-                                                    <span className="font-bold">{formatNumber(selectedTerrain.autorisation_equipement || 0)} DH</span>
-
-                                                </div>
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Pompier:</span>
-                                                    <span className="font-bold">{formatNumber(selectedTerrain.frais_pompier || 0)} DH</span>
-
-                                                </div>
-                                                <div className="flex items-center justify-between text-sm">
-                                                    <span className="text-gray-500">Intermédiaire:</span>
-                                                    <span className="font-bold">{formatNumber(selectedTerrain.frais_autorisation_intermediaire || 0)} DH</span>
-
-                                                </div>
-                                            </div>
-
-
-                                        </div>
+                                    {/* Media Management - Documents */}
+                                    <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl">
+                                        <MediaManager
+                                            modelType="Terrain"
+                                            modelId={selectedTerrain.id}
+                                            category="document"
+                                            title="Plan de travail"
+                                        />
                                     </div>
                                 </div>
                             </div>

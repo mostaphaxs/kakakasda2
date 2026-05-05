@@ -9,6 +9,7 @@ import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Controller } from 'react-hook-form';
 import EnhancedInput from './common/EnhancedInput';
+import MediaManager from './media/MediaManager';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -529,6 +530,33 @@ const AddProperty: React.FC = () => {
                         )}
 
                         {/* Financial configuration has been extracted out */}
+
+                        {/* ──── Galerie Photos & Documents ──── */}
+                        <>
+                            <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
+                                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Galerie Photos Chantier</h2>
+                            </div>
+                            <div className="px-6 py-4">
+                                <MediaManager
+                                    modelType="Bien"
+                                    modelId={id || ''}
+                                    category="photo"
+                                    title="Photos du bien"
+                                />
+                            </div>
+
+                            <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
+                                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Documents &amp; Plans</h2>
+                            </div>
+                            <div className="px-6 py-4">
+                                <MediaManager
+                                    modelType="Bien"
+                                    modelId={id || ''}
+                                    category="document"
+                                    title="Documents du bien"
+                                />
+                            </div>
+                        </>
 
                         {/* ──── Footer Actions ──── */}
                         <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-2">
