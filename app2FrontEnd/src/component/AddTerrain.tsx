@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { MapPin, ArrowLeft, Save, Loader2, Info } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseNumber } from '../lib/utils';
+import MediaManager from './media/MediaManager';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -340,6 +341,26 @@ const AddTerrain: React.FC = () => {
                                         : '—'}
                                 </div>
                                 <input type="hidden" {...register('total')} />
+                            </div>
+                        </div>
+
+                        {/* ──── Galerie Photos & Documents ──── */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border-t border-gray-100">
+                            <div className="p-6 border-b sm:border-b-0 sm:border-r border-gray-100">
+                                <MediaManager
+                                    modelType="Terrain"
+                                    modelId=""
+                                    category="photo"
+                                    title="Gallerie Bien"
+                                />
+                            </div>
+                            <div className="p-6">
+                                <MediaManager
+                                    modelType="Terrain"
+                                    modelId=""
+                                    category="document"
+                                    title="Gallerie Plan"
+                                />
                             </div>
                         </div>
 

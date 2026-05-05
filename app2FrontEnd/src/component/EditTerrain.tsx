@@ -4,8 +4,9 @@ import { useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { MapPin, ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { MapPin, ArrowLeft, Save, Loader2, Info } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import { formatNumber, parseNumber } from '../lib/utils';
 import MediaManager from './media/MediaManager';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -15,6 +16,15 @@ interface TerrainFormInputs {
     nom_projet: string;
     numero_TF?: string;
     date_acquisition?: string;
+    cout_global: number;
+    frais_enregistrement: number;
+    frais_immatriculation: number;
+    honoraires_notaire: number;
+    autorisation_construction: number;
+    autorisation_equipement: number;
+    frais_pompier: number;
+    frais_intermediaire: number;
+    total: number;
     description?: string;
 }
 
@@ -50,14 +60,41 @@ const EditTerrain: React.FC = () => {
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
         reset,
         formState: { errors, isSubmitting },
     } = useForm<TerrainFormInputs>({
         defaultValues: {
             nom_terrain: '',
             numero_TF: '',
+            cout_global: undefined,
+            frais_enregistrement: 0,
+            frais_immatriculation: 0,
+            honoraires_notaire: 0,
+            autorisation_construction: 0,
+            autorisation_equipement: 0,
+            frais_pompier: 0,
+            frais_intermediaire: 0,
+            total: 0,
         },
     });
+
+    // ── Auto-calc total ─────────────────────────────────────────────────────────
+    const [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie] = watch(['cout_global', 'frais_enregistrement', 'frais_immatriculation', 'honoraires_notaire', 'autorisation_construction', 'autorisation_equipement', 'frais_pompier', 'frais_intermediaire']);
+
+    useEffect(() => {
+        const sum = (parseNumber(String(cout)) || 0) +
+            (parseNumber(String(fraisE)) || 0) +
+            (parseNumber(String(fraisI)) || 0) +
+            (parseNumber(String(hono)) || 0) +
+            (parseNumber(String(autC)) || 0) +
+            (parseNumber(String(pompier)) || 0) +
+            (parseNumber(String(intermediarie)) || 0) +
+            (parseNumber(String(autE)) || 0);
+
+        setValue('total', parseFloat(sum.toFixed(2)));
+    }, [cout, fraisE, fraisI, hono, autC, autE, pompier, intermediarie, setValue]);
 
     // ── Fetch Initial Data ─────────────────────────────────────────────────────
     useEffect(() => {
@@ -69,6 +106,15 @@ const EditTerrain: React.FC = () => {
                     nom_projet: data.nom_projet || '',
                     numero_TF: data.numero_TF || '',
                     date_acquisition: data.date_acquisition || '',
+                    cout_global: formatNumber(data.cout_global) as any,
+                    frais_enregistrement: formatNumber(data.frais_enregistrement) as any,
+                    frais_immatriculation: formatNumber(data.frais_immatriculation) as any,
+                    honoraires_notaire: formatNumber(data.honoraires_notaire) as any,
+                    autorisation_construction: formatNumber(data.autorisation_construction) as any,
+                    autorisation_equipement: formatNumber(data.autorisation_equipement) as any,
+                    frais_pompier: formatNumber(data.frais_pompier) as any,
+                    frais_intermediaire: formatNumber(data.frais_autorisation_intermediaire) as any,
+                    total: data.total || 0,
                     description: data.description || '',
                 });
 
@@ -89,7 +135,18 @@ const EditTerrain: React.FC = () => {
         try {
             await apiFetch(`/terrains/${id}`, {
                 method: 'PUT',
-                body: JSON.stringify(data),
+                body: JSON.stringify({
+                    ...data,
+                    cout_global: parseNumber(String(data.cout_global)),
+                    frais_enregistrement: parseNumber(String(data.frais_enregistrement)),
+                    frais_immatriculation: parseNumber(String(data.frais_immatriculation)),
+                    honoraires_notaire: parseNumber(String(data.honoraires_notaire)),
+                    total: parseNumber(String(data.total)),
+                    autorisation_construction: parseNumber(String(data.autorisation_construction)),
+                    autorisation_equipement: parseNumber(String(data.autorisation_equipement)),
+                    frais_pompier: parseNumber(String(data.frais_pompier)),
+                    frais_intermediaire: parseNumber(String(data.frais_intermediaire)),
+                }),
             });
 
             toast.success('Terrain mis à jour avec succès !', {
@@ -213,6 +270,127 @@ const EditTerrain: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* ── Section: Coûts ── */}
+                                <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
+                                    <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Coûts d'acquisition</h2>
+                                </div>
+                                <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                                    <div className="sm:col-span-2">
+                                        <FieldWrapper label="Prix d'achat du projet avant frais *" error={errors.cout_global?.message} fieldError={fieldErrors.cout_global}
+                                            hint="Prix d'achat du projet avant frais">
+                                            <input
+                                                type="text"
+                                                {...register('cout_global', {
+                                                    required: 'Le coût global est requis.',
+                                                    onChange: (e) => setValue('cout_global', formatNumber(e.target.value) as any)
+                                                })}
+                                                className={`${inputCls(!!errors.cout_global)} font-bold text-lg`}
+                                                placeholder="Ex: 1.500.000"
+                                            />
+                                        </FieldWrapper>
+                                    </div>
+
+                                    <FieldWrapper label="Frais d'enregistrement (DH)" error={errors.frais_enregistrement?.message} fieldError={fieldErrors.frais_enregistrement}>
+                                        <input
+                                            type="text"
+                                            {...register('frais_enregistrement', {
+                                                onChange: (e) => setValue('frais_enregistrement', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.frais_enregistrement)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+
+                                    <FieldWrapper label="Frais d'immatriculation (DH)" error={errors.frais_immatriculation?.message} fieldError={fieldErrors.frais_immatriculation}>
+                                        <input
+                                            type="text"
+                                            {...register('frais_immatriculation', {
+                                                onChange: (e) => setValue('frais_immatriculation', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.frais_immatriculation)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+
+                                    <FieldWrapper label="Honoraires notaire (DH)" error={errors.honoraires_notaire?.message} fieldError={fieldErrors.honoraires_notaire}>
+                                        <input
+                                            type="text"
+                                            {...register('honoraires_notaire', {
+                                                onChange: (e) => setValue('honoraires_notaire', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.honoraires_notaire)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+                                </div>
+
+                                {/* ── Section: Autorisations ── */}
+                                <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
+                                    <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Autorisations</h2>
+                                </div>
+                                <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <FieldWrapper label="Frais Autorisation de Construction (DH)" error={errors.autorisation_construction?.message} fieldError={fieldErrors.autorisation_construction}>
+                                        <input
+                                            type="text"
+                                            {...register('autorisation_construction', {
+                                                onChange: (e) => setValue('autorisation_construction', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.autorisation_construction)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+
+                                    <FieldWrapper label="Frais d'equipement (DH)" error={errors.autorisation_equipement?.message} fieldError={fieldErrors.autorisation_equipement}>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                {...register('autorisation_equipement', {
+                                                    onChange: (e) => setValue('autorisation_equipement', formatNumber(e.target.value) as any)
+                                                })}
+                                                className={`${inputCls(!!errors.autorisation_equipement)} font-bold text-lg`}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </FieldWrapper>
+
+                                    <FieldWrapper label="Frais Pompier (DH)" error={errors.frais_pompier?.message} fieldError={fieldErrors.frais_pompier}>
+                                        <input
+                                            type="text"
+                                            {...register('frais_pompier', {
+                                                onChange: (e) => setValue('frais_pompier', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.frais_pompier)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+
+                                    <FieldWrapper label="Frais d'intermediaire (DH)" error={errors.frais_intermediaire?.message} fieldError={fieldErrors.frais_intermediaire}>
+                                        <input
+                                            type="text"
+                                            {...register('frais_intermediaire', {
+                                                onChange: (e) => setValue('frais_intermediaire', formatNumber(e.target.value) as any)
+                                            })}
+                                            className={`${inputCls(!!errors.frais_intermediaire)} font-bold text-lg`}
+                                            placeholder="0"
+                                        />
+                                    </FieldWrapper>
+
+                                    {/* Total – read-only auto-calc */}
+                                    <div className="sm:col-span-2 mt-4 pt-4 border-t border-gray-100">
+                                        <label className="block text-sm font-medium text-slate-700 mb-2 font-bold uppercase tracking-widest text-[10px]">
+                                            TOTAL GÉNÉRAL INVESTI (DH)
+                                        </label>
+                                        <div className="flex items-center gap-3 w-full px-5 py-4 rounded-xl border border-indigo-200 bg-indigo-50/80 text-indigo-900 font-black text-xl tracking-wide shadow-sm">
+                                            <Info size={22} className="shrink-0 opacity-70 text-indigo-600" />
+                                            {watch('total') > 0
+                                                ? formatNumber(watch('total')) + ' DH'
+                                                : '—'}
+                                        </div>
+                                        <input type="hidden" {...register('total')} />
+                                    </div>
+                                </div>
+
                                 {/* ── Footer ── */}
                                 <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
                                     <button
@@ -247,7 +425,7 @@ const EditTerrain: React.FC = () => {
                                 modelType="Terrain"
                                 modelId={id || ''}
                                 category="photo"
-                                title="Gallerie bien"
+                                title="Gallerie Bien"
                             />
                         </div>
 
@@ -257,7 +435,7 @@ const EditTerrain: React.FC = () => {
                                 modelType="Terrain"
                                 modelId={id || ''}
                                 category="document"
-                                title="Plan de travail"
+                                title="Gallerie Plan"
                             />
                         </div>
                     </div>
