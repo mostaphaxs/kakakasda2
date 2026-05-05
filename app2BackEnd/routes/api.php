@@ -145,6 +145,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/media', [\App\Http\Controllers\MediaController::class, 'index']);
     Route::post('/media', [\App\Http\Controllers\MediaController::class, 'store']);
     Route::delete('/media/{media}', [\App\Http\Controllers\MediaController::class, 'destroy']);
+    
+    // TTS Proxy
+    Route::get('/proxy-tts', function (Request $request) {
+        $text = $request->query('text');
+        $url = "https://translate.googleapis.com/translate_tts?ie=UTF-8&q=" . urlencode($text) . "&tl=fr&client=gtx";
+        $content = file_get_contents($url);
+        return response($content)->header('Content-Type', 'audio/mpeg');
+    });
 
 });
 

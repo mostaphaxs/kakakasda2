@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import {
     Send, X, Paperclip, CheckCircle2,
-    Sparkles, Maximize2, Minimize2, Trash2, FileText, Mic, MicOff, Volume2, VolumeX
+    Sparkles, Maximize2, Minimize2, Trash2, FileText, Mic, MicOff, Volume2, VolumeX,
+    Phone, PhoneOff, User, MoreVertical, Waves
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -28,6 +29,8 @@ const AIAssistant = () => {
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [isCallActive, setIsCallActive] = useState(false);
+    const [isNovaSpeaking, setIsNovaSpeaking] = useState(false);
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         { role: 'model', parts: "Bonjour ! Je suis **Nova**. Comment puis-je vous aider aujourd'hui ?" }
@@ -38,6 +41,13 @@ const AIAssistant = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const audioElementRef = useRef<HTMLAudioElement | null>(null);
+    const [volume, setVolume] = useState(0);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -46,12 +56,88 @@ const AIAssistant = () => {
     }, [messages, isLoading]);
 
     // Speech Synthesis
-    const speak = (text: string) => {
-        if (!isVoiceActive) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'fr-FR';
-        utterance.rate = 1.1;
+    const speak = async (text: string, onEnd?: () => void) => {
+        console.log("Nova: Appel de speak() - flags:", { isVoiceActive, isCallActive, hasText: !!text });
+        if (!isVoiceActive && !isCallActive) {
+            console.log("Nova: speak() interrompu car les voix sont désactivées.");
+            onEnd?.();
+            return;
+        }
+
+        // --- ROBUST HIGH QUALITY FALLBACK VIA BACKEND PROXY ---
+        try {
+            setIsNovaSpeaking(true);
+            const token = localStorage.getItem('token');
+            const apiUrl = import.meta.env.VITE_API_URL || '/api';
+            const ttsUrl = `${apiUrl}/proxy-tts?text=${encodeURIComponent(text)}`;
+
+            console.log("Nova: Téléchargement de la voix via le serveur local...");
+            const response = await fetch(ttsUrl, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error("Erreur de proxy TTS");
+
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+
+            if (!audioElementRef.current) {
+                audioElementRef.current = new Audio();
+            }
+
+            const audio = audioElementRef.current;
+            audio.src = url;
+
+            console.log("Nova: Démarrage de la lecture audio locale...");
+
+            audio.onended = () => {
+                URL.revokeObjectURL(url);
+                setIsNovaSpeaking(false);
+                if (onEnd) onEnd();
+                else if (isCallActive) toggleListening();
+            };
+
+            audio.onerror = () => {
+                URL.revokeObjectURL(url);
+                console.error("Nova: Échec du flux audio secondaire, essai du système TTS...");
+                systemSpeak(text, onEnd);
+            };
+
+            await audio.play();
+        } catch (err) {
+            console.warn("Nova: Fallback audio bloqué ou échoué, essai du système...", err);
+            systemSpeak(text, onEnd);
+        }
+    };
+
+    const systemSpeak = (text: string, onEnd?: () => void) => {
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            const frVoice = voices.find(v => v.lang.startsWith('fr')) || voices.find(v => v.lang.includes('FR'));
+            if (frVoice) utterance.voice = frVoice;
+            utterance.lang = 'fr-FR';
+            utterance.onstart = () => setIsNovaSpeaking(true);
+            utterance.onend = () => {
+                setIsNovaSpeaking(false);
+                if (onEnd) onEnd();
+                else if (isCallActive) toggleListening();
+            };
+            utterance.onerror = () => { setIsNovaSpeaking(false); onEnd?.(); };
+            window.speechSynthesis.speak(utterance);
+        } catch (err) {
+            console.error("Nova: System TTS also failed", err);
+            setIsNovaSpeaking(false);
+            onEnd?.();
+        }
+    };
+
+    const primeTTS = () => {
+        console.log("Nova: Amorçage du moteur vocal (Priming)...");
+        const utterance = new SpeechSynthesisUtterance("");
         window.speechSynthesis.speak(utterance);
     };
 
@@ -69,6 +155,13 @@ const AIAssistant = () => {
                 setInput(transcript);
                 setIsListening(false);
                 toast.success("Voix captée !");
+
+                if (isCallActive) {
+                    // Auto-send in call mode after a short delay
+                    setTimeout(() => {
+                        handleSend(transcript);
+                    }, 500);
+                }
             };
 
             recognitionRef.current.onerror = (event: any) => {
@@ -89,40 +182,154 @@ const AIAssistant = () => {
                 }
             };
 
+            if (window.speechSynthesis) {
+                console.log("Nomda: Initialisation des voix...");
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    console.log("Nomda: Voix disponibles:", voices.length, voices.filter(v => v.lang.includes('fr')).map(v => v.name));
+                };
+                loadVoices();
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
             recognitionRef.current.onend = () => setIsListening(false);
         }
+
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
+        };
     }, []);
 
     const toggleListening = () => {
+        // Use MediaRecorder by default as it's more robust (works on Brave/Linux/etc)
+        // and uses Gemini's multimodal capabilities.
+        const useNativeRecorder = true;
+
         if (isListening) {
-            recognitionRef.current?.stop();
-        } else {
-            if (!recognitionRef.current) {
-                toast.error("Reconnaissance vocale non supportée.");
-                return;
+            if (useNativeRecorder) {
+                stopRecording();
+            } else {
+                recognitionRef.current?.stop();
             }
-            try {
-                setIsListening(true);
-                recognitionRef.current.start();
-                toast("Je vous écoute...");
-            } catch (e) {
-                setIsListening(false);
+        } else {
+            if (useNativeRecorder) {
+                startRecording();
+            } else {
+                if (!recognitionRef.current) {
+                    toast.error("Reconnaissance vocale non supportée.");
+                    return;
+                }
+                try {
+                    setIsListening(true);
+                    recognitionRef.current.start();
+                    toast("Je vous écoute...");
+                } catch (e) {
+                    setIsListening(false);
+                }
             }
         }
     };
 
-    const handleSend = async () => {
-        if (!input.trim() && !chatFile) return;
+    const startRecording = async () => {
+        console.log("Nomda: Tentative de démarrage du microphone...");
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        const userMessage = input.trim();
+            // Setup VAD & Volume Monitoring
+            const audioContext = new AudioContext();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+
+            audioContextRef.current = audioContext;
+            analyserRef.current = analyser;
+
+            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            mediaRecorderRef.current = recorder;
+            audioChunksRef.current = [];
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            let silenceStart: number | null = null;
+            const SILENCE_THRESHOLD = 15; // Adjustment based on noise
+            const SILENCE_DURATION = 1500; // 1.5 seconds
+
+            const checkVolume = () => {
+                if (!analyserRef.current) return;
+                analyserRef.current.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((p, c) => p + c, 0) / bufferLength;
+                setVolume(average);
+
+                if (average < SILENCE_THRESHOLD) {
+                    if (!silenceStart) silenceStart = Date.now();
+                    else if (Date.now() - silenceStart > SILENCE_DURATION) {
+                        console.log("Nova: Silence détecté, arrêt automatique.");
+                        stopRecording();
+                        return;
+                    }
+                } else {
+                    silenceStart = null;
+                }
+                animationFrameRef.current = requestAnimationFrame(checkVolume);
+            };
+            animationFrameRef.current = requestAnimationFrame(checkVolume);
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+
+            recorder.onstop = () => {
+                if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+                if (audioContextRef.current) audioContextRef.current.close();
+
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                console.log("Nova: Enregistrement terminé. Taille:", audioBlob.size);
+                if (audioBlob.size > 1000) {
+                    handleSend(audioBlob);
+                }
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            recorder.start();
+            setIsListening(true);
+            toast("Je vous écoute...");
+        } catch (err) {
+            console.error("Nova Error: Échec du microphone", err);
+            toast.error("Microphone inaccessible.");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isListening) {
+            mediaRecorderRef.current.stop();
+            setIsListening(false);
+        }
+    };
+
+    const handleSend = async (overrideInput?: string | Blob) => {
+        const isAudio = overrideInput instanceof Blob;
+        const userMessage = isAudio ? "" : (overrideInput || input).trim();
+
+        if (!userMessage && !chatFile && !isAudio) return;
+
         const currentFile = chatFile;
-        setMessages(prev => [...prev, { role: 'user', parts: userMessage || "Document envoyé" }]);
+        setMessages(prev => [...prev, {
+            role: 'user',
+            parts: isAudio ? "🎤 Commande vocale envoyée" : (userMessage || "Document envoyé")
+        }]);
         setInput('');
         setIsLoading(true);
 
         try {
-            const context = "Assistante Nova - Service Client Pro. Amical El Ouaha .";
-            const response = await executeAICommand(userMessage, currentFile, context);
+            const isCall = isCallActive;
+            const context = `Assistante Nova - Service Client Pro. Amical El Ouaha. 
+            ${isCall ? "IMPORTANT: Tu es au TÉLÉPHONE. Réponds de manière TRES CONCISE et directe, comme une conversation réelle. Pas de listes longues, pas de textes trop longs." : ""}`;
+            console.log("Nova: Envoi de la requête à l'IA...", isAudio ? "Format Audio" : "Format Texte");
+            const response = await executeAICommand(isAudio ? overrideInput : userMessage, currentFile, context);
+            console.log("Nova: Réponse reçue de l'IA:", response.type);
+            console.log("Nova message text:", response.message);
 
             if (response.type === 'ACTION' && response.action) {
                 let alertMsg = "Action réussie";
@@ -254,6 +461,23 @@ const AIAssistant = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => {
+                                    primeTTS();
+                                    if (isCallActive) setIsCallActive(false);
+                                    else {
+                                        setIsCallActive(true);
+                                        setIsVoiceActive(true); // Mandatory for call
+                                        if (messages.length > 0) {
+                                            speak("Appel Nova activé. Comment puis-je vous aider ?");
+                                        }
+                                    }
+                                }}
+                                className={`p-2 rounded-lg transition-all ${isCallActive ? 'bg-rose-500 text-white animate-pulse' : 'bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white'}`}
+                                title={isCallActive ? "Quitter le mode Appel" : "Démarrer un Appel Nova"}
+                            >
+                                {isCallActive ? <PhoneOff size={18} /> : <Phone size={18} />}
+                            </button>
                             <button onClick={() => setIsVoiceActive(!isVoiceActive)} className={`p-2 rounded-lg transition-colors ${isVoiceActive ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white'}`}>
                                 {isVoiceActive ? <Volume2 size={18} /> : <VolumeX size={18} />}
                             </button>
@@ -265,6 +489,107 @@ const AIAssistant = () => {
                             </button>
                         </div>
                     </div>
+
+                    {/* CALL INTERFACE OVERLAY */}
+                    {isCallActive && (
+                        <div className="absolute inset-0 z-[1010] bg-slate-900 flex flex-col items-center justify-between py-12 px-6 overflow-hidden">
+                            {/* Abstract background effect */}
+                            <div className="absolute inset-0 opacity-20">
+                                <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[120%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] from-blue-600/30"></div>
+                            </div>
+
+                            {/* Top info */}
+                            <div className="relative z-10 text-center">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 mb-2">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                    <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">En appel direct</span>
+                                </div>
+                                <h2 className="text-white text-2xl font-black tracking-tight">Nova Assistant</h2>
+                            </div>
+
+                            {/* Central Persona / Visualizer */}
+                            <div className="relative flex flex-col items-center gap-8">
+                                <div className="relative">
+                                    {/* Animated Ring - Pulsates based on volume when listening, or automatic pulse when speaking */}
+                                    <div className="absolute inset-0 bg-blue-400/20 rounded-full animate-pulse-ring" style={{
+                                        transform: `scale(${1 + (isListening ? volume / 100 : (isNovaSpeaking ? 0.2 : 0))})`,
+                                        transition: 'transform 0.1s ease-out'
+                                    }}></div>
+                                    <div className="absolute inset-0 bg-blue-500/10 rounded-full animate-pulse-ring animation-delay-500" style={{
+                                        transform: `scale(${1.2 + (isListening ? volume / 80 : (isNovaSpeaking ? 0.3 : 0))})`,
+                                        transition: 'transform 0.1s ease-out'
+                                    }}></div>
+
+                                    <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-slate-800 shadow-2xl ring-4 ring-blue-600/20">
+                                        <img src={novaFace} className={`w-full h-full object-cover transition-transform duration-500 ${isNovaSpeaking ? 'scale-110 grayscale-0' : 'scale-100 grayscale-[0.2]'}`} alt="Nova" />
+                                    </div>
+
+                                    {/* Audio Waves Overlay when speaking */}
+                                    {isNovaSpeaking && (
+                                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-end gap-0.5 h-6">
+                                            {[...Array(5)].map((_, i) => (
+                                                <div key={i} className="w-1 bg-white rounded-full animate-wave" style={{ animationDelay: `${i * 0.1}s`, height: '40%' }}></div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col items-center gap-2 min-h-[40px] text-center">
+                                    {isNovaSpeaking ? (
+                                        <p className="text-blue-400 font-bold text-sm flex items-center gap-2 animate-pulse">
+                                            <Waves size={16} /> Nova parle...
+                                        </p>
+                                    ) : isLoading ? (
+                                        <p className="text-blue-300 font-bold text-sm flex items-center gap-2 animate-pulse">
+                                            <Sparkles size={16} className="animate-spin" /> Nova réfléchit...
+                                        </p>
+                                    ) : isListening ? (
+                                        <p className="text-emerald-400 font-bold text-sm flex items-center gap-2">
+                                            <Mic size={16} className="animate-bounce" /> À vous, je vous écoute
+                                        </p>
+                                    ) : (
+                                        <p className="text-white/40 font-medium text-xs italic">
+                                            Nova est en attente
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Subtitle / Current Transcript */}
+                            <div className="relative z-10 w-full max-w-sm text-center">
+                                {messages.length > 0 && (
+                                    <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/5">
+                                        <p className="text-white/80 text-sm leading-relaxed line-clamp-3 italic">
+                                            "{messages[messages.length - 1].parts.substring(0, 150)}..."
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Controls */}
+                            <div className="relative z-10 flex items-center gap-6">
+                                <button
+                                    onClick={() => speak(messages[messages.length - 1].parts)}
+                                    className="p-4 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition"
+                                >
+                                    <Volume2 size={24} />
+                                </button>
+                                <button
+                                    onClick={() => setIsCallActive(false)}
+                                    className="w-20 h-20 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-2xl shadow-rose-600/40 hover:bg-rose-700 active:scale-90 transition-all border-4 border-rose-500/20"
+                                >
+                                    <PhoneOff size={32} />
+                                </button>
+                                <button
+                                    onClick={() => toggleListening()}
+                                    className={`p-4 rounded-full transition ${isListening ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-white'}`}
+                                >
+                                    <Mic size={24} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
 
                     {/* Chat Area */}
                     <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 py-6 space-y-6 scroll-pro bg-slate-50/30">
@@ -355,8 +680,8 @@ const AIAssistant = () => {
                             </div>
 
                             <button
-                                onClick={handleSend}
-                                disabled={!input.trim() && !chatFile}
+                                onClick={() => handleSend()}
+                                disabled={!input.trim() && !chatFile && !isLoading}
                                 className="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 disabled:bg-slate-200 disabled:shadow-none transition-all active:scale-95 disabled:text-slate-400"
                             >
                                 <Send size={20} />

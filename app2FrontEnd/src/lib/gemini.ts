@@ -234,13 +234,16 @@ export async function analyzeInvoicePremium(file: File, existingSocietes: string
 /**
  * Execute an AI Command (Action or Chat) based on text and optional file
  */
-export async function executeAICommand(message: string, file: File | null, context: string) {
+export async function executeAICommand(message: string | Blob, file: File | null, context: string) {
     try {
-        const prompt = `Tu es l'assistant IA de la "Société les cinq éléments", un système de gestion immobilière et de construction.
+        const isAudio = message instanceof Blob;
+        const textMessage = isAudio ? "Analyse cette commande vocale et réponds selon les instructions." : message;
+
+        const systemPrompt = `Tu es l'assistant IA de la "Société les cinq éléments", un système de gestion immobilière et de construction.
         Voici le contexte actuel de l'entreprise :
         ${context}
         
-        L'utilisateur veut effectuer une action ou pose une question. Voici sa requête : "${message}"
+        L'utilisateur veut effectuer une action ou pose une question.
         ${file ? "L'utilisateur a également joint un document (facture, reçu, etc.)." : ""}
         
         S'il s'agit d'une simple discussion, réponds avec un JSON de type RESPOND.
@@ -254,7 +257,7 @@ export async function executeAICommand(message: string, file: File | null, conte
         - CREATE_PROJECT : pour créer un projet/terrain. action_data: { nom: string (nom du projet), ville: string }
         - CREATE_SUPPLIER : fournisseur matière. action_data: { nom: string, tel: string, adresse: string }
         - CREATE_WORKER : pour créer un ouvrier. action_data: { nom: string, prenom: string, cin: string, metier: string, telephone: string }
-        - CREATE_SALARY : pour créer un salarié. action_data: { nom: string, prenom: string, poste: string, salaire_base: number, cin: string }
+        - CREATE_SALARY : pour créer un salarié. action_data: { nom: string, poste: string, salaire_base: number, cin: string }
         - CREATE_COMPANY : société de service. action_data: { nom: string, ice: string, tel: string }
         - CREATE_CONTENTIEUX : affaire juridique. action_data: { tribunal: string, nom_dossier: string, description: string, avocat: string, plaignant: string, defendeur: string }
         - CREATE_ARTICLE : article en stock. action_data: { nom: string, reference: string, unite: string }
@@ -278,24 +281,55 @@ export async function executeAICommand(message: string, file: File | null, conte
 
         const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-        let result;
-        if (file) {
-            const imagePart = await fileToGenerativePart(file);
-            result = await model.generateContent([prompt, imagePart]);
-        } else {
-            result = await model.generateContent(prompt);
+        const parts: any[] = [systemPrompt];
+
+        if (!isAudio) {
+            parts.push(`Requête utilisateur : "${textMessage}"`);
         }
+
+        if (file) {
+            parts.push(await fileToGenerativePart(file));
+        }
+
+        if (isAudio) {
+            // Convert Blob to generative part
+            const audioPart = await new Promise<any>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64Data = (reader.result as string).split(',')[1];
+                    resolve({
+                        inlineData: {
+                            data: base64Data,
+                            mimeType: message.type || "audio/webm"
+                        }
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(message);
+            });
+            parts.push(audioPart);
+        }
+
+        const result = await model.generateContent(parts);
 
         const response = await result.response;
         const text = response.text();
+        console.log("Nova AI: Réponse brute reçue.");
 
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             return JSON.parse(jsonMatch[0]);
         }
         return { type: "RESPOND", message: text, action: null, action_data: null };
-    } catch (error) {
-        console.error("AI Command Error:", error);
+    } catch (error: any) {
+        console.error("Nova AI Error: Échec de l'appel executeAICommand", error);
+        // Specifically log if it's an API key or Model issue
+        if (error.message?.includes("API key")) {
+            console.error("CRITIQUE: Votre clé API Gemini semble invalide ou mal configurée.");
+        }
+        if (error.message?.includes("model")) {
+            console.error("CRITIQUE: Le modèle demandé est introuvable ou vous n'y avez pas accès.");
+        }
         throw error;
     }
 }
@@ -323,7 +357,7 @@ Types possibles: "journalier" (1 jour), "periode" (multi-jours), "m2" (mètre ca
 Réponds UNIQUEMENT avec ce JSON (null si inconnu) :
 {"ouvrier_id":"id ou null","terrain_id":"id ou null","type":"journalier|periode|m2|ml|forfait ou null","quantity":"nombre ou null","unit_price":"prix DH ou null","description":"travail effectué","start_date":"YYYY-MM-DD ou null"}`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);
