@@ -43,7 +43,7 @@ const GlobalPreview = () => {
                         </div>
                         <div>
                             <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Aperçu Document</h3>
-                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">Société les cinq elements</p>
+                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">  Amical El Ouaha </p>
                         </div>
                     </div>
 

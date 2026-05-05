@@ -43,7 +43,7 @@ const ClientLogin = () => {
                         <Home size={32} />
                     </div>
                     <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Espace Acquéreur</h1>
-                    <p className="text-sm font-medium text-slate-400">Société Les Cinq Éléments</p>
+                    <p className="text-sm font-medium text-slate-400"> Amical El Ouaha </p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
@@ -79,7 +79,7 @@ const ClientLogin = () => {
                 </form>
 
                 <div className="pt-8 border-t border-slate-50 text-center">
-                    <p className="text-[10px] text-slate-400 font-medium">© 2024 Société Les Cinq Éléments</p>
+                    <p className="text-[10px] text-slate-400 font-medium">© 2026 Amical El Ouaha </p>
                 </div>
             </div>
         </div>

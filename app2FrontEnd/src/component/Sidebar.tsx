@@ -237,8 +237,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/50 flex-shrink-0">
                     {!isCollapsed && (
                         <div className="flex items-center gap-3 overflow-hidden">
-                            <img src="/assets/LogoNavbar.png" alt="" className="h-7 w-auto flex-shrink-0" />
-                            <span className="font-semibold text-white tracking-tight text-sm truncate">CINQ ÉLÉMENTS</span>
+                            <img src="/assets/logoLogin.png" alt="" className="h-7 w-auto flex-shrink-0" />
+                            <span className="font-semibold text-white tracking-tight text-sm truncate">AMICAL EL OUAH</span>
                         </div>
                     )}
                     <button
