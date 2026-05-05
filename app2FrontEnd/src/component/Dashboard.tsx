@@ -227,7 +227,7 @@ const Dashboard = () => {
             Bonjour, <span className="text-blue-600">{userName}</span>
           </h1>
           <p className="text-slate-500 font-medium text-base mt-2">
-            Résumé détaillé de l'activité de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.
+            Résumé détaillé de l'activité de <span className="text-slate-800 font-bold">Société les cinq elements</span>.
           </p>
         </div>
 

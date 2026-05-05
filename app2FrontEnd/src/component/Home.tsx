@@ -89,7 +89,7 @@ const Home = () => {
             <div className="relative h-[500px] w-full rounded-[40px] overflow-hidden shadow-2xl group">
                 <img
                     src="/assets/hero.png"
-                    alt="EL OUAHA"
+                    alt="Société les cinq elements"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent flex items-center p-12 md:p-20">
@@ -97,7 +97,7 @@ const Home = () => {
 
                         <h1 className="text-5xl md:text-7xl font-black text-white leading-tight">
                             Bienvenue chez <br />
-                            <span className="text-amber-500 drop-shadow-lg">Amical EL OUAHA</span>
+                            <span className="text-amber-500 drop-shadow-lg">les cinq elements</span>
                         </h1>
 
                         <div className="flex gap-4 pt-4">

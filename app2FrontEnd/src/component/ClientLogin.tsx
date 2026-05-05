@@ -79,7 +79,7 @@ const ClientLogin = () => {
                 </form>
 
                 <div className="pt-8 border-t border-slate-50 text-center">
-                    <p className="text-[10px] text-slate-400 font-medium">© 2026 AMICAL EL OUAHA</p>
+                    <p className="text-[10px] text-slate-400 font-medium">© 2024 Société Les Cinq Éléments</p>
                 </div>
             </div>
         </div>

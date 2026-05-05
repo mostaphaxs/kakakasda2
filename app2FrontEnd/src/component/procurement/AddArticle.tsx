@@ -49,6 +49,9 @@ const AddArticle: React.FC = () => {
                                 <option value="Electricité">Electricité</option>
                                 <option value="Plomberie">Plomberie</option>
                                 <option value="Ciment">Ciment</option>
+                                <option value="Marbre">Marbre</option>
+                                <option value="Peinture">Peinture</option>
+                                <option value="Carrelage">Carrelage</option>
                                 <option value="Autres">Autres</option>
                             </select>
                         </div>
@@ -64,6 +67,7 @@ const AddArticle: React.FC = () => {
                                 <option value="ML">ML</option>
                                 <option value="U">U (Unité)</option>
                                 <option value="Kg">Kg</option>
+                                <option value="R">R (Rouleau)</option>
                             </select>
                         </div>
                     </div>

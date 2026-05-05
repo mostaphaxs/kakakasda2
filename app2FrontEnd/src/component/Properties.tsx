@@ -7,6 +7,7 @@ import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownText from './common/MarkdownText';
+import MediaManager from './media/MediaManager';
 
 
 interface AnnexUnit {
@@ -337,7 +338,7 @@ const Properties = () => {
                             <Home className="text-amber-600" size={32} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -828,9 +829,29 @@ const Properties = () => {
                                 </div>
                             </div>
 
+                            {/* Media Management - Photos */}
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl">
+                                    <MediaManager
+                                        modelType="Bien"
+                                        modelId={selectedBien.id}
+                                        category="photo"
+                                        title="Galerie Bien"
+                                    />
+                                </div>
+                                <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl mt-4">
+                                    <MediaManager
+                                        modelType="Bien"
+                                        modelId={selectedBien.id}
+                                        category="document"
+                                        title="Documents & Plans"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Charges Section */}
                             {(selectedBien.charges_syndic || selectedBien.frais_branchement_eau || selectedBien.frais_branchement_electricite || selectedBien.tva) && (
-                                <div>
+                                <div className="mt-6">
                                     <label className="text-[10px] font-black text-amber-600 uppercase block mb-2 tracking-widest">Charges &amp; Frais Annexes</label>
                                     <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
                                         {selectedBien.charges_syndic && (
@@ -872,133 +893,135 @@ const Properties = () => {
             )}
 
             {/* Bien → Client Association Modal */}
-            {isAssocClientModalOpen && assocBien && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
-                            <div>
-                                <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
-                                    <UserPlus size={16} className="text-amber-500" />
-                                    Associer un Client
-                                </h3>
-                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
-                                    BIEN : <MarkdownText text={assocBien.type_bien === 'Appartement' ? 'Bloc' : assocBien.type_bien} />
-                                    {assocBien.immeuble ? <> – Imm. <MarkdownText text={assocBien.immeuble} /></> : ''}
-                                    {assocBien.num_appartement ? <> – <MarkdownText text={assocBien.num_appartement} /></> : ''}
-                                </p>
+            {
+                isAssocClientModalOpen && assocBien && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                                <div>
+                                    <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                        <UserPlus size={16} className="text-amber-500" />
+                                        Associer un Client
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                        BIEN : <MarkdownText text={assocBien.type_bien === 'Appartement' ? 'Bloc' : assocBien.type_bien} />
+                                        {assocBien.immeuble ? <> – Imm. <MarkdownText text={assocBien.immeuble} /></> : ''}
+                                        {assocBien.num_appartement ? <> – <MarkdownText text={assocBien.num_appartement} /></> : ''}
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsAssocClientModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <button onClick={() => setIsAssocClientModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleBienAssociateClient} className="p-6 space-y-4">
-                            {/* Search */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="Rechercher nom, prénom, CIN, tel..."
-                                    value={assocClientSearch}
-                                    onChange={(e) => setAssocClientSearch(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
-                                />
-                            </div>
+                            <form onSubmit={handleBienAssociateClient} className="p-6 space-y-4">
+                                {/* Search */}
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                    <input
+                                        type="text"
+                                        placeholder="Rechercher nom, prénom, CIN, tel..."
+                                        value={assocClientSearch}
+                                        onChange={(e) => setAssocClientSearch(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                    />
+                                </div>
 
-                            {/* Clients list */}
-                            <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
-                                {isLoadingAssocClients ? (
-                                    <div className="py-8 flex items-center justify-center gap-2 text-gray-400">
-                                        <Loader2 size={16} className="animate-spin" /> Chargement...
-                                    </div>
-                                ) : (
-                                    <>
-                                        {assocClients
-                                            .filter(c => {
+                                {/* Clients list */}
+                                <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
+                                    {isLoadingAssocClients ? (
+                                        <div className="py-8 flex items-center justify-center gap-2 text-gray-400">
+                                            <Loader2 size={16} className="animate-spin" /> Chargement...
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {assocClients
+                                                .filter(c => {
+                                                    const q = assocClientSearch.toLowerCase();
+                                                    if (!q) return true;
+                                                    return c.nom?.toLowerCase().includes(q) ||
+                                                        c.prenom?.toLowerCase().includes(q) ||
+                                                        c.cin?.toLowerCase().includes(q) ||
+                                                        c.tel?.includes(q) ||
+                                                        c.tel_2?.includes(q) ||
+                                                        `${c.nom} ${c.prenom}`.toLowerCase().includes(q) ||
+                                                        `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
+                                                })
+                                                .map((c: any) => (
+                                                    <label
+                                                        key={c.id}
+                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocClientId === String(c.id)
+                                                            ? 'bg-amber-50 border-amber-400 shadow-sm'
+                                                            : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                            }`}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name="assocClient"
+                                                            value={c.id}
+                                                            checked={assocClientId === String(c.id)}
+                                                            onChange={() => setAssocClientId(String(c.id))}
+                                                            className="accent-amber-500"
+                                                        />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-black text-gray-800 uppercase truncate">
+                                                                <MarkdownText text={`${c.nom} ${c.prenom}`} />
+                                                            </p>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                                CIN: <MarkdownText text={c.cin} /> · Tél: {c.tel}
+                                                            </p>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            {assocClients.filter(c => {
                                                 const q = assocClientSearch.toLowerCase();
                                                 if (!q) return true;
-                                                return c.nom?.toLowerCase().includes(q) ||
-                                                    c.prenom?.toLowerCase().includes(q) ||
-                                                    c.cin?.toLowerCase().includes(q) ||
-                                                    c.tel?.includes(q) ||
-                                                    c.tel_2?.includes(q) ||
-                                                    `${c.nom} ${c.prenom}`.toLowerCase().includes(q) ||
-                                                    `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
-                                            })
-                                            .map((c: any) => (
-                                                <label
-                                                    key={c.id}
-                                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocClientId === String(c.id)
-                                                        ? 'bg-amber-50 border-amber-400 shadow-sm'
-                                                        : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
-                                                        }`}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name="assocClient"
-                                                        value={c.id}
-                                                        checked={assocClientId === String(c.id)}
-                                                        onChange={() => setAssocClientId(String(c.id))}
-                                                        className="accent-amber-500"
-                                                    />
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-black text-gray-800 uppercase truncate">
-                                                            <MarkdownText text={`${c.nom} ${c.prenom}`} />
-                                                        </p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">
-                                                            CIN: <MarkdownText text={c.cin} /> · Tél: {c.tel}
-                                                        </p>
+                                                return c.nom?.toLowerCase().includes(q) || c.prenom?.toLowerCase().includes(q) || c.cin?.toLowerCase().includes(q) || c.tel?.includes(q) || c.tel_2?.includes(q) || `${c.nom} ${c.prenom}`.toLowerCase().includes(q) || `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
+                                            }).length === 0 && (
+                                                    <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                                        Aucun client disponible ou correspondant à la recherche trouvé.
                                                     </div>
-                                                </label>
-                                            ))}
-                                        {assocClients.filter(c => {
-                                            const q = assocClientSearch.toLowerCase();
-                                            if (!q) return true;
-                                            return c.nom?.toLowerCase().includes(q) || c.prenom?.toLowerCase().includes(q) || c.cin?.toLowerCase().includes(q) || c.tel?.includes(q) || c.tel_2?.includes(q) || `${c.nom} ${c.prenom}`.toLowerCase().includes(q) || `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
-                                        }).length === 0 && (
-                                                <div className="py-8 text-center text-gray-400 text-sm font-medium">
-                                                    Aucun client disponible ou correspondant à la recherche trouvé.
-                                                </div>
-                                            )}
-                                    </>
-                                )}
-                            </div>
-
-                            {/* Avec finition */}
-                            {assocClientId && (
-                                <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
-                                    <div>
-                                        <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
-                                        <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={assocAvecFinition}
-                                            onChange={e => setAssocAvecFinition(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    </label>
+                                                )}
+                                        </>
+                                    )}
                                 </div>
-                            )}
 
-                            <div className="flex gap-3 pt-1">
-                                <button type="button" onClick={() => setIsAssocClientModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmittingAssocClient || !assocClientId}
-                                    className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
-                                >
-                                    {isSubmittingAssocClient ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
-                                </button>
-                            </div>
-                        </form>
+                                {/* Avec finition */}
+                                {assocClientId && (
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                        <div>
+                                            <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
+                                            <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={assocAvecFinition}
+                                                onChange={e => setAssocAvecFinition(e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 pt-1">
+                                    <button type="button" onClick={() => setIsAssocClientModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingAssocClient || !assocClientId}
+                                        className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                    >
+                                        {isSubmittingAssocClient ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

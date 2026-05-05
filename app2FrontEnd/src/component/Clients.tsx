@@ -1,11 +1,11 @@
 // src/component/Clients.tsx
 import React, { useState, useEffect } from 'react';
-import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Link } from 'lucide-react';
+import { Edit2, Trash2, Users, Loader2, PlusCircle, X, Banknote, Calendar as CalendarIcon, Check, FileText, Upload, Eye, Info, Search, Download, MessageCircle, Paintbrush, Link, TrendingDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseNumber, stripMarkdown } from '../lib/utils';
+import { formatNumber, parseNumber, stripMarkdown, parseDate } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
 import { Sparkles, Mail, FileSignature } from 'lucide-react';
@@ -473,7 +473,13 @@ const Clients = () => {
         }
 
         const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-        const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+        const totalVerse = client.payments?.reduce((acc, p) => {
+            const amt = parseFloat(String(p.amount));
+            const refund = parseFloat(String(p.refund_amount || 0));
+            const commission = parseFloat(String(p.bank_commission || 0));
+            if (p.type === 'Reprise') return acc - amt;
+            return acc + (amt - refund - commission);
+        }, 0) || 0;
         const reste = Math.max(0, prixGlobal - totalVerse);
 
         let message = '';
@@ -507,7 +513,13 @@ const Clients = () => {
             setWhatsappTargetClient(client);
             setWhatsappTargetPhone(client.tel);
             const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-            const totalVerse = client.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+            const totalVerse = client.payments?.reduce((acc, p) => {
+                const amt = parseFloat(String(p.amount));
+                const refund = parseFloat(String(p.refund_amount || 0));
+                const commission = parseFloat(String(p.bank_commission || 0));
+                if (p.type === 'Reprise') return acc - amt;
+                return acc + (amt - refund - commission);
+            }, 0) || 0;
             const reste = Math.max(0, prixGlobal - totalVerse);
             const projectName = client.biens?.[0]?.terrain?.nom_projet || "Vôtre Projet";
 
@@ -701,7 +713,13 @@ const Clients = () => {
 
         const dataToExport = filteredClients.map(c => {
             const prixGlobal = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? parseFloat(String(b.prix_global_finition || 0)) : parseFloat(String(b.prix_global_non_finition || 0))), 0) || 0;
-            const totalVerse = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+            const totalVerse = c.payments?.reduce((acc, p) => {
+                const amt = parseFloat(String(p.amount));
+                const refund = parseFloat(String(p.refund_amount || 0));
+                const commission = parseFloat(String(p.bank_commission || 0));
+                if (p.type === 'Reprise') return acc - amt;
+                return acc + (amt - refund - commission);
+            }, 0) || 0;
             return {
                 'ID': c.id,
                 'NOM': c.nom?.toUpperCase(),
@@ -735,7 +753,7 @@ const Clients = () => {
                             <Users className="text-blue-600" size={32} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Amical EL OUAHA</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
@@ -968,7 +986,13 @@ const Clients = () => {
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-emerald-600">
                                                         {(() => {
-                                                            const total = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+                                                            const total = c.payments?.reduce((acc, p) => {
+                                                                const amt = parseFloat(String(p.amount));
+                                                                const refund = parseFloat(String(p.refund_amount || 0));
+                                                                const commission = parseFloat(String(p.bank_commission || 0));
+                                                                if (p.type === 'Reprise') return acc - amt;
+                                                                return acc + (amt - refund - commission);
+                                                            }, 0) || 0;
                                                             return formatNumber(total) + ' DH';
                                                         })()}
                                                     </span>
@@ -995,7 +1019,13 @@ const Clients = () => {
                                             <td className="px-6 py-4 font-bold text-rose-500">
                                                 {(() => {
                                                     const prix = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                    const paid = c.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+                                                    const paid = c.payments?.reduce((acc, p) => {
+                                                        const amt = parseFloat(String(p.amount));
+                                                        const refund = parseFloat(String(p.refund_amount || 0));
+                                                        const commission = parseFloat(String(p.bank_commission || 0));
+                                                        if (p.type === 'Reprise') return acc - amt;
+                                                        return acc + (amt - refund - commission);
+                                                    }, 0) || 0;
                                                     const reste = Math.max(0, prix - paid);
                                                     if (!c.biens || c.biens.length === 0) return '—';
                                                     return reste > 0 ? formatNumber(reste) + ' DH' : 'Soldé';
@@ -1178,6 +1208,7 @@ const Clients = () => {
                                             <option value="Tranche">Tranche</option>
                                             <option value="Reliquat">Reliquat</option>
                                             <option value="Caution">Caution</option>
+                                            <option value="Reprise">Reprise</option>
                                         </select>
                                         {fieldErrors.type && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.type[0]}</p>}
                                     </div>
@@ -1608,7 +1639,13 @@ const Clients = () => {
                                         <p className="text-[10px] font-bold text-emerald-500 uppercase mb-1">Total Versé</p>
                                         <p className="text-lg font-bold text-emerald-600">
                                             {(() => {
-                                                const total = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+                                                const total = detailClient.payments?.reduce((acc, p) => {
+                                                    const amt = parseFloat(String(p.amount));
+                                                    const refund = parseFloat(String(p.refund_amount || 0));
+                                                    const commission = parseFloat(String(p.bank_commission || 0));
+                                                    if (p.type === 'Reprise') return acc - amt;
+                                                    return acc + (amt - refund - commission);
+                                                }, 0) || 0;
                                                 return formatNumber(total);
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1618,7 +1655,13 @@ const Clients = () => {
                                         <p className="text-lg font-bold text-rose-600">
                                             {(() => {
                                                 const prix = detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                const paid = detailClient.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0;
+                                                const paid = detailClient.payments?.reduce((acc, p) => {
+                                                    const amt = parseFloat(String(p.amount));
+                                                    const refund = parseFloat(String(p.refund_amount || 0));
+                                                    const commission = parseFloat(String(p.bank_commission || 0));
+                                                    if (p.type === 'Reprise') return acc - amt;
+                                                    return acc + (amt - refund - commission);
+                                                }, 0) || 0;
                                                 return formatNumber(Math.max(0, prix - paid));
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1804,15 +1847,32 @@ const Clients = () => {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b pb-2">
                                         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Historique des Paiements</h4>
-                                        <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{detailClient.payments?.length || 0} Opérations</span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    handleOpenPaymentModal(detailClient);
+                                                    setPaymentType('Reprise');
+                                                }}
+                                                className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1.5 rounded-xl hover:bg-orange-100 transition-all font-black text-[9px] uppercase tracking-widest border border-orange-100 shadow-sm active:scale-95"
+                                            >
+                                                <TrendingDown size={12} />
+                                                Nouveau Reprise
+                                            </button>
+                                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{detailClient.payments?.length || 0} Opérations</span>
+                                        </div>
                                     </div>
                                     {detailClient.payments && detailClient.payments.length > 0 ? (
                                         <div className="space-y-3">
-                                            {detailClient.payments.sort((a, b) => b.id - a.id).map((p) => (
-                                                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 border-red-100 opacity-75' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
+                                            {detailClient.payments.sort((a, b) => {
+                                                const dateB = parseDate(b.payment_date).getTime();
+                                                const dateA = parseDate(a.payment_date).getTime();
+                                                if (dateB !== dateA) return dateB - dateA;
+                                                return b.id - a.id;
+                                            }).map((p) => (
+                                                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 border-red-100 opacity-75' : p.type === 'Reprise' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
                                                     <div className="flex items-center gap-4">
-                                                        <div className={`p-2 rounded-lg ${p.status === 'Cancelled' ? 'bg-red-100 text-red-600' : p.type === 'Caution' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                            <Banknote size={16} />
+                                                        <div className={`p-2 rounded-lg ${p.status === 'Cancelled' ? 'bg-red-100 text-red-600' : p.type === 'Caution' ? 'bg-amber-100 text-amber-600' : p.type === 'Reprise' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                            {p.type === 'Reprise' ? <TrendingDown size={16} /> : <Banknote size={16} />}
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
@@ -2349,7 +2409,13 @@ const Clients = () => {
                                         <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
                                             <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
                                             <span className="text-sm font-black text-amber-900 font-mono">
-                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => acc + (parseFloat(String(p.amount)) - parseFloat(String(p.refund_amount || 0)) - parseFloat(String(p.bank_commission || 0))), 0) || 0)} DH
+                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => {
+                                                    const amt = parseFloat(String(p.amount));
+                                                    const refund = parseFloat(String(p.refund_amount || 0));
+                                                    const commission = parseFloat(String(p.bank_commission || 0));
+                                                    if (p.type === 'Reprise') return acc - amt;
+                                                    return acc + (amt - refund - commission);
+                                                }, 0) || 0)} DH
                                             </span>
                                         </div>
                                         <p className="text-[10px] text-amber-700 font-medium leading-tight">

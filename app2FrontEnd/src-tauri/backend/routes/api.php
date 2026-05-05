@@ -141,6 +141,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('service-providers', ServiceProviderController::class);
     Route::apiResource('provider-invoices', ProviderInvoiceController::class);
 
+    // Universal Media / GED Management
+    Route::get('/media', [\App\Http\Controllers\MediaController::class, 'index']);
+    Route::post('/media', [\App\Http\Controllers\MediaController::class, 'store']);
+    Route::delete('/media/{media}', [\App\Http\Controllers\MediaController::class, 'destroy']);
+
 });
 
 // 🖼️ UNIVERSAL DOCUMENT SERVE (Bypass web.php)
