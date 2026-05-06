@@ -1,155 +1,85 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { Cpu, Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { apiFetch } from '../lib/api';
-import { Mail, Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
-
-// Define the shape of your form data
-type LoginFormInputs = {
-  email: string;
-  password: string;
-};
 
 export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInputs>();
-  const [serverError, setServerError] = useState('');
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    setServerError('');
-
     try {
-      const result = await apiFetch<{ token: string; user?: { name: string; email: string } }>('/login', {
+      const data = await apiFetch('/login', {
         method: 'POST',
-        public: true,       // No Bearer token for login
-        body: JSON.stringify(data),
+        body: JSON.stringify({ email, password }),
       });
-
-      localStorage.setItem('token', result.token);
-      if (result.user) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-      }
-      navigate('/home');
-
+      localStorage.setItem('token', data.token);
+      toast.success('Connexion réussie');
+      navigate('/dashboard');
     } catch (err: any) {
-      setServerError(err.message || 'Server connection failed');
+      toast.error(err.message || 'Identifiants invalides');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] flex items-center justify-center p-6 relative overflow-hidden font-sans">
-      {/* Subtle Background Accent */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-amber-50/50 rounded-full blur-[120px]"></div>
+    <div className="login-bg">
+      <div className="animate-fade-in w-full max-w-md mx-auto p-6">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-2xl shadow-indigo-500/40 mb-4">
+            <Cpu size={32} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">TechStock <span className="text-indigo-400">ERP</span></h1>
+          <p className="text-slate-500 text-sm mt-1">Gestion intelligente d'électronique</p>
+        </div>
 
-      <div className="max-w-[460px] w-full z-10 animate-in fade-in zoom-in-95 duration-500">
-        <div className="bg-white rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-slate-100 p-10 md:p-14">
-
-          {/* Brand Logo & Name */}
-          <div className="flex flex-col items-center mb-12 group">
-            <div className="mb-8 p-8 bg-slate-900 rounded-[50px] border border-slate-800 transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 group-hover:scale-110">
-              <img
-                src="/assets/logoLogin.png"
-                alt="  Amical El Ouaha "
-                className="h-40 w-auto"
+        {/* Card */}
+        <div className="card card-glow p-8">
+          <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <ShieldCheck size={18} className="text-indigo-400" />Connexion
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="input-dark"
+                placeholder="admin@techstock.ma"
+                required
               />
             </div>
-            <div className="flex flex-col items-center">
-              <h2 className="text-4xl font-black text-slate-900 tracking-tighter text-center uppercase leading-none">
-                 Amical <span className="text-amber-500">El Ouaha</span>
-              </h2>
-              <p className="mt-3 text-[10px] font-black text-amber-600 uppercase tracking-[0.4em] text-center">Gestion Immobilière & Travaux</p>
-            </div>
-          </div>
-
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {serverError && (
-              <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
-                <AlertCircle className="text-rose-500 shrink-0" size={18} />
-                <p className="text-xs font-bold text-rose-600">{serverError}</p>
-              </div>
-            )}
-
-            <div className="space-y-1.5 focus-within:translate-y-[-2px] transition-transform duration-300">
-              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Adresse Email</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                  <Mail size={18} />
-                </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Mot de passe</label>
+              <div className="relative">
                 <input
-                  type="email"
-                  {...register("email", {
-                    required: "L'email est requis",
-                    pattern: { value: /^\S+@\S+$/i, message: "Format d'email invalide" }
-                  })}
-                  className={`w-full pl-12 pr-4 py-4 bg-slate-50/50 border ${errors.email ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-100 focus:ring-blue-100'} rounded-2xl focus:ring-4 focus:bg-white focus:border-blue-300 outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-medium`}
-                  placeholder="nom@exemple.com"
-                />
-              </div>
-              {errors.email && <p className="ml-1 text-[10px] font-bold text-rose-500">{errors.email.message}</p>}
-            </div>
-
-            <div className="space-y-1.5 focus-within:translate-y-[-2px] transition-transform duration-300">
-              <label className="block text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Mot de passe</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                  <Lock size={18} />
-                </div>
-                <input
-                  type="password"
-                  {...register("password", { required: "Le mot de passe est requis" })}
-                  className={`w-full pl-12 pr-4 py-4 bg-slate-50/50 border ${errors.password ? 'border-rose-300 focus:ring-rose-200' : 'border-slate-100 focus:ring-blue-100'} rounded-2xl focus:ring-4 focus:bg-white focus:border-blue-300 outline-none transition-all font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-medium`}
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="input-dark pr-10"
                   placeholder="••••••••"
+                  required
                 />
-              </div>
-              {errors.password && <p className="ml-1 text-[10px] font-bold text-rose-500">{errors.password.message}</p>}
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:shadow-[0_15px_30px_rgba(0,0,0,0.15)] disabled:bg-slate-300 group active:scale-[0.98]"
-              >
-                {loading ? (
-                  <Loader2 size={20} className="animate-spin" />
-                ) : (
-                  <>
-                    Connexion Admin
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="relative py-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-100"></div>
-              </div>
-              <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
-                <span className="bg-white px-4 text-slate-300">Ou</span>
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => navigate('/portal/login')}
-              className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all border border-amber-100 group shadow-sm shadow-amber-100/50"
-            >
-              Accéder à l'Espace Acquéreur
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <button type="submit" className="btn-primary w-full justify-center py-3 mt-2" disabled={loading}>
+              {loading ? <Loader2 size={18} className="animate-spin" /> : 'Se connecter'}
             </button>
           </form>
-
-          <div className="mt-10 text-center">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em]">© 2026   Amical El Ouaha . Tous droits réservés.</p>
-          </div>
         </div>
+        <p className="text-center text-xs text-slate-600 mt-6">TechStock ERP v1.0 — Powered by Gemini AI</p>
       </div>
     </div>
   );
