@@ -1,0 +1,20 @@
+
+  Migration name  Batch / Status  
+  0001_01_01_000000_create_users_table  [1] Ran  
+  0001_01_01_000001_create_cache_table  [1] Ran  
+  0001_01_01_000002_create_jobs_table  [1] Ran  
+  2026_05_06_005641_create_devices_table  [1] Ran  
+  2026_05_06_005642_add_indexes_to_devices_table  [1] Ran  
+  2026_05_06_005643_create_customers_and_sales_tables  [1] Ran  
+  2026_05_06_005644_create_default_admin_user  [1] Ran  
+  2026_05_06_014251_create_personal_access_tokens_table  [1] Ran  
+  2026_05_06_114029_add_category_to_devices_table  [1] Ran  
+  2026_05_06_125552_make_suggested_price_nullable_on_devices_table  [2] Ran  
+  2026_05_06_140000_create_suppliers_table  [3] Ran  
+  2026_05_06_205516_create_purchases_table  [4] Ran  
+  2026_05_06_210948_create_articles_table  [5] Ran  
+  2026_05_06_210950_create_purchase_lines_table  [5] Ran  
+  2026_05_06_211640_make_designation_nullable_on_purchases_table  [5] Ran  
+  2026_05_06_223121_add_category_to_devices_table  [6] Ran  
+  2026_05_06_235115_add_quantity_to_devices_table  [7] Ran  
+

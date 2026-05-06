@@ -16,6 +16,9 @@ import CustomerForm from './component/CustomerForm';
 import Settings from './component/Settings';
 import Reports from './component/Reports';
 import POS from './component/POS';
+import Sales from './component/Sales';
+import Suppliers from './component/Suppliers';
+import Articles from './component/Articles';
 
 // ── Auth Guard ──────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -66,14 +69,18 @@ const AppContent: React.FC = () => {
               <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
               <Route path="/devices" element={<PrivateRoute><Devices /></PrivateRoute>} />
               <Route path="/devices/add" element={<PrivateRoute><AddDevice /></PrivateRoute>} />
+              <Route path="/devices/edit/:id" element={<PrivateRoute><AddDevice /></PrivateRoute>} />
               <Route path="/customers" element={<PrivateRoute><Customers /></PrivateRoute>} />
               <Route path="/customers/add" element={<PrivateRoute><CustomerForm /></PrivateRoute>} />
               <Route path="/customers/:id" element={<PrivateRoute><CustomerForm /></PrivateRoute>} />
+              <Route path="/suppliers" element={<PrivateRoute><Suppliers /></PrivateRoute>} />
+              <Route path="/articles" element={<PrivateRoute><Articles /></PrivateRoute>} />
 
               {/* Sales & Analytics */}
-              <Route path="/sales*" element={<PrivateRoute><POS /></PrivateRoute>} />
-              <Route path="/reports*" element={<PrivateRoute><Reports /></PrivateRoute>} />
-              <Route path="/settings*" element={<PrivateRoute><Settings /></PrivateRoute>} />
+              <Route path="/sales/pos/*" element={<PrivateRoute><POS /></PrivateRoute>} />
+              <Route path="/sales/*" element={<PrivateRoute><Sales /></PrivateRoute>} />
+              <Route path="/reports/*" element={<PrivateRoute><Reports /></PrivateRoute>} />
+              <Route path="/settings/*" element={<PrivateRoute><Settings /></PrivateRoute>} />
 
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -83,15 +90,6 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
-
-// ── Placeholder ──────────────────────────────────────────────────────
-const PlaceholderPage: React.FC<{ title: string; icon: string }> = ({ title, icon }) => (
-  <div className="animate-fade-in flex flex-col items-center justify-center min-h-[60vh] text-center">
-    <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 flex items-center justify-center mb-4 text-4xl">{icon}</div>
-    <h2 className="text-2xl font-black text-white">{title}</h2>
-    <p className="text-slate-500 mt-2">Cette section arrive bientôt.</p>
-  </div>
-);
 
 // ── Root ────────────────────────────────────────────────────────────
 export default function App() {

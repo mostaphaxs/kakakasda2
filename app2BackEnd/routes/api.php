@@ -8,6 +8,7 @@ use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StatsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SupplierController;
 
 // ──────────────────────────────────────────────────────────────────
 //  Electronics ERP API Routes
@@ -32,6 +33,13 @@ Route::post('/devices/{device}/suggest-price', [DeviceController::class, 'sugges
 
 // Customers
 Route::apiResource('customers', CustomerController::class);
+
+// Suppliers & Purchases
+Route::apiResource('suppliers', SupplierController::class);
+Route::apiResource('purchases', \App\Http\Controllers\PurchaseController::class);
+
+// Articles
+Route::apiResource('articles', \App\Http\Controllers\ArticleController::class);
 
 // Sales / POS
 Route::apiResource('sales', SaleController::class)->except(['update']);

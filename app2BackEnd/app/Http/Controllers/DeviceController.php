@@ -16,7 +16,7 @@ class DeviceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Device::query();
+        $query = Device::with('supplier');
 
         if ($request->filled('condition')) {
             $query->where('condition', $request->condition);
@@ -51,12 +51,15 @@ class DeviceController extends Controller
             'imei'              => 'nullable|string|unique:devices,imei',
             'serial_number'     => 'nullable|string|unique:devices,serial_number',
             'condition'         => 'required|in:New,Used,Refurbished',
+            'category'          => 'nullable|string',
             'color'             => 'nullable|string',
             'storage_capacity'  => 'nullable|string',
             'purchase_price'    => 'required|numeric|min:0',
             'suggested_price'   => 'nullable|numeric|min:0',
             'technical_specs'   => 'nullable|array',
             'notes'             => 'nullable|string',
+            'supplier_id'       => 'nullable|exists:suppliers,id',
+            'quantity'          => 'nullable|integer|min:1',
         ], [
             'brand.required' => 'La marque est obligatoire.',
             'model.required' => 'Le modèle est obligatoire.',
@@ -65,6 +68,7 @@ class DeviceController extends Controller
             'condition.required' => 'La condition est obligatoire.',
             'condition.in'       => 'Condition invalide (Neuf, Occasion, Reconditionné).',
             'purchase_price.required' => 'Le prix d\'achat est obligatoire.',
+            'supplier_id.exists' => 'Le fournisseur sélectionné n\'existe pas.',
         ]);
 
         $device = Device::create($data);
@@ -77,7 +81,7 @@ class DeviceController extends Controller
             }
         }
 
-        return response()->json($device, 201);
+        return response()->json($device->load('supplier'), 201);
     }
 
     /**
@@ -85,7 +89,7 @@ class DeviceController extends Controller
      */
     public function show(Device $device)
     {
-        return $device;
+        return $device->load('supplier');
     }
 
     /**
@@ -99,12 +103,15 @@ class DeviceController extends Controller
             'imei'              => "nullable|string|unique:devices,imei,{$device->id}",
             'serial_number'     => "nullable|string|unique:devices,serial_number,{$device->id}",
             'condition'         => 'sometimes|in:New,Used,Refurbished',
+            'category'          => 'nullable|string',
             'color'             => 'nullable|string',
             'storage_capacity'  => 'nullable|string',
             'purchase_price'    => 'sometimes|numeric|min:0',
             'suggested_price'   => 'nullable|numeric|min:0',
             'technical_specs'   => 'nullable|array',
             'notes'             => 'nullable|string',
+            'supplier_id'       => 'nullable|exists:suppliers,id',
+            'quantity'          => 'nullable|integer|min:1',
         ]);
 
         $device->update($data);

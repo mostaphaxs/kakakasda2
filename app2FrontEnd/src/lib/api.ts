@@ -24,3 +24,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
     return res.status === 204 ? null : res.json();
 }
+
+export const formatMoney = (val: number | string | null | undefined) => {
+    if (!val) return "0.00";
+    return Number(val).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};

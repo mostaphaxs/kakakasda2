@@ -12,7 +12,7 @@ use App\Models\Device;
  */
 class SmartPricingService
 {
-    protected string $apiKey;
+    protected ?string $apiKey;
     protected string $model = 'gemini-2.0-flash-preview';
 
     public function __construct()
@@ -28,6 +28,10 @@ class SmartPricingService
      */
     public function suggestPrice(Device $device): ?float
     {
+        if (!$this->apiKey) {
+            \Log::warning('SmartPricingService: GEMINI_API_KEY is not set.');
+            return null;
+        }
         $specs = json_encode($device->technical_specs ?? [], JSON_UNESCAPED_UNICODE);
 
         $prompt = <<<PROMPT

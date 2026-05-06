@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Smartphone, TrendingUp, DollarSign, Users, ArrowUpRight, Cpu, Zap } from 'lucide-react';
-import { apiFetch } from '../lib/api';
+import { apiFetch, formatMoney } from '../lib/api';
 
 interface Stats {
   total_devices: number;
@@ -28,7 +28,7 @@ export default function Dashboard() {
 
   const statCards = [
     { label: 'Total Appareils', value: stats?.total_devices ?? 0, icon: Smartphone, color: 'from-indigo-500 to-violet-600', glow: 'shadow-indigo-500/20' },
-    { label: "CA du mois", value: `${(stats?.revenue ?? 0).toLocaleString()} MAD`, icon: DollarSign, color: 'from-emerald-400 to-cyan-500', glow: 'shadow-emerald-500/20' },
+    { label: "CA du mois", value: `${formatMoney(stats?.revenue ?? 0)} MAD`, icon: DollarSign, color: 'from-emerald-400 to-cyan-500', glow: 'shadow-emerald-500/20' },
     { label: 'Ventes', value: stats?.total_sales ?? 0, icon: TrendingUp, color: 'from-amber-400 to-orange-500', glow: 'shadow-amber-500/20' },
     { label: 'Clients', value: stats?.total_customers ?? 0, icon: Users, color: 'from-pink-400 to-rose-500', glow: 'shadow-pink-500/20' },
   ];

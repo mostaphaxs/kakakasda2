@@ -15,17 +15,26 @@ class Device extends Model
         'imei',
         'serial_number',
         'condition',
+        'category',
         'color',
         'storage_capacity',
         'purchase_price',
         'suggested_price',
         'technical_specs',
         'notes',
+        'supplier_id',
+        'quantity',
     ];
 
     protected $casts = [
         'technical_specs' => 'json',
         'purchase_price' => 'decimal:2',
         'suggested_price' => 'decimal:2',
+        'quantity' => 'integer',
     ];
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
 }

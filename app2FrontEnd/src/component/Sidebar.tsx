@@ -1,14 +1,17 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Cpu, LayoutDashboard, Smartphone, Users, ShoppingCart, BarChart2, LogOut, Settings, ChevronRight } from 'lucide-react';
+import { Cpu, LayoutDashboard, Smartphone, Users, ShoppingCart, BarChart2, LogOut, Settings, ChevronRight, History, Truck, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const nav = [
     { section: 'Principal' },
     { label: 'Tableau de bord', icon: LayoutDashboard, to: '/dashboard' },
-    { section: 'Stock' },
-    { label: 'Appareils', icon: Smartphone, to: '/devices' },
+    { section: 'Inventaire' },
+    { label: 'Stock Appareils (IMEI)', icon: Smartphone, to: '/devices' },
+    { label: 'Catalogue Accessoires', icon: Package, to: '/articles' },
+    { label: 'Fournisseurs', icon: Truck, to: '/suppliers' },
     { section: 'Commerce' },
-    { label: 'Ventes / POS', icon: ShoppingCart, to: '/sales' },
+    { label: 'Point de Vente', icon: ShoppingCart, to: '/sales/pos' },
+    { label: 'Historique Transactions', icon: History, to: '/sales' },
     { label: 'Clients', icon: Users, to: '/customers' },
     { section: 'Analyse' },
     { label: 'Rapports', icon: BarChart2, to: '/reports' },
@@ -52,6 +55,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                             <NavLink
                                 key={i}
                                 to={item.to!}
+                                end
                                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                                 onClick={() => { if (window.innerWidth < 1024) onClose(); }}
                             >
