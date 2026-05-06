@@ -76,21 +76,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: History, label: 'Historique', path: '/transactions' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
         { icon: Building2, label: 'Biens', path: '/properties' },
-        { icon: Users, label: 'Intervenants', path: '/intervenants' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
         { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
         { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
         { icon: HardHat, label: 'Construction', path: '/contractors' },
         { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
         { icon: WalletCards, label: 'Charges', path: '/charges' },
-        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
         { icon: Building, label: 'Sociétés Services', path: '/services-tiers' },
-        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
         { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
-        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
-        { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
     ];
 
     const exportItems = [
