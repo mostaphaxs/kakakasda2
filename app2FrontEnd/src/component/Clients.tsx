@@ -25,6 +25,7 @@ interface Bien {
     immeuble?: string;
     etage?: number;
     terrain?: { id: number; nom_projet: string };
+    nom?: string;
 }
 
 interface Payment {
@@ -1484,7 +1485,7 @@ const Clients = () => {
                                                     const b = currentClient?.biens?.find(x => x.id === Number(editBienId));
                                                     return b ? (
                                                         <option key={b.id} value={b.id}>
-                                                            {b.type_bien} {b.num_appartement ? `Bloc #${stripMarkdown(b.num_appartement)}` : ''} (Actuel)
+                                                            {b.type_bien} {b.nom ? `(${b.nom})` : ''} {b.num_appartement ? `Bloc #${stripMarkdown(b.num_appartement)}` : ''} (Actuel)
                                                         </option>
                                                     ) : null;
                                                 })()
@@ -1495,7 +1496,7 @@ const Clients = () => {
                                                     value={b.id}
                                                     disabled={b.statut !== 'Libre' && b.id !== Number(editBienId)}
                                                 >
-                                                    {b.type_bien} {b.num_appartement ? `(Bloc ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
+                                                    {b.type_bien} {b.nom ? `(${b.nom})` : ''} {b.num_appartement ? `(Bloc ${b.num_appartement})` : ''} · {b.statut === 'Libre' ? '🟢 Libre' : '🟠 Réservé'}
                                                 </option>
                                             ))}
                                         </select>
@@ -2134,6 +2135,7 @@ const Clients = () => {
                                         return b.num_appartement?.toLowerCase().includes(q) ||
                                             b.immeuble?.toLowerCase().includes(q) ||
                                             b.type_bien?.toLowerCase().includes(q) ||
+                                            b.nom?.toLowerCase().includes(q) ||
                                             b.terrain?.nom_projet?.toLowerCase().includes(q) ||
                                             String(b.etage) === q ||
                                             String(b.id).includes(q);
@@ -2157,6 +2159,7 @@ const Clients = () => {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-black text-gray-800 uppercase break-words">
                                                     <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
+                                                    {b.nom ? <> – <MarkdownText text={b.nom} /></> : ''}
                                                     {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
                                                     {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                                     {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
