@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('articles', function (Blueprint $table) {
-            $table->id();
-            $table->string('designation');
-            $table->text('description')->nullable();
-            $table->decimal('prix_unitaire_defaut', 15, 2)->default(0);
-            $table->decimal('tva_defaut', 5, 2)->default(20); // 20% TVA by default
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('articles')) {
+            Schema::create('articles', function (Blueprint $table) {
+                $table->id();
+                $table->string('designation');
+                $table->text('description')->nullable();
+                $table->decimal('prix_unitaire_defaut', 15, 2)->default(0);
+                $table->decimal('tva_defaut', 5, 2)->default(20); // 20% TVA by default
+                $table->timestamps();
+            });
+        }
     }
 
     /**
