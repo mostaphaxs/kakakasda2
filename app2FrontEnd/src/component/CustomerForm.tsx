@@ -45,24 +45,26 @@ export default function CustomerForm() {
     return (
         <div className="animate-fade-in flex flex-col items-center justify-center min-h-[calc(100vh-140px)] pb-10">
             <div className="w-full max-w-2xl space-y-6">
-                <div className="flex items-center gap-4 bg-white/03 p-4 rounded-2xl border border-white/05 backdrop-blur-md sticky top-0 z-10">
-                    <button onClick={() => navigate('/customers')} className="w-10 h-10 rounded-xl bg-white/05 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                        <ArrowLeft size={20} />
+                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm sticky top-0 z-10">
+                    <button onClick={() => navigate('/customers')} className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
+                        <ArrowLeft size={16} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-white tracking-tight leading-none">{isEdit ? 'Modifier le client' : 'Nouveau client'}</h1>
-                        <p className="text-slate-500 text-xs mt-1 font-medium italic">Gérez les coordonnées et l'historique du client</p>
+                        <h1 className="text-lg font-black text-[#0f172a] tracking-tighter leading-none uppercase">{isEdit ? 'Modifier le client' : 'Nouveau client'}</h1>
+                        <p className="text-slate-400 text-[9px] mt-1 font-bold uppercase tracking-widest leading-none">Gérez les coordonnées et l'historique du client</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="card p-10 space-y-8 border-indigo-500/10 shadow-xl shadow-indigo-500/5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="col-span-2">
-                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Nom complet du client *</label>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nom complet du client *</label>
                             <div className="relative group">
-                                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-300 group-focus-within:text-[#f97316] transition-colors pointer-events-none">
+                                    <User size={14} />
+                                </div>
                                 <input
-                                    className="input-dark pl-12 h-12 text-lg font-semibold"
+                                    className="input-dark pl-11 h-11 text-xs font-bold italic"
                                     value={form.name}
                                     onChange={e => setForm({ ...form, name: e.target.value })}
                                     placeholder="ex: Jean Dupont"
@@ -71,12 +73,14 @@ export default function CustomerForm() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Téléphone</label>
+                        <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Téléphone</label>
                             <div className="relative group">
-                                <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-300 group-focus-within:text-[#f97316] transition-colors pointer-events-none">
+                                    <Phone size={14} />
+                                </div>
                                 <input
-                                    className="input-dark pl-12 font-medium"
+                                    className="input-dark pl-11 h-10 font-bold text-xs"
                                     value={form.phone || ''}
                                     onChange={e => setForm({ ...form, phone: e.target.value })}
                                     placeholder="06XXXXXXXX"
@@ -84,13 +88,15 @@ export default function CustomerForm() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Email professionnel</label>
+                        <div className="space-y-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Email professionnel</label>
                             <div className="relative group">
-                                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-slate-300 group-focus-within:text-[#f97316] transition-colors pointer-events-none">
+                                    <Mail size={14} />
+                                </div>
                                 <input
                                     type="email"
-                                    className="input-dark pl-12 font-medium"
+                                    className="input-dark pl-11 h-10 font-bold text-xs"
                                     value={form.email || ''}
                                     onChange={e => setForm({ ...form, email: e.target.value })}
                                     placeholder="client@exemple.com"
@@ -98,12 +104,14 @@ export default function CustomerForm() {
                             </div>
                         </div>
 
-                        <div className="col-span-2 space-y-2">
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Adresse de facturation / livraison</label>
+                        <div className="col-span-2 space-y-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Adresse de facturation / livraison</label>
                             <div className="relative group">
-                                <MapPin size={16} className="absolute left-4 top-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                                <div className="absolute left-4 top-4 w-4 h-4 flex items-center justify-center text-slate-300 group-focus-within:text-[#f97316] transition-colors pointer-events-none">
+                                    <MapPin size={14} />
+                                </div>
                                 <textarea
-                                    className="input-dark pl-12 min-h-[100px] pt-4 resize-none leading-relaxed"
+                                    className="input-dark pl-11 min-h-[80px] pt-3.5 resize-none leading-relaxed text-xs font-bold"
                                     value={form.address || ''}
                                     onChange={e => setForm({ ...form, address: e.target.value })}
                                     placeholder="Adresse complète (Ville, Quartier, Rue...)"
@@ -126,11 +134,11 @@ export default function CustomerForm() {
                         </div>
                     </div>
 
-                    <div className="pt-6 flex justify-end gap-3 border-t border-white/05">
-                        <button type="button" onClick={() => navigate('/customers')} className="btn-secondary px-8 font-bold">Annuler</button>
-                        <button type="submit" className="btn-primary px-10 font-black shadow-xl shadow-indigo-500/20" disabled={saving}>
-                            {saving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
-                            {isEdit ? 'METTRE À JOUR' : 'ENREGISTRER LE CLIENT'}
+                    <div className="pt-6 flex justify-end gap-3 border-t border-slate-100">
+                        <button type="button" onClick={() => navigate('/customers')} className="btn-secondary px-8 font-bold text-xs uppercase">Annuler</button>
+                        <button type="submit" className="btn-primary px-8 font-black uppercase italic shadow-lg shadow-[#f97316]/10" disabled={saving}>
+                            {saving ? <Loader2 size={16} className="animate-spin mr-2" /> : <Save size={16} className="mr-2" />}
+                            {isEdit ? 'Mettre à jour le client' : 'Enregistrer le client'}
                         </button>
                     </div>
                 </form>

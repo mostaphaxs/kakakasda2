@@ -11,5 +11,11 @@ class Article extends Model
         'description',
         'prix_unitaire_defaut',
         'tva_defaut',
+        'brand',
+        'model',
+        'category',
+        'condition',
+        'storage_capacity',
+        'color',
     ];
 }

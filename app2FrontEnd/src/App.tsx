@@ -5,7 +5,6 @@ import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'reac
 import { Menu } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
-import Home from './component/Home';
 import Login from './component/Login';
 import Sidebar from './component/Sidebar';
 import Dashboard from './component/Dashboard';
@@ -19,6 +18,7 @@ import POS from './component/POS';
 import Sales from './component/Sales';
 import Suppliers from './component/Suppliers';
 import Articles from './component/Articles';
+import Expenses from './component/Expenses';
 
 // ── Auth Guard ──────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -42,7 +42,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="flex min-h-screen">
       <Toaster position="top-right" toastOptions={{
-        style: { background: '#1e293b', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.08)' }
+        style: { background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }
       }} />
 
       {showSidebar && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
@@ -50,11 +50,11 @@ const AppContent: React.FC = () => {
       <div className={`flex-1 flex flex-col min-w-0 ${showSidebar ? 'main-content' : ''}`}>
         {/* Mobile header (only if logged in and on internal page) */}
         {showSidebar && (
-          <header className="lg:hidden sticky top-0 z-[100] bg-[#0a0e1a] border-b border-white/[0.05] h-14 flex items-center px-4 gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="p-2 text-slate-400 hover:text-white rounded-lg transition-colors">
+          <header className="lg:hidden sticky top-0 z-[100] bg-white border-b border-slate-100 h-14 flex items-center px-4 gap-3">
+            <button onClick={() => setSidebarOpen(true)} className="p-2 text-slate-500 hover:text-[#f97316] rounded-lg transition-colors">
               <Menu size={22} />
             </button>
-            <span className="text-white font-bold text-sm">TechStock <span className="text-indigo-400">ERP</span></span>
+            <span className="text-[#0f172a] font-bold text-sm tracking-tighter uppercase italic">TechStock <span className="text-[#f97316]">ERP</span></span>
           </header>
         )}
 
@@ -62,7 +62,7 @@ const AppContent: React.FC = () => {
           <div className={showSidebar ? 'max-w-7xl mx-auto p-6' : ''}>
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Login />} />
 
               {/* Private Routes */}
@@ -80,6 +80,7 @@ const AppContent: React.FC = () => {
               <Route path="/sales/pos/*" element={<PrivateRoute><POS /></PrivateRoute>} />
               <Route path="/sales/*" element={<PrivateRoute><Sales /></PrivateRoute>} />
               <Route path="/reports/*" element={<PrivateRoute><Reports /></PrivateRoute>} />
+              <Route path="/expenses" element={<PrivateRoute><Expenses /></PrivateRoute>} />
               <Route path="/settings/*" element={<PrivateRoute><Settings /></PrivateRoute>} />
 
               <Route path="*" element={<Navigate to="/" replace />} />

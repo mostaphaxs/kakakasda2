@@ -56,21 +56,20 @@ export default function Settings() {
     return (
         <div className="animate-fade-in space-y-6">
             <div>
-                <h1 className="text-2xl font-black text-white">Paramètres</h1>
-                <p className="text-slate-500 text-sm mt-0.5">Gérez votre compte et vos préférences</p>
+                <h1 className="text-xl font-black text-[#0f172a] uppercase tracking-tighter">Paramètres</h1>
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Gérez votre compte et vos préférences</p>
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6">
-                {/* Nav Sidebar */}
                 <div className="w-full lg:w-64 space-y-1">
                     {tabs.map(t => (
                         <button
                             key={t.id}
                             onClick={() => setTab(t.id as any)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-sm ${tab === t.id ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:bg-white/05 hover:text-white'
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-black text-[10px] uppercase tracking-widest ${tab === t.id ? 'bg-[#fef2e0] text-[#ea580c] border border-[#ea580c]/10' : 'text-slate-400 hover:bg-slate-50 hover:text-[#0f172a]'
                                 }`}
                         >
-                            <t.icon size={18} /> {t.label}
+                            <t.icon size={16} /> {t.label}
                         </button>
                     ))}
                 </div>
@@ -78,32 +77,32 @@ export default function Settings() {
                 {/* Content */}
                 <div className="flex-1">
                     {tab === 'profile' && (
-                        <form onSubmit={updateProfile} className="card p-8 space-y-6 max-w-xl">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <User size={20} className="text-indigo-400" /> Informations Personnelles
+                        <form onSubmit={updateProfile} className="card p-8 space-y-8 max-w-xl border-[#f97316]/5 shadow-sm">
+                            <h3 className="text-xs font-black text-[#0f172a] flex items-center gap-2 uppercase tracking-tighter italic">
+                                <User size={18} className="text-[#f97316]" /> Informations Personnelles
                             </h3>
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Nom complet</label>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 shadow-sm">Nom complet</label>
                                     <input
-                                        className="input-dark"
+                                        className="input-dark font-bold font-italic"
                                         value={user.name}
                                         onChange={e => setUser({ ...user, name: e.target.value })}
                                         required
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Adresse Email</label>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 shadow-sm">Adresse Email</label>
                                     <input
                                         type="email"
-                                        className="input-dark"
+                                        className="input-dark font-bold font-italic"
                                         value={user.email}
                                         onChange={e => setUser({ ...user, email: e.target.value })}
                                         required
                                     />
                                 </div>
                             </div>
-                            <button type="submit" className="btn-primary" disabled={saving}>
+                            <button type="submit" className="btn-primary w-full justify-center py-4 text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-orange-500/10" disabled={saving}>
                                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Enregistrer les modifications
                             </button>
@@ -111,37 +110,37 @@ export default function Settings() {
                     )}
 
                     {tab === 'security' && (
-                        <form onSubmit={updatePassword} className="card p-8 space-y-6 max-w-xl">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Key size={20} className="text-indigo-400" /> Mot de passe
+                        <form onSubmit={updatePassword} className="card p-8 space-y-8 max-w-xl border-[#f97316]/5 shadow-sm">
+                            <h3 className="text-xs font-black text-[#0f172a] flex items-center gap-2 uppercase tracking-tighter italic">
+                                <Key size={18} className="text-[#f97316]" /> Sécurité du compte
                             </h3>
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Mot de passe actuel</label>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 shadow-sm">Mot de passe actuel</label>
                                     <input
                                         type="password"
-                                        className="input-dark"
+                                        className="input-dark font-bold"
                                         value={pw.current_password}
                                         onChange={e => setPw({ ...pw, current_password: e.target.value })}
                                         required
                                     />
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Nouveau mot de passe</label>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 shadow-sm">Nouveau</label>
                                         <input
                                             type="password"
-                                            className="input-dark"
+                                            className="input-dark font-bold"
                                             value={pw.password}
                                             onChange={e => setPw({ ...pw, password: e.target.value })}
                                             required
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Confirmer</label>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 shadow-sm">Confirmer</label>
                                         <input
                                             type="password"
-                                            className="input-dark"
+                                            className="input-dark font-bold"
                                             value={pw.password_confirmation}
                                             onChange={e => setPw({ ...pw, password_confirmation: e.target.value })}
                                             required
@@ -149,7 +148,7 @@ export default function Settings() {
                                     </div>
                                 </div>
                             </div>
-                            <button type="submit" className="btn-primary" disabled={saving}>
+                            <button type="submit" className="btn-primary w-full justify-center py-4 text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-orange-500/10" disabled={saving}>
                                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Mettre à jour le mot de passe
                             </button>
@@ -157,32 +156,32 @@ export default function Settings() {
                     )}
 
                     {tab === 'app' && (
-                        <div className="card p-8 space-y-6 max-w-xl">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Globe size={20} className="text-indigo-400" /> Préférences Système
+                        <div className="card p-8 space-y-8 max-w-xl border-[#f97316]/5 shadow-sm">
+                            <h3 className="text-xs font-black text-[#0f172a] flex items-center gap-2 uppercase tracking-tighter italic">
+                                <Globe size={18} className="text-[#f97316]" /> Préférences Système
                             </h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-4 rounded-xl bg-white/03 border border-white/05">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-100">
                                     <div className="flex items-center gap-3">
-                                        <Bell className="text-slate-500" size={18} />
+                                        <Bell className="text-[#f97316]" size={18} />
                                         <div>
-                                            <p className="text-sm font-semibold text-white">Notifications</p>
-                                            <p className="text-xs text-slate-500">Alertes de stock et ventes</p>
+                                            <p className="text-xs font-black text-[#0f172a] uppercase italic tracking-tighter">Notifications</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase">Alertes de stock et ventes</p>
                                         </div>
                                     </div>
-                                    <div className="w-10 h-5 bg-indigo-500 rounded-full relative cursor-pointer">
+                                    <div className="w-10 h-5 bg-[#f97316] rounded-full relative cursor-pointer shadow-sm">
                                         <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full" />
                                     </div>
                                 </div>
-                                <div className="flex items-center justify-between p-4 rounded-xl bg-white/03 border border-white/05">
+                                <div className="flex items-center justify-between p-4 rounded-lg bg-slate-50 border border-slate-100">
                                     <div className="flex items-center gap-3">
-                                        <Smartphone className="text-slate-500" size={18} />
+                                        <Smartphone className="text-slate-400" size={18} />
                                         <div>
-                                            <p className="text-sm font-semibold text-white">Mode Sidecar</p>
-                                            <p className="text-xs text-slate-500">Optimisation pour Tauri</p>
+                                            <p className="text-xs font-black text-[#0f172a] uppercase italic tracking-tighter">Mode Sidecar</p>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase">Optimisation pour Desktop</p>
                                         </div>
                                     </div>
-                                    <div className="w-10 h-5 bg-slate-700 rounded-full relative cursor-pointer">
+                                    <div className="w-10 h-5 bg-slate-200 rounded-full relative cursor-pointer">
                                         <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" />
                                     </div>
                                 </div>

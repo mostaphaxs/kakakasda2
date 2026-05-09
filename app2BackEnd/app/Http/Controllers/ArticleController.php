@@ -23,6 +23,12 @@ class ArticleController extends Controller
             'description' => 'nullable|string',
             'prix_unitaire_defaut' => 'numeric|min:0',
             'tva_defaut' => 'numeric|min:0',
+            'brand' => 'nullable|string',
+            'model' => 'nullable|string',
+            'category' => 'nullable|string',
+            'condition' => 'nullable|string',
+            'storage_capacity' => 'nullable|string',
+            'color' => 'nullable|string',
         ]);
 
         return Article::create($validated);
@@ -40,6 +46,12 @@ class ArticleController extends Controller
             'description' => 'nullable|string',
             'prix_unitaire_defaut' => 'numeric|min:0',
             'tva_defaut' => 'numeric|min:0',
+            'brand' => 'nullable|string',
+            'model' => 'nullable|string',
+            'category' => 'nullable|string',
+            'condition' => 'nullable|string',
+            'storage_capacity' => 'nullable|string',
+            'color' => 'nullable|string',
         ]);
 
         $article->update($validated);

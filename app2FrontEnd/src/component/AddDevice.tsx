@@ -100,33 +100,34 @@ export default function AddDevice() {
     return (
         <div className="animate-fade-in flex flex-col items-center justify-center min-h-[calc(100vh-140px)] pb-10">
             <div className="w-full max-w-2xl space-y-6">
-                <div className="flex items-center gap-4 bg-white/03 p-4 rounded-2xl border border-white/05 backdrop-blur-md sticky top-0 z-10">
-                    <button onClick={() => navigate('/devices')} className="w-10 h-10 rounded-xl bg-white/05 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">
-                        <ArrowLeft size={20} />
+                <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm sticky top-0 z-10 w-full mb-6">
+                    <button onClick={() => navigate('/devices')} className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
+                        <ArrowLeft size={16} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black text-white tracking-tight leading-none">{isEdit ? 'Modifier l\'appareil' : 'Nouvel appareil'}</h1>
-                        <p className="text-slate-500 text-xs mt-1 font-medium italic">Gestion précise de l'inventaire en stock</p>
+                        <h1 className="text-lg font-black text-[#0f172a] tracking-tighter leading-none uppercase">{isEdit ? 'Modifier l\'appareil' : 'Nouvel appareil'}</h1>
+                        <p className="text-slate-400 text-[9px] mt-1 font-bold uppercase tracking-widest leading-none">Gestion précise de l'inventaire en stock</p>
                     </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Basic Info */}
-                    <div className="card p-8 space-y-6 border-indigo-500/10 shadow-lg shadow-indigo-500/5">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 flex items-center gap-2 mb-2">
+                    <div className="card p-8 space-y-6 border-slate-200">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[#f97316] flex items-center gap-2 mb-2">
                             <Cpu size={14} /> Informations de base
                         </h3>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="col-span-2 grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Catégorie *</label>
-                                    <select className="input-dark bg-white/03" value={form.category} onChange={e => set('category', e.target.value)} required>
+                                <div className="space-y-1">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Catégorie *</label>
+                                    <select className="input-dark font-bold bg-white" value={form.category} onChange={e => set('category', e.target.value)} required>
+                                        <option value="" disabled>Sélectionner...</option>
                                         {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Fournisseur</label>
-                                    <select className="input-dark bg-white/03" value={form.supplier_id} onChange={e => set('supplier_id', e.target.value)}>
+                                <div className="space-y-1">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Fournisseur</label>
+                                    <select className="input-dark font-bold bg-white" value={form.supplier_id} onChange={e => set('supplier_id', e.target.value)}>
                                         <option value="">— Aucun —</option>
                                         {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
@@ -163,31 +164,31 @@ export default function AddDevice() {
                                     {['16GB', '32GB', '64GB', '128GB', '256GB', '512GB', '1TB'].map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 text-indigo-400">Quantité en Stock *</label>
-                                <input type="number" min="1" className="input-dark font-black text-indigo-400 border-indigo-500/20" value={form.quantity} onChange={e => set('quantity', e.target.value)} placeholder="1" required />
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-black text-[#f97316] uppercase tracking-widest mb-1 italic">Quantité Stock *</label>
+                                <input type="number" min="1" className="input-dark font-black text-[#f97316] border-[#f97316]/20 bg-[#f97316]/5" value={form.quantity} onChange={e => set('quantity', e.target.value)} placeholder="1" required />
                             </div>
                         </div>
                     </div>
 
                     {/* Technical Specs */}
-                    <div className="card p-8 space-y-6 border-violet-500/10 shadow-lg shadow-violet-500/5">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400 flex items-center gap-2 mb-2">
+                    <div className="card p-8 space-y-6 border-slate-200">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-2">
                             <Sparkles size={14} /> Fiche Technique
                         </h3>
                         <div className="grid grid-cols-2 gap-6">
                             {SPECS_KEYS.map(k => (
-                                <div key={k}>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 ">{k.replace('_', ' ')}</label>
-                                    <input className="input-dark" value={specs[k] || ''} onChange={e => setSpecs(prev => ({ ...prev, [k]: e.target.value }))} placeholder={`ex: ${k === 'ram' ? '8GB' : k === 'batterie' ? '5000mAh' : '...'}`} />
+                                <div key={k} className="space-y-1">
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{k.replace('_', ' ')}</label>
+                                    <input className="input-dark font-bold italic" value={specs[k] || ''} onChange={e => setSpecs(prev => ({ ...prev, [k]: e.target.value }))} placeholder={`ex: ${k === 'ram' ? '8GB' : k === 'batterie' ? '5000mAh' : '...'}`} />
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Pricing */}
-                    <div className="card p-8 space-y-6 border-emerald-500/10 shadow-lg shadow-emerald-500/5 bg-gradient-to-br from-transparent to-emerald-500/[0.02]">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 flex items-center gap-2 mb-2">
+                    <div className="card p-8 space-y-6 border-[#f97316]/10 bg-[#f97316]/[0.02]">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[#f97316] flex items-center gap-2 mb-2">
                             <Save size={14} /> Tarification
                         </h3>
                         <div className="grid grid-cols-2 gap-6">
@@ -195,16 +196,16 @@ export default function AddDevice() {
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Prix d'achat (MAD) *</label>
                                 <MoneyInput className="input-dark bg-white/03 ring-1 ring-white/10" value={form.purchase_price} onChange={val => set('purchase_price', val.toString())} placeholder="0.00" required />
                             </div>
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex justify-between items-center">
+                            <div className="space-y-1">
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex justify-between items-center">
                                     Prix de vente conseillé
-                                    <span className="text-emerald-500 lowercase font-normal italic flex items-center gap-1">
-                                        <Sparkles size={10} /> propulsé par Gemini AI
+                                    <span className="text-emerald-500 lowercase font-bold text-[9px] flex items-center gap-1 uppercase tracking-widest">
+                                        <Sparkles size={8} /> Propulsé par Gemini AI
                                     </span>
                                 </label>
                                 <div className="flex gap-2">
-                                    <MoneyInput className="input-dark font-black text-emerald-400 border-emerald-500/20 focus:border-emerald-500/50 transition-all" value={form.suggested_price} onChange={val => set('suggested_price', val.toString())} placeholder="Suggestion auto" />
-                                    <button type="button" onClick={suggestPrice} disabled={aiLoading} className="w-12 h-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:grayscale" title="Calculer avec l'IA">
+                                    <MoneyInput className="input-dark font-black text-emerald-500 text-lg" value={form.suggested_price} onChange={val => set('suggested_price', val.toString())} placeholder="Suggestion auto" />
+                                    <button type="button" onClick={suggestPrice} disabled={aiLoading} className="w-12 h-10 rounded-lg bg-[#f97316] text-white flex items-center justify-center hover:bg-[#ef4444] active:scale-95 transition-all shadow-lg shadow-[#f97316]/20 disabled:opacity-50" title="Calculer avec l'IA">
                                         {aiLoading ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
                                     </button>
                                 </div>
@@ -216,11 +217,11 @@ export default function AddDevice() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-white/05">
-                        <button type="button" className="btn-secondary px-8 font-bold" onClick={() => navigate('/devices')}>Annuler</button>
-                        <button type="submit" className="btn-primary px-10 font-black shadow-xl shadow-indigo-500/20" disabled={saving}>
-                            {saving ? <Loader2 size={18} className="animate-spin mr-2" /> : (isEdit ? <Save size={18} className="mr-2" /> : <CheckCircle size={18} className="mr-2" />)}
-                            {isEdit ? 'METTRE À JOUR' : 'ENREGISTRER LE PRODUIT'}
+                    <div className="flex justify-end gap-3 pt-6 border-t border-slate-100 w-full">
+                        <button type="button" className="btn-secondary px-8 font-bold text-xs uppercase" onClick={() => navigate('/devices')}>Annuler</button>
+                        <button type="submit" className="btn-primary px-8 font-black uppercase italic shadow-lg shadow-[#f97316]/20" disabled={saving}>
+                            {saving ? <Loader2 size={16} className="animate-spin mr-2" /> : (isEdit ? <Save size={16} className="mr-2" /> : <CheckCircle size={16} className="mr-2" />)}
+                            {isEdit ? 'Mettre à jour l\'appareil' : 'Enregistrer le stock'}
                         </button>
                     </div>
                 </form>

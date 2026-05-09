@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Cpu, LayoutDashboard, Smartphone, Users, ShoppingCart, BarChart2, LogOut, Settings, ChevronRight, History, Truck, Package } from 'lucide-react';
+import { Cpu, LayoutDashboard, Smartphone, Users, ShoppingCart, BarChart2, LogOut, Settings, ChevronRight, History, Truck, Package, Wallet, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const nav = [
@@ -15,6 +15,7 @@ const nav = [
     { label: 'Clients', icon: Users, to: '/customers' },
     { section: 'Analyse' },
     { label: 'Rapports', icon: BarChart2, to: '/reports' },
+    { label: 'Charges & Dépenses', icon: Wallet, to: '/expenses' },
     { label: 'Paramètres', icon: Settings, to: '/settings' },
 ];
 
@@ -34,15 +35,16 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
 
             <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
                 {/* Logo */}
-                <div className="px-5 py-6 border-b border-white/[0.05]">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                            <Cpu size={18} className="text-white" />
+                <div className="px-5 py-4 border-b border-slate-100 relative">
+                    <button onClick={onClose} className="absolute top-4 right-4 p-2 text-slate-400 lg:hidden border border-slate-100 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors">
+                        <X size={18} />
+                    </button>
+                    <div className="text-center py-2">
+                        <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-[#f97316] shadow-lg shadow-[#f97316]/20 mb-2">
+                            <Cpu size={20} className="text-white" />
                         </div>
-                        <div>
-                            <p className="text-white font-bold text-sm leading-none">TechStock</p>
-                            <p className="text-indigo-400/70 text-[10px] font-medium mt-0.5">ERP v1.0</p>
-                        </div>
+                        <h1 className="text-lg font-black text-[#0f172a] tracking-tighter uppercase italic">TechStock <span className="text-[#f97316]">ERP</span></h1>
+                        <p className="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em]">Professional Solution</p>
                     </div>
                 </div>
 
@@ -68,10 +70,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 </nav>
 
                 {/* Footer */}
-                <div className="px-3 py-4 border-t border-white/[0.05]">
-                    <button onClick={logout} className="nav-item w-full text-red-400/80 hover:text-red-400 hover:bg-red-500/10">
+                <div className="px-3 py-4 border-t border-slate-100">
+                    <button onClick={logout} className="nav-item w-full text-red-500/80 hover:text-red-500 hover:bg-red-50 transition-colors">
                         <LogOut size={16} />
-                        <span>Déconnexion</span>
+                        <span className="font-black text-[10px] uppercase tracking-widest italic">Déconnexion</span>
                     </button>
                 </div>
             </aside>

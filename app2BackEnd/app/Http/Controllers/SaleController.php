@@ -10,7 +10,11 @@ class SaleController extends Controller
 {
     public function index(Request $request)
     {
-        return Sale::with(['device', 'customer'])->latest()->paginate(30);
+        $query = Sale::with(['device', 'customer'])->latest();
+        if ($request->customer_id) {
+            $query->where('customer_id', $request->customer_id);
+        }
+        return $query->paginate(30);
     }
 
     public function store(Request $request)

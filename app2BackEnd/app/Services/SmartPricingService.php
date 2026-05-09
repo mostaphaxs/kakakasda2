@@ -12,7 +12,7 @@ use App\Models\Device;
  */
 class SmartPricingService
 {
-    protected ?string $apiKey;
+    protected $apiKey;
     protected string $model = 'gemini-2.0-flash-preview';
 
     public function __construct()

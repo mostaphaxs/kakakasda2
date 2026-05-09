@@ -34,17 +34,17 @@ export default function Login() {
       <div className="animate-fade-in w-full max-w-md mx-auto p-6">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-2xl shadow-indigo-500/40 mb-4">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#f97316] shadow-xl shadow-[#f97316]/20 mb-4">
             <Cpu size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tight">TechStock <span className="text-indigo-400">ERP</span></h1>
-          <p className="text-slate-500 text-sm mt-1">Gestion intelligente d'électronique</p>
+          <h1 className="text-2xl font-black text-[#0f172a] tracking-tighter uppercase italic">TechStock <span className="text-[#f97316]">ERP</span></h1>
+          <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">Professional ERP Solution</p>
         </div>
 
         {/* Card */}
-        <div className="card card-glow p-8">
-          <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-indigo-400" />Connexion
+        <div className="card p-8 border-slate-200">
+          <h2 className="text-xs font-black text-slate-400 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+            <ShieldCheck size={16} className="text-[#f97316]" /> Authentification
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -79,7 +79,7 @@ export default function Login() {
             </button>
           </form>
         </div>
-        <p className="text-center text-xs text-slate-600 mt-6">TechStock ERP v1.0 — Powered by Gemini AI</p>
+        <p className="text-center text-[9px] font-bold text-slate-300 mt-8 uppercase tracking-[0.4em]">Integrated Logistics v1.0</p>
       </div>
     </div>
   );

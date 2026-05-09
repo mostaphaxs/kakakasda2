@@ -27,22 +27,22 @@ export default function Dashboard() {
   }, []);
 
   const statCards = [
-    { label: 'Total Appareils', value: stats?.total_devices ?? 0, icon: Smartphone, color: 'from-indigo-500 to-violet-600', glow: 'shadow-indigo-500/20' },
-    { label: "CA du mois", value: `${formatMoney(stats?.revenue ?? 0)} MAD`, icon: DollarSign, color: 'from-emerald-400 to-cyan-500', glow: 'shadow-emerald-500/20' },
-    { label: 'Ventes', value: stats?.total_sales ?? 0, icon: TrendingUp, color: 'from-amber-400 to-orange-500', glow: 'shadow-amber-500/20' },
-    { label: 'Clients', value: stats?.total_customers ?? 0, icon: Users, color: 'from-pink-400 to-rose-500', glow: 'shadow-pink-500/20' },
+    { label: 'Stock Appareils', value: stats?.total_devices ?? 0, icon: Smartphone, color: 'bg-white border-[#f97316]/10', iconColor: 'text-[#f97316]' },
+    { label: "Chiffre d'affaires", value: `${formatMoney(stats?.revenue ?? 0)} MAD`, icon: DollarSign, color: 'bg-white border-[#f97316]/10', iconColor: 'text-[#f97316]' },
+    { label: 'Transactions', value: stats?.total_sales ?? 0, icon: TrendingUp, color: 'bg-white border-[#f97316]/10', iconColor: 'text-[#f97316]' },
+    { label: 'Base Clients', value: stats?.total_customers ?? 0, icon: Users, color: 'bg-white border-[#f97316]/10', iconColor: 'text-[#f97316]' },
   ];
 
   return (
     <div className="animate-fade-in space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white tracking-tight">Tableau de bord</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Bienvenue sur TechStock ERP</p>
+          <h1 className="text-xl font-black text-[#0f172a] uppercase tracking-tighter">Tableau de Bord</h1>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">TechStock Control Center</p>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold">
-          <Zap size={12} /> Gemini AI Actif
+        <div className="flex items-center gap-2 px-3 py-1 bg-[#fef2e0] text-[#ea580c] text-[9px] font-black uppercase tracking-widest border border-[#ea580c]/20 rounded">
+          <Zap size={12} /> AI Live Analysis
         </div>
       </div>
 
@@ -52,36 +52,36 @@ export default function Dashboard() {
           <div key={i} className={`stat-card ${loading ? 'opacity-50' : ''}`}>
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{s.label}</p>
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">{s.label}</p>
                 {loading
                   ? <div className="skeleton h-8 w-24 mt-2" />
-                  : <p className="text-2xl font-black text-white mt-1">{s.value}</p>
+                  : <p className="text-xl font-black text-[#0f172a] italic">{s.value}</p>
                 }
               </div>
-              <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-lg ${s.glow} flex-shrink-0`}>
-                <s.icon size={20} className="text-white" />
+              <div className={`w-10 h-10 rounded-lg ${s.color} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                <s.icon size={18} className={s.iconColor} />
               </div>
             </div>
-            <div className="flex items-center gap-1 mt-3 text-emerald-400 text-xs font-medium">
-              <ArrowUpRight size={13} /> +0% ce mois
+            <div className="flex items-center gap-1 mt-3 text-slate-400 text-[9px] font-bold uppercase tracking-widest">
+              <ArrowUpRight size={11} /> Real-time Update
             </div>
           </div>
         ))}
       </div>
 
       {/* Quick Actions */}
-      <div className="card p-6">
-        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Cpu size={14} className="text-indigo-400" /> Accès rapide
+      <div className="card p-6 border-[#f97316]/5 shadow-sm">
+        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+          <Cpu size={14} className="text-[#f97316]" /> Accès rapide
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Ajouter un appareil', to: '/devices/add', color: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 hover:bg-indigo-500/20' },
-            { label: 'Nouvelle vente', to: '/sales/new', color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20' },
-            { label: 'Ajouter client', to: '/customers/add', color: 'bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20' },
-            { label: 'Voir rapports', to: '/reports', color: 'bg-pink-500/10 border-pink-500/20 text-pink-400 hover:bg-pink-500/20' },
+            { label: 'Ajouter un appareil', to: '/devices/add', color: 'bg-[#fef2e0] border-[#ea580c]/10 text-[#ea580c] hover:bg-[#ea580c]/10 shadow-sm' },
+            { label: 'Nouvelle vente', to: '/sales/new', color: 'bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-100 shadow-sm' },
+            { label: 'Ajouter client', to: '/customers/add', color: 'bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-100 shadow-sm' },
+            { label: 'Voir rapports', to: '/reports', color: 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 shadow-sm' },
           ].map((a, i) => (
-            <a key={i} href={`#${a.to}`} className={`border rounded-xl p-4 text-center text-xs font-semibold transition-all cursor-pointer ${a.color}`}>
+            <a key={i} href={`#${a.to}`} className={`border rounded-lg p-4 text-center text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer ${a.color}`}>
               {a.label}
             </a>
           ))}
@@ -89,19 +89,19 @@ export default function Dashboard() {
       </div>
 
       {/* Stock Summary */}
-      <div className="card p-6">
-        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Smartphone size={14} className="text-indigo-400" /> Répartition du stock
+      <div className="card p-6 border-[#f97316]/5 shadow-sm">
+        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+          <Smartphone size={14} className="text-[#f97316]" /> Répartition du stock
         </h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             { label: 'Neuf', value: stats?.new_devices ?? 0, cls: 'badge-green' },
             { label: 'Occasion', value: stats?.used_devices ?? 0, cls: 'badge-yellow' },
             { label: 'Reconditionné', value: stats?.refurbished_devices ?? 0, cls: 'badge-blue' },
           ].map((s, i) => (
-            <div key={i} className="text-center p-4 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-              <p className="text-2xl font-black text-white">{loading ? '—' : s.value}</p>
-              <span className={`badge ${s.cls} mt-2`}>{s.label}</span>
+            <div key={i} className="text-center p-4 rounded-lg bg-slate-50 border border-slate-100">
+              <p className="text-xl font-black text-[#0f172a] italic">{loading ? '—' : s.value}</p>
+              <span className={`badge ${s.cls} mt-2 text-[9px] uppercase italic font-black`}>{s.label}</span>
             </div>
           ))}
         </div>

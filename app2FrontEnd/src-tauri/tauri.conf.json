@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "EL OUAHA",
+  "productName": "TechStock",
   "version": "0.1.0",
-  "identifier": "com.mustapha.ElOuaha",
+  "identifier": "com.mustapha.techstock.ai",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "EL OUAHA",
+        "title": "TechStock",
         "width": 1200,
         "height": 800,
         "resizable": true,

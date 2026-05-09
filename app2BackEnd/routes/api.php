@@ -9,6 +9,7 @@ use App\Http\Controllers\StatsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\ExpenseController;
 
 // ──────────────────────────────────────────────────────────────────
 //  Electronics ERP API Routes
@@ -37,12 +38,16 @@ Route::apiResource('customers', CustomerController::class);
 // Suppliers & Purchases
 Route::apiResource('suppliers', SupplierController::class);
 Route::apiResource('purchases', \App\Http\Controllers\PurchaseController::class);
+Route::post('purchases/{purchase}/convert-to-stock', [\App\Http\Controllers\PurchaseController::class, 'convertToStock']);
 
 // Articles
 Route::apiResource('articles', \App\Http\Controllers\ArticleController::class);
 
 // Sales / POS
 Route::apiResource('sales', SaleController::class)->except(['update']);
+
+// Expenses
+Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store', 'update', 'destroy']);
 
 // TTS Proxy
 Route::get('/proxy-tts', function (Request $request) {
