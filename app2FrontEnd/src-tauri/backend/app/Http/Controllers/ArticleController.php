@@ -7,17 +7,28 @@ use Illuminate\Http\Request;
 
 class ArticleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Article::all();
+        $query = Article::query();
+        if ($request->q) {
+            $query->where('designation', 'like', "%{$request->q}%");
+        }
+        return $query->latest()->get();
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'category' => 'required|string',
-            'name' => 'required|string',
-            'unit' => 'required|string',
+            'designation' => 'required|string',
+            'description' => 'nullable|string',
+            'prix_unitaire_defaut' => 'numeric|min:0',
+            'tva_defaut' => 'numeric|min:0',
+            'brand' => 'nullable|string',
+            'model' => 'nullable|string',
+            'category' => 'nullable|string',
+            'condition' => 'nullable|string',
+            'storage_capacity' => 'nullable|string',
+            'color' => 'nullable|string',
         ]);
 
         return Article::create($validated);
@@ -30,7 +41,20 @@ class ArticleController extends Controller
 
     public function update(Request $request, Article $article)
     {
-        $article->update($request->all());
+        $validated = $request->validate([
+            'designation' => 'sometimes|required|string',
+            'description' => 'nullable|string',
+            'prix_unitaire_defaut' => 'numeric|min:0',
+            'tva_defaut' => 'numeric|min:0',
+            'brand' => 'nullable|string',
+            'model' => 'nullable|string',
+            'category' => 'nullable|string',
+            'condition' => 'nullable|string',
+            'storage_capacity' => 'nullable|string',
+            'color' => 'nullable|string',
+        ]);
+
+        $article->update($validated);
         return $article;
     }
 

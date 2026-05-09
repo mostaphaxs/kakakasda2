@@ -40,7 +40,13 @@ $app = Application::configure(basePath: dirname(__DIR__))
         }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->shouldRenderJsonWhen(function ($request, \Throwable $e) {
+            if ($request->is('api/*')) {
+                return true;
+            }
+
+            return $request->expectsJson();
+        });
     })->create();
 
 // 🐘 SIDE-CAR FIX (V4.1): Tell Laravel that Windows drive letters are absolute paths

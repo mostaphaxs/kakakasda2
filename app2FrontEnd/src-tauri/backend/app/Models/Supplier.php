@@ -2,36 +2,31 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Supplier extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
-        'nom_societe',
-        'type_entreprise',
-        'nom_gerant',
-        'adresse',
-        'tel',
-        'ice',
-        'if',
-        'rc',
-        'scan_contrat',
-        'description',
-        'rib'
+        'name',
+        'contact_person',
+        'email',
+        'phone',
+        'address',
+        'city',
+        'notes',
     ];
 
-    public function guaranteeChecks()
+    public function devices()
     {
-        return $this->hasMany(GuaranteeCheck::class);
+        return $this->hasMany(Device::class);
     }
 
-    public function purchaseInvoices()
+    public function purchases()
     {
-        return $this->hasMany(PurchaseInvoice::class);
-    }
-
-    public function generalWorks()
-    {
-        return $this->hasMany(GeneralWork::class);
+        return $this->hasMany(Purchase::class);
     }
 }
