@@ -105,8 +105,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "MyAmical ${{ github.ref_name }}"
-          releaseBody: "Windows & Linux release. Contact: mostaphaff123@gmail.com"
+          releaseName: "TechStock-ERP ${{ github.ref_name }}"
+          releaseBody: "Système de Gestion ERP TechStock - Windows & Linux. Contact: mostaphaff123@gmail.com"
           releaseDraft: false
           prerelease: false
           projectPath: "app2FrontEnd"
