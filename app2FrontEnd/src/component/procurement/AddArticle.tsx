@@ -46,12 +46,21 @@ const AddArticle: React.FC = () => {
                             <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Catégorie</label>
                             <select {...register('category', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-500 transition-all font-bold text-sm shadow-sm ring-0 outline-none">
                                 <option value="Fer">Fer</option>
+                                <option value="Ciment">Ciment</option>
+                                <option value="Sable">Sable</option>
+                                <option value="Gravier">Gravier</option>
+                                <option value="Gravier 0">Gravier 0</option>
+                                <option value="Gravier 1">Gravier 1</option>
+                                <option value="Gravier 2">Gravier 2</option>
+                                <option value="Gravier 3">Gravier 3</option>
+                                <option value="Tuf">Tuf</option>
+                                <option value="Tuf Noir">Tuf Noir</option>
+                                <option value="Tuf Jaune">Tuf Jaune</option>
+                                <option value="Marbre">Marbre</option>
+                                <option value="Carrelage">Carrelage</option>
                                 <option value="Electricité">Electricité</option>
                                 <option value="Plomberie">Plomberie</option>
-                                <option value="Ciment">Ciment</option>
-                                <option value="Marbre">Marbre</option>
                                 <option value="Peinture">Peinture</option>
-                                <option value="Carrelage">Carrelage</option>
                                 <option value="Autres">Autres</option>
                             </select>
                         </div>

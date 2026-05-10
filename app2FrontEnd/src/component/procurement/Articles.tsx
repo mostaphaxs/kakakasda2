@@ -47,7 +47,7 @@ const Articles: React.FC = () => {
 
     const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
 
-    const CATEGORIES = ['Fer', 'Electricité', 'Plomberie', 'Autres', 'Ciment'];
+    const CATEGORIES = ['Fer', 'Ciment', 'Sable', 'Gravier', 'Gravier 0', 'Gravier 1', 'Gravier 2', 'Gravier 3', 'Tuf', 'Tuf Noir', 'Tuf Jaune', 'Marbre', 'Carrelage', 'Electricité', 'Plomberie', 'Peinture', 'Autres'];
     const UNITS = ['m2', 'ML', 'U', 'Kg'];
 
     useEffect(() => {

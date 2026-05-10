@@ -859,37 +859,60 @@ const PurchaseInvoices: React.FC = () => {
                                     </div>
 
                                     <div className="space-y-3">
-                                        {fields.map((item, index) => (
-                                            <div key={item.id} className="flex flex-col md:flex-row items-center gap-3 bg-white border border-gray-200 p-3 rounded-xl hover:border-emerald-300 transition-colors shadow-sm">
-                                                {/* Hidden ID field for existing items */}
-                                                <input type="hidden" {...register(`items.${index}.id` as const)} />
-
-                                                <div className="flex-[2] w-full">
-                                                    <select {...register(`items.${index}.article_id` as const, { required: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none">
-                                                        <option value="">Sélectionner l'article</option>
-                                                        {articles.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
-                                                    </select>
-                                                </div>
-
-                                                <div className="w-full md:w-20">
-                                                    <input type="number" step="0.01" placeholder="Qté" {...register(`items.${index}.qty` as const, { required: true, valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-center" title="Quantité" />
-                                                </div>
-
-                                                <div className="w-full md:w-24">
-                                                    <input type="number" step="0.01" placeholder="P.U HT" {...register(`items.${index}.unit_price` as const, { required: true, valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-right tabular-nums" title="Prix Unitaire HT" />
-                                                </div>
-
-                                                <div className="w-full md:w-20">
-                                                    <input type="number" placeholder="TVA %" {...register(`items.${index}.vat_rate` as const, { valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-center" title="TVA (%)" />
-                                                </div>
-
-                                                <div className="w-full md:w-10 flex justify-center">
-                                                    <button type="button" onClick={() => remove(index)} className="h-10 w-10 flex justify-center items-center rounded-lg text-rose-400 hover:text-white hover:bg-rose-500 transition-colors border border-transparent hover:border-rose-600">
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
+                                        {/* En-têtes pour les écrans larges */}
+                                        {fields.length > 0 && (
+                                            <div className="hidden md:flex items-center gap-3 px-3 pb-2 text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200">
+                                                <div className="flex-[2]">Article</div>
+                                                <div className="w-20 text-center">Quantité</div>
+                                                <div className="w-24 text-right">P.U HT</div>
+                                                <div className="w-20 text-center">TVA (%)</div>
+                                                <div className="w-24 text-right border-l pl-3 border-gray-200 text-emerald-600">Total TTC</div>
+                                                <div className="w-10"></div>
                                             </div>
-                                        ))}
+                                        )}
+
+                                        {fields.map((item, index) => {
+                                            const qty = watch(`items.${index}.qty`) || 0;
+                                            const price = watch(`items.${index}.unit_price`) || 0;
+                                            const vat = watch(`items.${index}.vat_rate`) || 0;
+                                            const totalTTC = qty * price * (1 + vat / 100);
+
+                                            return (
+                                                <div key={item.id} className="flex flex-col md:flex-row items-center gap-3 bg-white border border-gray-200 p-3 rounded-xl hover:border-emerald-300 transition-colors shadow-sm">
+                                                    {/* Hidden ID field for existing items */}
+                                                    <input type="hidden" {...register(`items.${index}.id` as const)} />
+
+                                                    <div className="flex-[2] w-full">
+                                                        <select {...register(`items.${index}.article_id` as const, { required: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none">
+                                                            <option value="">Sélectionner</option>
+                                                            {articles.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
+                                                        </select>
+                                                    </div>
+
+                                                    <div className="w-full md:w-20">
+                                                        <input type="number" step="0.01" placeholder="Qté" {...register(`items.${index}.qty` as const, { required: true, valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-center" title="Quantité" />
+                                                    </div>
+
+                                                    <div className="w-full md:w-24">
+                                                        <input type="number" step="0.01" placeholder="P.U HT" {...register(`items.${index}.unit_price` as const, { required: true, valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-right tabular-nums" title="Prix Unitaire HT" />
+                                                    </div>
+
+                                                    <div className="w-full md:w-20">
+                                                        <input type="number" placeholder="TVA %" {...register(`items.${index}.vat_rate` as const, { valueAsNumber: true })} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-50 focus:bg-white focus:border-emerald-500 transition-all font-bold text-xs outline-none text-center" title="TVA (%)" />
+                                                    </div>
+
+                                                    <div className="w-full md:w-24 text-right flex items-center justify-end font-black text-emerald-600 border-l border-gray-100 pl-3 md:h-10 text-[11px] sm:text-xs">
+                                                        {totalTTC.toLocaleString('fr-MA', { minimumFractionDigits: 2 })} <span className="text-[9px] ml-1">DH</span>
+                                                    </div>
+
+                                                    <div className="w-full md:w-10 flex justify-center">
+                                                        <button type="button" onClick={() => remove(index)} className="h-10 w-10 flex justify-center items-center rounded-lg text-rose-400 hover:text-white hover:bg-rose-500 transition-colors border border-transparent hover:border-rose-600" title="Supprimer la ligne">
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                         {fields.length === 0 && (
                                             <p className="text-center text-xs font-bold text-gray-400 py-4 uppercase">Aucun article ajouté.</p>
                                         )}
