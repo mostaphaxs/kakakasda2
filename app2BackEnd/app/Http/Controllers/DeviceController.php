@@ -26,14 +26,15 @@ class DeviceController extends Controller
             $query->where('brand', 'like', "%{$request->brand}%");
         }
 
-        // Full-text search across key fields (SQLite LIKE — fast with the right index)
+        // Full-text search across key fields and technical specs
         if ($request->filled('q')) {
             $q = $request->q;
             $query->where(function ($sub) use ($q) {
                 $sub->where('imei', 'like', "%{$q}%")
                     ->orWhere('serial_number', 'like', "%{$q}%")
                     ->orWhere('model', 'like', "%{$q}%")
-                    ->orWhere('brand', 'like', "%{$q}%");
+                    ->orWhere('brand', 'like', "%{$q}%")
+                    ->orWhere('technical_specs', 'like', "%{$q}%");
             });
         }
 

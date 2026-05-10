@@ -64,11 +64,14 @@ export default function POS() {
         }
     };
 
-    const groupedFilteredDevices = Object.values(devices.filter(d =>
-        d.model.toLowerCase().includes(search.toLowerCase()) ||
-        d.brand.toLowerCase().includes(search.toLowerCase()) ||
-        d.imei?.includes(search)
-    ).reduce((acc, d) => {
+    const groupedFilteredDevices = Object.values(devices.filter(d => {
+        const s = search.toLowerCase();
+        const specsStr = JSON.stringify(d.technical_specs || {}).toLowerCase();
+        return d.model.toLowerCase().includes(s) ||
+            d.brand.toLowerCase().includes(s) ||
+            d.imei?.includes(search) ||
+            specsStr.includes(s);
+    }).reduce((acc, d) => {
         const key = `${d.brand}-${d.model}-${d.condition}-${price(d)}`;
         if (!acc[key]) acc[key] = { ...d, totalStock: 0, devices: [] };
         acc[key].totalStock += (Number(d.quantity) || 1);
@@ -152,12 +155,18 @@ export default function POS() {
         doc.text(`Paiement: ${pMethod.toUpperCase()}`, 20, 59);
 
         // Table
-        const tableData = items.map(item => [
-            `${item.device.brand} ${item.device.model}`,
-            item.device.imei || '-',
-            '1',
-            `${formatMoney(item.sale_price)} MAD`
-        ]);
+        const tableData = items.map(item => {
+            const d = item.device;
+            const specs = d.technical_specs || {};
+            const specLine = [d.storage_capacity, specs.ram].filter(Boolean).join(' / ');
+
+            return [
+                { content: `${d.brand} ${d.model}${specLine ? '\n' + specLine : ''}`, styles: { fontStyle: 'bold' } },
+                d.imei || '-',
+                '1',
+                `${formatMoney(item.sale_price)} MAD`
+            ];
+        });
 
         autoTable(doc, {
             startY: 70,
@@ -231,8 +240,8 @@ export default function POS() {
                             <Search size={16} />
                         </div>
                         <input
-                            className="input-dark pl-10 py-3 italic"
-                            placeholder="Rechercher par modèle, marque ou IMEI..."
+                            className="input-dark pl-10 py-3 italic font-bold"
+                            placeholder="Modèle, IMEI, ou Spec (ex: 8GB, 5000mAh)..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             onKeyDown={e => {
@@ -262,23 +271,35 @@ export default function POS() {
                 {scanning && <div id="reader" className="overflow-hidden rounded-xl border border-slate-200"></div>}
 
                 <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-                    {groupedFilteredDevices.map(g => {
+                    {groupedFilteredDevices.map((g: any) => {
                         const inCartCount = getCartQtyForGroup(g);
                         const available = g.totalStock - inCartCount;
+                        const specs = g.technical_specs || {};
                         return (
-                            <div key={g.id} className={`card p-2 flex items-center gap-3 transition-all ${available > 0 ? 'hover:border-[#f97316]/50 cursor-pointer group' : 'opacity-60 grayscale'}`} onClick={() => available > 0 && addGroupToCart(g)}>
-                                <div className="w-8 h-8 rounded bg-[#f97316]/10 flex items-center justify-center flex-shrink-0 text-[#f97316] group-hover:bg-[#f97316] group-hover:text-white transition-all">
-                                    <Smartphone size={16} />
+                            <div key={g.id} className={`card p-2.5 flex items-center gap-3 transition-all ${available > 0 ? 'hover:border-[#f97316]/50 cursor-pointer group hover:bg-[#f97316]/[0.02]' : 'opacity-60 grayscale'}`} onClick={() => available > 0 && addGroupToCart(g)}>
+                                <div className="w-10 h-10 rounded-xl bg-[#f97316]/10 flex items-center justify-center flex-shrink-0 text-[#f97316] group-hover:bg-[#f97316] group-hover:text-white transition-all shadow-sm">
+                                    <Smartphone size={20} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-[#0f172a] font-bold text-xs truncate uppercase italic">{g.brand} {g.model}</p>
-                                        <span className="text-[10px] font-black text-[#ea580c] bg-[#fef2e0] px-2 py-0.5 rounded leading-none">Stock: {available}</span>
+                                        <p className="text-[#0f172a] font-black text-xs truncate uppercase italic">{g.brand} {g.model}</p>
+                                        <span className="text-[9px] font-black text-[#ea580c] bg-[#fef2e0] px-2 py-0.5 rounded leading-none border border-[#ea580c]/10">STOCK: {available}</span>
                                     </div>
-                                    <p className="text-slate-400 text-[9px] uppercase font-bold tracking-widest mt-0.5">{g.condition === 'New' ? 'Produit Neuf' : 'Produit Occasion'}</p>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-slate-400 text-[9px] uppercase font-bold tracking-tighter">{g.condition === 'New' ? 'Neuf' : 'Occasion'}</span>
+                                        {specs.ram && <span className="w-1 h-1 rounded-full bg-slate-200"></span>}
+                                        {specs.ram && <span className="text-indigo-600 text-[9px] font-black bg-indigo-50 px-1.5 rounded">{specs.ram}</span>}
+                                        {specs.batterie && <span className="w-1 h-1 rounded-full bg-slate-200"></span>}
+                                        {specs.batterie && <span className="text-emerald-600 text-[9px] font-black bg-emerald-50 px-1.5 rounded">{specs.batterie}</span>}
+                                        {specs.storage_capacity && <span className="w-1 h-1 rounded-full bg-slate-200"></span>}
+                                        {specs.storage_capacity && <span className="text-orange-600 text-[9px] font-black bg-orange-50 px-1.5 rounded">{specs.storage_capacity}</span>}
+                                    </div>
                                 </div>
-                                <span className="text-[#0f172a] font-black text-xs flex-shrink-0 w-24 text-right">{formatMoney(price(g))} <small className="text-slate-400">MAD</small></span>
-                                <button disabled={available === 0} className="w-7 h-7 rounded bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#f97316] group-hover:text-white transition-all flex-shrink-0 disabled:opacity-50">
+                                <div className="text-right flex-shrink-0">
+                                    <p className="text-[#0f172a] font-black text-sm leading-none">{formatMoney(price(g))} <span className="text-[9px] text-slate-400 font-bold uppercase translate-y-[-1px] inline-block">MAD</span></p>
+                                    <p className="text-slate-400 text-[8px] font-bold uppercase mt-1">CASH / CARD / VIR</p>
+                                </div>
+                                <button disabled={available === 0} className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-[#f97316] group-hover:text-white transition-all flex-shrink-0 disabled:opacity-50 shadow-sm border border-slate-200 group-hover:border-[#f97316]">
                                     <Plus size={14} />
                                 </button>
                             </div>

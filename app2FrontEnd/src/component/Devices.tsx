@@ -165,7 +165,9 @@ export default function Devices() {
                                                         </div>
                                                         <div className="flex items-center gap-2 mt-0.5">
                                                             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">{[d.color, d.storage_capacity].filter(Boolean).join(' · ')}</p>
-                                                            {d.supplier && <span className="text-emerald-500 text-[9px] font-black px-1.5 py-0.5 bg-emerald-50 rounded-md border border-emerald-100">{d.supplier.name}</span>}
+                                                            {d.technical_specs?.ram && <span className="text-indigo-500 text-[8px] font-black px-1.5 py-0.5 bg-indigo-50 rounded border border-indigo-100 uppercase">{d.technical_specs.ram}</span>}
+                                                            {d.technical_specs?.batterie && <span className="text-emerald-500 text-[8px] font-black px-1.5 py-0.5 bg-emerald-50 rounded border border-emerald-100 uppercase">{d.technical_specs.batterie}</span>}
+                                                            {d.supplier && <span className="text-slate-500 text-[9px] font-black px-1.5 py-0.5 bg-slate-50 rounded-md border border-slate-100">{d.supplier.name}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
