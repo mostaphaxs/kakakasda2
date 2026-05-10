@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Cpu, ArrowLeft, Sparkles, Loader2, CheckCircle, Save } from 'lucide-react';
+import { Cpu, ArrowLeft, Sparkles, Loader2, CheckCircle, Save, FileText } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import MoneyInput from './MoneyInput';
 import toast from 'react-hot-toast';
@@ -104,18 +104,96 @@ export default function AddDevice() {
                     <button onClick={() => navigate('/devices')} className="w-8 h-8 rounded bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all border border-slate-200">
                         <ArrowLeft size={16} />
                     </button>
-                    <div>
+                    <div className="flex-1">
                         <h1 className="text-lg font-black text-[#0f172a] tracking-tighter leading-none uppercase">{isEdit ? 'Modifier l\'appareil' : 'Nouvel appareil'}</h1>
                         <p className="text-slate-400 text-[9px] mt-1 font-bold uppercase tracking-widest leading-none">Gestion précise de l'inventaire en stock</p>
                     </div>
                 </div>
 
+                {/* PURE AI DOCUMENT SCANNER */}
+                {!isEdit && (
+                    <div className="flex items-center justify-between bg-[#0f172a] p-4 rounded-2xl border border-slate-800 shadow-2xl mb-8 group transition-all">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 shrink-0">
+                                <Sparkles size={24} className={aiLoading ? 'animate-spin' : 'animate-pulse'} />
+                            </div>
+                            <div>
+                                <h2 className="text-white font-black text-sm uppercase tracking-tighter">Scanner de Document</h2>
+                                <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-0.5">Analysez une fiche technique ou une photo pour tout remplir</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {aiLoading && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                    <Loader2 size={12} className="animate-spin text-orange-500" />
+                                    <span className="text-[9px] font-black text-orange-500 uppercase">Analyse IA...</span>
+                                </div>
+                            )}
+
+                            <label className="cursor-pointer group/scan relative">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+
+                                        const formData = new FormData();
+                                        formData.append('image', file);
+
+                                        setAiLoading(true);
+                                        toast.loading('Analyse du document...', { id: 'scan-loading' });
+
+                                        try {
+                                            const res = await apiFetch('/devices/scan-document', {
+                                                method: 'POST',
+                                                body: formData
+                                            });
+
+                                            console.log('--- AI SCAN DEBUG ---');
+                                            console.log(res);
+
+                                            setForm(prev => ({
+                                                ...prev,
+                                                brand: res.brand || prev.brand,
+                                                model: res.model || prev.model,
+                                                category: res.category || prev.category,
+                                                storage_capacity: res.storage_capacity || prev.storage_capacity,
+                                                color: res.color || prev.color
+                                            }));
+                                            const newSpecs = { ...specs };
+                                            ['processeur', 'ram', 'batterie', 'ecran', 'appareil_photo', 'os'].forEach(k => {
+                                                if (res[k]) newSpecs[k] = res[k];
+                                            });
+                                            setSpecs(newSpecs);
+                                            toast.success('Document analysé !', { id: 'scan-loading' });
+                                        } catch (err: any) {
+                                            toast.error(err.message || 'Échec de l\'analyse', { id: 'scan-loading' });
+                                        } finally {
+                                            setAiLoading(false);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                />
+                                <div className="flex items-center gap-3 px-8 py-3 bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-orange-600 transition-all border border-slate-700 shadow-lg group-hover/scan:scale-105 active:scale-95">
+                                    <FileText size={18} />
+                                    <span>Importer un Document</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Basic Info */}
                     <div className="card p-8 space-y-6 border-slate-200">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[#f97316] flex items-center gap-2 mb-2">
-                            <Cpu size={14} /> Informations de base
-                        </h3>
+                        <div className="flex items-center justify-between gap-4 mb-2">
+                            <h3 className="text-[10px] font-black uppercase tracking-widest text-[#f97316] flex items-center gap-2">
+                                <Cpu size={14} /> Informations de base
+                            </h3>
+                        </div>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="col-span-2 grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
@@ -134,12 +212,12 @@ export default function AddDevice() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Marque *</label>
-                                <input className="input-dark" value={form.brand} onChange={e => set('brand', e.target.value)} placeholder="Apple, Samsung..." required />
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 font-black italic">Marque *</label>
+                                <input className="input-dark border-[#f97316]/20" value={form.brand} onChange={e => set('brand', e.target.value)} placeholder="Apple, Samsung..." required />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Modèle *</label>
-                                <input className="input-dark" value={form.model} onChange={e => set('model', e.target.value)} placeholder="iPhone 15 Pro..." required />
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 font-black italic">Modèle *</label>
+                                <input className="input-dark border-[#f97316]/20" value={form.model} onChange={e => set('model', e.target.value)} placeholder="iPhone 15 Pro..." required />
                             </div>
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 font-mono">IMEI</label>
@@ -173,7 +251,7 @@ export default function AddDevice() {
 
                     {/* Technical Specs */}
                     <div className="card p-8 space-y-6 border-slate-200">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mb-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-[#f97316] flex items-center gap-2 mb-2">
                             <Sparkles size={14} /> Fiche Technique
                         </h3>
                         <div className="grid grid-cols-2 gap-6">

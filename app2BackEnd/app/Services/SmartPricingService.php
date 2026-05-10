@@ -13,18 +13,18 @@ use App\Models\Device;
 class SmartPricingService
 {
     protected $apiKey;
-    protected string $model = 'gemini-2.0-flash-preview';
+    protected string $model = 'gemini-1.5-flash';
 
     public function __construct()
     {
         $this->apiKey = config('services.gemini.api_key', env('GEMINI_API_KEY'));
+        if (!$this->apiKey) {
+            \Log::error('SmartPricingService: GEMINI_API_KEY is missing in .env');
+        }
     }
 
     /**
      * Suggest a retail price for a device.
-     *
-     * @param Device $device
-     * @return float|null  The suggested price in MAD (or null on failure)
      */
     public function suggestPrice(Device $device): ?float
     {
@@ -78,5 +78,115 @@ PROMPT;
 
         $data = json_decode($matches[0], true);
         return isset($data['suggested_price']) ? (float) $data['suggested_price'] : null;
+    }
+
+    /**
+     * Fetch technical specs for a given query (e.g. "iPhone 15 Pro") using AI.
+     */
+    public function fetchTechnicalSpecs(string $query): ?array
+    {
+        if (!$this->apiKey) return null;
+
+        $prompt = <<<PROMPT
+You are a technical database expert. Based on this query: "{$query}", identify the device and provide its official specs.
+
+Return ONLY a JSON object with these exact keys: 
+- "brand": e.g. "Apple"
+- "model": e.g. "iPhone 15 Pro"
+- "category": must be one of [Smartphone, Tablette, Ordinateur, Audio, Accessoire, Lumina, Autre]
+- "storage_capacity": e.g. "128GB"
+- "color": e.g. "Titanium Black"
+- "processeur": e.g. "A17 Pro"
+- "ram": e.g. "8GB"
+- "batterie": e.g. "4441mAh"
+- "ecran": e.g. "6.7 inch OLED"
+- "appareil_photo": e.g. "48MP"
+- "os": e.g. "iOS 17"
+
+Respond ONLY with RAW JSON.
+PROMPT;
+
+        $response = Http::withOptions(['verify' => false])
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}", [
+                'contents' => [['parts' => [['text' => $prompt]]]]
+            ]);
+
+        if (!$response->ok()) return null;
+
+        $text = data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+        preg_match('/\{[\s\S]*\}/', $text, $matches);
+        return isset($matches[0]) ? json_decode($matches[0], true) : null;
+    }
+
+    /**
+     * Analyze a document (image) and extract device specs using AI Vision.
+     */
+    public function analyzeDocument(string $base64Data, string $mimeType): ?array
+    {
+        if (!$this->apiKey) return null;
+
+        $prompt = <<<PROMPT
+Analyze this image or document (could be a photo of a box, a datasheet, or a technical sheet).
+Extract all technical specifications and basic information for the device shown.
+If you find multiple devices, focus on the main one.
+
+Return ONLY a JSON object with these exact keys: 
+- "brand"
+- "model"
+- "category": must be one of [Smartphone, Tablette, Ordinateur, Audio, Accessoire, Lumina, Autre]
+- "storage_capacity"
+- "color"
+- "processeur"
+- "ram"
+- "batterie"
+- "ecran"
+- "appareil_photo"
+- "os"
+
+Respond ONLY with RAW JSON.
+PROMPT;
+
+        $payload = [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => $prompt],
+                        [
+                            'inline_data' => [
+                                'mime_type' => $mimeType,
+                                'data' => $base64Data
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];
+
+        $response = Http::withOptions(['verify' => false])
+            ->post("https://generativelanguage.googleapis.com/v1beta/models/{$this->model}:generateContent?key={$this->apiKey}", $payload);
+
+        if (!$response->ok()) {
+            \Log::error('SmartPricingService Vision API Error', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+            return null;
+        }
+
+        $text = data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+        
+        if (empty($text)) {
+            \Log::error('SmartPricingService Vision Error: Empty response from Gemini');
+            return null;
+        }
+
+        // Robust JSON extraction (handles markdown ```json ... ```)
+        if (preg_match('/\{[\s\S]*\}/', $text, $matches)) {
+            $json = json_decode($matches[0], true);
+            if ($json) return $json;
+        }
+
+        \Log::error('SmartPricingService Vision Error: Could not parse JSON from AI response', ['raw_text' => $text]);
+        return null;
     }
 }
