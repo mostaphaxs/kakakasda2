@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Filter, Smartphone, Cpu, Edit2, Trash2, Loader2, Eye, X, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { apiFetch, formatMoney } from '../lib/api';
@@ -29,9 +29,10 @@ const CONDITION_BADGE = { New: 'badge-green', Used: 'badge-yellow', Refurbished:
 
 export default function Devices() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [devices, setDevices] = useState<Device[]>([]);
     const [loading, setLoading] = useState(true);
-    const [q, setQ] = useState('');
+    const [q, setQ] = useState(searchParams.get('q') || '');
     const [condition, setCondition] = useState('');
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
@@ -56,7 +57,11 @@ export default function Devices() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(() => { loadDevices(); }, [q, condition]);
+    useEffect(() => {
+        const query = searchParams.get('q') || '';
+        setQ(query);
+        loadDevices();
+    }, [searchParams, condition]);
 
     const handleDelete = async (id: number) => {
         if (!confirm('Supprimer cet appareil ?')) return;

@@ -25,6 +25,13 @@ export default function AddDevice() {
     const [loading, setLoading] = useState(isEdit);
     const [aiLoading, setAiLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [aiEnabled, setAiEnabled] = useState(localStorage.getItem('ai_enabled') === 'true');
+
+    useEffect(() => {
+        const handleStorage = () => setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
 
     useEffect(() => {
         apiFetch('/suppliers').then(r => setSuppliers(r.data ?? r));
@@ -112,7 +119,7 @@ export default function AddDevice() {
                 </div>
 
                 {/* PURE AI DOCUMENT SCANNER */}
-                {!isEdit && (
+                {aiEnabled && !isEdit && (
                     <div className="flex items-center justify-between bg-[#0f172a] p-4 rounded-2xl border border-slate-800 shadow-2xl mb-8 group transition-all">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-orange-500 flex items-center justify-center text-white shadow-lg shadow-orange-500/20 shrink-0">
@@ -274,16 +281,20 @@ export default function AddDevice() {
                             </div>
                             <div className="space-y-1">
                                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex justify-between items-center">
-                                    Prix de vente conseillé
-                                    <span className="text-emerald-500 lowercase font-bold text-[9px] flex items-center gap-1 uppercase tracking-widest">
-                                        <Sparkles size={8} /> Propulsé par Gemini AI
-                                    </span>
+                                    Prix de vente
+                                    {aiEnabled && (
+                                        <span className="text-emerald-500 lowercase font-bold text-[9px] flex items-center gap-1 uppercase tracking-widest">
+                                            <Sparkles size={8} /> Propulsé par Gemini AI
+                                        </span>
+                                    )}
                                 </label>
                                 <div className="flex gap-2">
-                                    <MoneyInput className="input-dark font-black text-emerald-500 text-lg" value={form.suggested_price} onChange={val => set('suggested_price', val.toString())} placeholder="Suggestion auto" />
-                                    <button type="button" onClick={suggestPrice} disabled={aiLoading} className="w-12 h-10 rounded-lg bg-[#f97316] text-white flex items-center justify-center hover:bg-[#ef4444] active:scale-95 transition-all shadow-lg shadow-[#f97316]/20 disabled:opacity-50" title="Calculer avec l'IA">
-                                        {aiLoading ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                                    </button>
+                                    <MoneyInput className="input-dark font-black text-lg" value={form.suggested_price} onChange={val => set('suggested_price', val.toString())} placeholder="0.00" />
+                                    {aiEnabled && (
+                                        <button type="button" onClick={suggestPrice} disabled={aiLoading} className="w-12 h-10 rounded-lg bg-[#f97316] text-white flex items-center justify-center hover:bg-[#ef4444] active:scale-95 transition-all shadow-lg shadow-[#f97316]/20 disabled:opacity-50" title="Calculer avec l'IA">
+                                            {aiLoading ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

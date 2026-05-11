@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Cpu, LayoutDashboard, Smartphone, Users, ShoppingCart, BarChart2, LogOut, Settings, ChevronRight, History, Truck, Package, Wallet, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import VoiceAssistant from './VoiceAssistant';
 
 const nav = [
     { section: 'Principal' },
@@ -21,6 +23,13 @@ const nav = [
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const navigate = useNavigate();
+    const [aiEnabled, setAiEnabled] = useState(localStorage.getItem('ai_enabled') === 'true');
+
+    useEffect(() => {
+        const handleStorage = () => setAiEnabled(localStorage.getItem('ai_enabled') === 'true');
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
+    }, []);
 
     const logout = () => {
         localStorage.removeItem('token');
@@ -49,7 +58,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 px-3 py-4 space-y-0.5">
+                <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+                    {aiEnabled && (
+                        <div className="px-2">
+                            <VoiceAssistant />
+                        </div>
+                    )}
                     {nav.map((item, i) =>
                         'section' in item ? (
                             <p key={i} className="nav-section">{item.section}</p>

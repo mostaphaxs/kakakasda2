@@ -62,3 +62,30 @@ Réponds UNIQUEMENT en JSON avec les clés standards.`;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 }
+
+/**
+ * Interprets a voice command and returns a structured action.
+ */
+export async function interpretVoiceCommand(transcript: string) {
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+
+    const prompt = `Tu es l'assistant vocal de l'ERP TechStock. Interprète cette commande : "${transcript}"
+    
+    Retourne un JSON avec :
+    - action : "search" | "check_stock" | "navigate" | "unknown"
+    - target : l'objet de la recherche (ex: "iPhone", "S23", "Stock total")
+    - page : si action=navigate, le nom de la page (ex: "Stock", "Ventes", "Fournisseurs")
+    
+    Réponds UNIQUEMENT avec le JSON brut.`;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : { action: "unknown" };
+    } catch (error) {
+        console.error("Voice Interpretation Error:", error);
+        return { action: "unknown" };
+    }
+}
+

@@ -185,6 +185,26 @@ export default function Settings() {
                                         <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full" />
                                     </div>
                                 </div>
+                                <div className="flex items-center justify-between p-4 rounded-lg bg-[#fef2e0] border border-[#ea580c]/10">
+                                    <div className="flex items-center gap-3">
+                                        <Globe className="text-[#ea580c]" size={18} />
+                                        <div>
+                                            <p className="text-xs font-black text-[#ea580c] uppercase italic tracking-tighter">Intelligence Artificielle</p>
+                                            <p className="text-[10px] text-[#ea580c]/60 font-bold uppercase">Scanner & Assistant Vocal</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            const newVal = localStorage.getItem('ai_enabled') === 'true' ? 'false' : 'true';
+                                            localStorage.setItem('ai_enabled', newVal);
+                                            window.dispatchEvent(new Event('storage')); // Trigger update for other components
+                                            setUser({ ...user }); // Force re-render
+                                        }}
+                                        className={`w-10 h-5 rounded-full relative transition-all shadow-inner ${localStorage.getItem('ai_enabled') === 'true' ? 'bg-[#ea580c]' : 'bg-slate-300'}`}
+                                    >
+                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${localStorage.getItem('ai_enabled') === 'true' ? 'right-1' : 'left-1'}`} />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
