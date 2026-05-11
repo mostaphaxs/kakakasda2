@@ -148,46 +148,4 @@ class DeviceController extends Controller
         ]);
     }
 
-    /**
-     * POST /api/devices/fetch-specs
-     * Auto-fill specs based on brand and model.
-     */
-    public function fetchSpecs(Request $request)
-    {
-        $request->validate([
-            'q' => 'required|string',
-        ]);
-
-        $specs = $this->pricingService->fetchTechnicalSpecs($request->q);
-
-        if (!$specs) {
-            return response()->json(['error' => 'Impossible de récupérer les specs via IA.'], 503);
-        }
-
-        return response()->json($specs);
-    }
-
-    public function scanDocument(Request $request)
-    {
-        $request->validate([
-            'image' => 'required|file|mimes:jpeg,png,jpg,pdf|max:20480', // Support PDF & images, max 20MB
-        ]);
-
-        try {
-            $file = $request->file('image');
-            $base64 = base64_encode(file_get_contents($file->getRealPath()));
-            $mime = $file->getClientMimeType();
-
-            $specs = $this->pricingService->analyzeDocument($base64, $mime);
-
-            if (!$specs) {
-                return response()->json(['error' => 'L\'IA n\'a pas pu extraire de données.'], 503);
-            }
-
-            return response()->json($specs);
-        } catch (\Exception $e) {
-            \Log::error('ScanDocument Error: ' . $e->getMessage());
-            return response()->json(['error' => 'Erreur technique lors du scan.'], 500);
-        }
-    }
 }

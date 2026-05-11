@@ -30,8 +30,6 @@ Route::get('/stats', [StatsController::class, 'index']);
 
 // Devices – Core Inventory
 Route::apiResource('devices', DeviceController::class);
-Route::post('/devices/fetch-specs', [DeviceController::class, 'fetchSpecs']);
-Route::post('/devices/scan-document', [DeviceController::class, 'scanDocument']);
 Route::post('/devices/{device}/suggest-price', [DeviceController::class, 'suggestPrice']);
 
 // Customers

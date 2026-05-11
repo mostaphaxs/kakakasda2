@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Cpu, ArrowLeft, Sparkles, Loader2, CheckCircle, Save, FileText } from 'lucide-react';
 import { apiFetch } from '../lib/api';
+import { analyzeDeviceDocument } from '../lib/gemini';
 import MoneyInput from './MoneyInput';
 import toast from 'react-hot-toast';
 
@@ -147,12 +148,9 @@ export default function AddDevice() {
                                         toast.loading('Analyse du document...', { id: 'scan-loading' });
 
                                         try {
-                                            const res = await apiFetch('/devices/scan-document', {
-                                                method: 'POST',
-                                                body: formData
-                                            });
+                                            const res = await analyzeDeviceDocument(file);
 
-                                            console.log('--- AI SCAN DEBUG ---');
+                                            console.log('--- AI SCAN DEBUG (FRONTEND) ---');
                                             console.log(res);
 
                                             setForm(prev => ({
@@ -168,7 +166,7 @@ export default function AddDevice() {
                                                 if (res[k]) newSpecs[k] = res[k];
                                             });
                                             setSpecs(newSpecs);
-                                            toast.success('Document analysé !', { id: 'scan-loading' });
+                                            toast.success('Analyse terminée !', { id: 'scan-loading' });
                                         } catch (err: any) {
                                             toast.error(err.message || 'Échec de l\'analyse', { id: 'scan-loading' });
                                         } finally {

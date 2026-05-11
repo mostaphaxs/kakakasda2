@@ -1,71 +1,64 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+
+// Define allowed categories for consistency
+const CATEGORIES = ["Smartphone", "Tablette", "Ordinateur", "Audio", "Accessoire", "Lumina", "Autre"];
 
 export async function analyzeDeviceDocument(file: File) {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    // Using the model you found working: gemini-3-flash-preview
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const reader = new FileReader();
-    const base64Promise = new Promise<string>((resolve) => {
-        reader.onload = () => {
-            const base64 = (reader.result as string).split(',')[1];
-            resolve(base64);
-        };
+    const base64Data = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.readAsDataURL(file);
     });
-    reader.readAsDataURL(file);
-    const base64Data = await base64Promise;
 
-    const prompt = `Analyze this image/document and extract device specifications.
-Return ONLY a JSON object with these keys:
-- brand
-- model
-- category (Smartphone, Tablette, Ordinateur, Audio, Accessoire, Lumina, Autre)
-- storage_capacity
-- color
-- processeur
-- ram
-- batterie
-- ecran
-- appareil_photo
-- os
+    const prompt = `Extraire les spécifications techniques de cet appareil.
+CRITIQUE: Pour la clé "category", tu DOIS choisir EXACTEMENT l'une de ces valeurs : ${CATEGORIES.join(", ")}.
+Ne pas inventer de catégorie. Si tu hésites, choisis la plus proche ou "Autre".
 
-Respond ONLY with RAW JSON.`;
+Format JSON attendu :
+{
+  "brand": "Marque",
+  "model": "Modèle précis",
+  "category": "Smartphone | Tablette | Ordinateur | Audio | Accessoire | Lumina | Autre",
+  "storage_capacity": "Capacité (ex: 128GB)",
+  "color": "Couleur",
+  "processeur": "CPU",
+  "ram": "RAM",
+  "batterie": "Batterie",
+  "ecran": "Ecran",
+  "appareil_photo": "Caméra",
+  "os": "Système"
+}
 
-    const result = await model.generateContent([
-        prompt,
-        {
-            inlineData: {
-                data: base64Data,
-                mimeType: file.type
-            }
-        }
-    ]);
+Réponds UNIQUEMENT en JSON brut.`;
 
-    const response = await result.response;
-    const text = response.text();
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Could not parse AI response");
-
-    return JSON.parse(jsonMatch[0]);
+    try {
+        const result = await model.generateContent([
+            { inlineData: { data: base64Data, mimeType: file.type } },
+            { text: prompt }
+        ]);
+        const text = result.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch (error: any) {
+        console.error("Gemini Scan Error:", error);
+        throw error;
+    }
 }
 
 export async function identifyDeviceByQuery(query: string) {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-001" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-    const prompt = `Identify this device: "${query}"
-Return ONLY a JSON object with these keys: 
-- brand, model, category, storage_capacity, color, processeur, ram, batterie, ecran, appareil_photo, os.
-
-Respond ONLY with RAW JSON.`;
+    const prompt = `Identifier cet appareil : "${query}".
+Tu DOIS choisir une catégorie parmi : ${CATEGORIES.join(", ")}.
+Réponds UNIQUEMENT en JSON avec les clés standards.`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
+    const text = result.response.text();
     const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("Could not parse AI response");
-
-    return JSON.parse(jsonMatch[0]);
+    return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
 }
