@@ -37,6 +37,7 @@ class ClientController extends Controller
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
             'avec_contrat'     => 'nullable|boolean',
+            'statut_choix'     => 'nullable|string|in:SANS_CHOIX,CHOIX_FAIT,CONTRAT_SIGNE',
             'scan_contrat'     => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
             'observation'      => 'nullable|string',
         ]);
@@ -88,6 +89,7 @@ class ClientController extends Controller
             'date_reservation' => 'nullable|date',
             'avec_finition'    => 'nullable|boolean',
             'avec_contrat'     => 'nullable|boolean',
+            'statut_choix'     => 'nullable|string|in:SANS_CHOIX,CHOIX_FAIT,CONTRAT_SIGNE',
             'scan_contrat'     => 'nullable|file|mimes:pdf,jpeg,png,jpg|max:5120',
             'observation'      => 'nullable|string',
             'statut'           => 'nullable|string|in:Actif,Annulé',
