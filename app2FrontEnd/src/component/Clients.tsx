@@ -72,6 +72,7 @@ interface Client {
     scanned_docs?: ScannedDoc[];
     observation?: string;
     statut?: string;
+    statut_choix?: 'SANS_CHOIX' | 'CHOIX_FAIT' | 'CONTRAT_SIGNE';
 }
 
 
@@ -159,6 +160,7 @@ const Clients = () => {
     const [filterType, setFilterType] = useState<string>('all');
     const [filterTerrain, setFilterTerrain] = useState<string>('all');
     const [filterHasBien, setFilterHasBien] = useState<'all' | 'with' | 'without'>('all');
+    const [filterStatutChoix, setFilterStatutChoix] = useState<string>('all');
 
     const fetchData = async () => {
         try {
@@ -296,6 +298,7 @@ const Clients = () => {
             avec_finition: client.avec_finition,
             avec_contrat: client.avec_contrat || false,
             scan_contrat: client.scan_contrat,
+            statut_choix: client.statut_choix || 'SANS_CHOIX',
             observation: client.observation || '',
             statut: client.statut || 'Actif',
             date_reservation: client.date_reservation ? client.date_reservation.split(' ')[0] : ''
@@ -679,6 +682,9 @@ const Clients = () => {
         if (filterContrat === 'avec' && !c.avec_contrat) return false;
         if (filterContrat === 'sans' && c.avec_contrat) return false;
 
+        // Choice Status
+        if (filterStatutChoix !== 'all' && c.statut_choix !== filterStatutChoix) return false;
+
         // 3. Type
         if (filterType !== 'all' && !c.biens?.some(b => b.type_bien === filterType)) return false;
 
@@ -704,6 +710,7 @@ const Clients = () => {
         setFilterType('all');
         setFilterTerrain('all');
         setFilterHasBien('all');
+        setFilterStatutChoix('all');
     };
 
     const handleExport = () => {
@@ -906,6 +913,18 @@ const Clients = () => {
                         ))}
                     </select>
 
+
+                    <select
+                        value={filterStatutChoix}
+                        onChange={(e) => setFilterStatutChoix(e.target.value)}
+                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                    >
+                        <option value="all">Statut Choix: Tous</option>
+                        <option value="SANS_CHOIX">Sans Choix</option>
+                        <option value="CHOIX_FAIT">Choix Fait</option>
+                        <option value="CONTRAT_SIGNE">Contrat Signé</option>
+                    </select>
+
                     <select
                         value={filterTerrain}
                         onChange={(e) => setFilterTerrain(e.target.value)}
@@ -958,6 +977,7 @@ const Clients = () => {
                                     <th className="px-6 py-4 font-semibold">Total Versé</th>
                                     <th className="px-6 py-4 font-semibold">Reste</th>
                                     <th className="px-6 py-4 font-semibold">Statut Bien</th>
+                                    <th className="px-6 py-4 font-semibold">Statut Choix</th>
                                     <th className="px-6 py-4 font-semibold text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -1050,6 +1070,17 @@ const Clients = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
+                                                {c.statut_choix === 'SANS_CHOIX' && (
+                                                    <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[9px] font-black uppercase rounded-lg border border-slate-200">Sans Choix</span>
+                                                )}
+                                                {c.statut_choix === 'CHOIX_FAIT' && (
+                                                    <span className="px-2 py-1 bg-blue-100 text-blue-600 text-[9px] font-black uppercase rounded-lg border border-blue-200">Choix Fait</span>
+                                                )}
+                                                {c.statut_choix === 'CONTRAT_SIGNE' && (
+                                                    <span className="px-2 py-1 bg-emerald-100 text-emerald-600 text-[9px] font-black uppercase rounded-lg border border-emerald-200">Contrat Signé</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <div className="flex justify-center gap-2">
                                                     <button
                                                         onClick={() => handleOpenPaymentModal(c)}
@@ -1118,9 +1149,10 @@ const Clients = () => {
                                 )}
                             </tbody>
                         </table>
-                    )}
-                </div>
-            </div>
+                    )
+                    }
+                </div >
+            </div >
 
             {/* Payment Modal */}
             {
@@ -1505,12 +1537,9 @@ const Clients = () => {
 
 
                                 {editBienId && editFormData.statut === 'Actif' && (
-                                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                                        <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-indigo-900 uppercase">Choix de Finition</p>
-                                                <p className="text-[9px] font-bold text-indigo-700/70">Appliquer la finition ?</p>
-                                            </div>
+                                    <div className="grid grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex flex-col gap-2">
+                                            <p className="text-[10px] font-bold text-indigo-900 uppercase">Finition</p>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1521,11 +1550,8 @@ const Clients = () => {
                                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                                             </label>
                                         </div>
-                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex items-center justify-between">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-amber-900 uppercase">Statut Contrat</p>
-                                                <p className="text-[9px] font-bold text-amber-700/70">Avec contract ?</p>
-                                            </div>
+                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex flex-col gap-2">
+                                            <p className="text-[10px] font-bold text-amber-900 uppercase">Contrat</p>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1535,6 +1561,18 @@ const Clients = () => {
                                                 />
                                                 <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
                                             </label>
+                                        </div>
+                                        <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex flex-col gap-2">
+                                            <p className="text-[10px] font-bold text-emerald-900 uppercase">Choix</p>
+                                            <select
+                                                value={editFormData.statut_choix || 'SANS_CHOIX'}
+                                                onChange={e => setEditFormData({ ...editFormData, statut_choix: e.target.value as any })}
+                                                className="w-full bg-white border border-emerald-100 rounded-lg py-1 px-2 text-[10px] font-bold text-emerald-800 outline-none"
+                                            >
+                                                <option value="SANS_CHOIX">S. Choix</option>
+                                                <option value="CHOIX_FAIT">Choix Fait</option>
+                                                <option value="CONTRAT_SIGNE">C. Signé</option>
+                                            </select>
                                         </div>
                                     </div>
                                 )}
@@ -2049,178 +2087,180 @@ const Clients = () => {
             }
 
             {/* Client → Bien Association Modal */}
-            {isClientAssocModalOpen && assocTargetClient && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
-                            <div>
-                                <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
-                                    <Link size={16} className="text-amber-500" />
-                                    Associer un Bien
-                                </h3>
-                                <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
-                                    CLIENT : <MarkdownText text={`${assocTargetClient.nom} ${assocTargetClient.prenom}`} />
-                                </p>
+            {
+                isClientAssocModalOpen && assocTargetClient && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                                <div>
+                                    <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                        <Link size={16} className="text-amber-500" />
+                                        Associer un Bien
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                        CLIENT : <MarkdownText text={`${assocTargetClient.nom} ${assocTargetClient.prenom}`} />
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsClientAssocModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
+                                    <X size={20} />
+                                </button>
                             </div>
-                            <button onClick={() => setIsClientAssocModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
-                                <X size={20} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleClientAssociateBien} className="p-6 space-y-4">
-                            {/* Search field */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
-                                <input
-                                    type="text"
-                                    placeholder="N° bloc, étage, projet, ou tapez 'bloc'..."
-                                    value={assocBienSearch}
-                                    onChange={(e) => setAssocBienSearch(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
-                                />
-                            </div>
+                            <form onSubmit={handleClientAssociateBien} className="p-6 space-y-4">
+                                {/* Search field */}
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                    <input
+                                        type="text"
+                                        placeholder="N° bloc, étage, projet, ou tapez 'bloc'..."
+                                        value={assocBienSearch}
+                                        onChange={(e) => setAssocBienSearch(e.target.value)}
+                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                    />
+                                </div>
 
-                            {/* Type Filters */}
-                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
-                                {['all', 'Appartement', 'Magasin', 'Bureau', 'Parking', 'Jardin'].map(t => (
-                                    <button
-                                        key={t}
-                                        type="button"
-                                        onClick={() => setAssocBienTypeFilter(t)}
-                                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienTypeFilter === t
-                                            ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-100'
-                                            : 'bg-white text-gray-500 border-gray-100 hover:border-amber-200'
-                                            }`}
-                                    >
-                                        {t === 'all' ? 'Tous les types' : t === 'Appartement' ? 'Blocs (Appart.)' : t}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Floor Filters */}
-                            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
-                                {['all', '0', '1', '2', '3', '4', '5'].map(floor => (
-                                    <button
-                                        key={floor}
-                                        type="button"
-                                        onClick={() => setAssocBienFloorFilter(floor)}
-                                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienFloorFilter === floor
-                                            ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-100'
-                                            : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200'
-                                            }`}
-                                    >
-                                        {floor === 'all' ? 'Tous les étages' : floor === '0' ? 'RDC' : `Étage ${floor}`}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Filtered bien list */}
-                            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
-                                {availableBiens
-                                    .filter(b => b.statut === 'Libre')
-                                    .filter(b => b.statut === 'Libre')
-                                    .filter(b => {
-                                        // Filter by UI Pills
-                                        if (assocBienTypeFilter !== 'all' && b.type_bien !== assocBienTypeFilter) return false;
-                                        if (assocBienFloorFilter !== 'all' && String(b.etage) !== assocBienFloorFilter) return false;
-
-                                        const q = assocBienSearch.toLowerCase().trim();
-                                        if (!q) return true;
-
-                                        // Smarter keyword matching
-                                        if (q === 'bloc' || q === 'blocs') return b.type_bien === 'Appartement';
-
-                                        const etageMatch = q.match(/(?:etage|étage)\s*(\d+)/);
-                                        if (etageMatch) return String(b.etage) === etageMatch[1];
-
-                                        return b.num_appartement?.toLowerCase().includes(q) ||
-                                            b.immeuble?.toLowerCase().includes(q) ||
-                                            b.type_bien?.toLowerCase().includes(q) ||
-                                            b.nom?.toLowerCase().includes(q) ||
-                                            b.terrain?.nom_projet?.toLowerCase().includes(q) ||
-                                            String(b.etage) === q ||
-                                            String(b.id).includes(q);
-                                    })
-                                    .map(b => (
-                                        <label
-                                            key={b.id}
-                                            className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocBienId === String(b.id)
-                                                ? 'bg-amber-50 border-amber-400 shadow-sm'
-                                                : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                {/* Type Filters */}
+                                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
+                                    {['all', 'Appartement', 'Magasin', 'Bureau', 'Parking', 'Jardin'].map(t => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setAssocBienTypeFilter(t)}
+                                            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienTypeFilter === t
+                                                ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-100'
+                                                : 'bg-white text-gray-500 border-gray-100 hover:border-amber-200'
                                                 }`}
                                         >
-                                            <input
-                                                type="radio"
-                                                name="assocBien"
-                                                value={b.id}
-                                                checked={assocBienId === String(b.id)}
-                                                onChange={() => setAssocBienId(String(b.id))}
-                                                className="accent-amber-500"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-black text-gray-800 uppercase break-words">
-                                                    <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
-                                                    {b.nom ? <> – <MarkdownText text={b.nom} /></> : ''}
-                                                    {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
-                                                    {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
-                                                    {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
-                                                </p>
-                                                <p className="text-[10px] text-gray-400 font-bold uppercase">
-                                                    {b.terrain?.nom_projet || `Projet #${b.terrain_id}`}
-                                                    {b.surface_m2 ? ` · ${b.surface_m2} m²` : ''}
-                                                </p>
-                                            </div>
-                                            <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">Libre</span>
-                                        </label>
+                                            {t === 'all' ? 'Tous les types' : t === 'Appartement' ? 'Blocs (Appart.)' : t}
+                                        </button>
                                     ))}
-                                {availableBiens.filter(b => b.statut === 'Libre' && (
-                                    !assocBienSearch ||
-                                    b.num_appartement?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
-                                    b.immeuble?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
-                                    b.type_bien?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
-                                    b.terrain?.nom_projet?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
-                                    String(b.id).includes(assocBienSearch)
-                                )).length === 0 && (
-                                        <div className="py-8 text-center text-gray-400 text-sm font-medium">
-                                            Aucun bien libre trouvé.
-                                        </div>
-                                    )}
-                            </div>
-
-                            {/* Avec finition toggle */}
-                            {assocBienId && (
-                                <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
-                                    <div>
-                                        <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
-                                        <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
-                                    </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={assocAvecFinition}
-                                            onChange={e => setAssocAvecFinition(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    </label>
                                 </div>
-                            )}
 
-                            <div className="flex gap-3 pt-1">
-                                <button type="button" onClick={() => setIsClientAssocModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
-                                    Annuler
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isSubmittingAssoc || !assocBienId}
-                                    className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
-                                >
-                                    {isSubmittingAssoc ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
-                                </button>
-                            </div>
-                        </form>
+                                {/* Floor Filters */}
+                                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide no-scrollbar">
+                                    {['all', '0', '1', '2', '3', '4', '5'].map(floor => (
+                                        <button
+                                            key={floor}
+                                            type="button"
+                                            onClick={() => setAssocBienFloorFilter(floor)}
+                                            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienFloorFilter === floor
+                                                ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-100'
+                                                : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200'
+                                                }`}
+                                        >
+                                            {floor === 'all' ? 'Tous les étages' : floor === '0' ? 'RDC' : `Étage ${floor}`}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Filtered bien list */}
+                                <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                                    {availableBiens
+                                        .filter(b => b.statut === 'Libre')
+                                        .filter(b => b.statut === 'Libre')
+                                        .filter(b => {
+                                            // Filter by UI Pills
+                                            if (assocBienTypeFilter !== 'all' && b.type_bien !== assocBienTypeFilter) return false;
+                                            if (assocBienFloorFilter !== 'all' && String(b.etage) !== assocBienFloorFilter) return false;
+
+                                            const q = assocBienSearch.toLowerCase().trim();
+                                            if (!q) return true;
+
+                                            // Smarter keyword matching
+                                            if (q === 'bloc' || q === 'blocs') return b.type_bien === 'Appartement';
+
+                                            const etageMatch = q.match(/(?:etage|étage)\s*(\d+)/);
+                                            if (etageMatch) return String(b.etage) === etageMatch[1];
+
+                                            return b.num_appartement?.toLowerCase().includes(q) ||
+                                                b.immeuble?.toLowerCase().includes(q) ||
+                                                b.type_bien?.toLowerCase().includes(q) ||
+                                                b.nom?.toLowerCase().includes(q) ||
+                                                b.terrain?.nom_projet?.toLowerCase().includes(q) ||
+                                                String(b.etage) === q ||
+                                                String(b.id).includes(q);
+                                        })
+                                        .map(b => (
+                                            <label
+                                                key={b.id}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocBienId === String(b.id)
+                                                    ? 'bg-amber-50 border-amber-400 shadow-sm'
+                                                    : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="assocBien"
+                                                    value={b.id}
+                                                    checked={assocBienId === String(b.id)}
+                                                    onChange={() => setAssocBienId(String(b.id))}
+                                                    className="accent-amber-500"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-black text-gray-800 uppercase break-words">
+                                                        <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
+                                                        {b.nom ? <> – <MarkdownText text={b.nom} /></> : ''}
+                                                        {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
+                                                        {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
+                                                        {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                        {b.terrain?.nom_projet || `Projet #${b.terrain_id}`}
+                                                        {b.surface_m2 ? ` · ${b.surface_m2} m²` : ''}
+                                                    </p>
+                                                </div>
+                                                <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">Libre</span>
+                                            </label>
+                                        ))}
+                                    {availableBiens.filter(b => b.statut === 'Libre' && (
+                                        !assocBienSearch ||
+                                        b.num_appartement?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                        b.immeuble?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                        b.type_bien?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                        b.terrain?.nom_projet?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
+                                        String(b.id).includes(assocBienSearch)
+                                    )).length === 0 && (
+                                            <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                                Aucun bien libre trouvé.
+                                            </div>
+                                        )}
+                                </div>
+
+                                {/* Avec finition toggle */}
+                                {assocBienId && (
+                                    <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                        <div>
+                                            <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
+                                            <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={assocAvecFinition}
+                                                onChange={e => setAssocAvecFinition(e.target.checked)}
+                                                className="sr-only peer"
+                                            />
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 pt-1">
+                                    <button type="button" onClick={() => setIsClientAssocModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                        Annuler
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingAssoc || !assocBienId}
+                                        className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                    >
+                                        {isSubmittingAssoc ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* WhatsApp Language Modal */}
             {

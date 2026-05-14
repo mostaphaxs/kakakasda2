@@ -32,6 +32,7 @@ interface ClientFormInputs {
     bien_id: string;
     date_reservation: string;
     avec_finition: boolean;
+    statut_choix: 'SANS_CHOIX' | 'CHOIX_FAIT' | 'CONTRAT_SIGNE';
     observation?: string;
 }
 
@@ -78,6 +79,7 @@ const AddClient: React.FC = () => {
         defaultValues: {
             bien_id: '',
             avec_finition: false,
+            statut_choix: 'SANS_CHOIX',
         }
     });
 
@@ -157,6 +159,7 @@ const AddClient: React.FC = () => {
                     bien_id: data.bien_id ? Number(data.bien_id) : null,
                     date_reservation: data.date_reservation || null,
                     avec_finition: data.avec_finition || false,
+                    statut_choix: data.statut_choix || 'SANS_CHOIX',
                     observation: data.observation || null,
                 }),
             });
@@ -412,15 +415,32 @@ const AddClient: React.FC = () => {
                             </div>
 
                             {selectedBienId && (
-                                <div className="sm:col-span-2 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
-                                    <div>
-                                        <p className="text-sm font-bold text-indigo-900">Choix de Finition</p>
-                                        <p className="text-xs text-indigo-700/70">Le client souhaite-t-il la finition pour ce bien ?</p>
+                                <div className="sm:col-span-2 bg-indigo-50/10 p-5 rounded-2xl border border-indigo-100 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-bold text-indigo-900">Options de Finition</p>
+                                            <p className="text-[10px] text-indigo-700/60 font-medium">Le client souhaite-t-il la finition ?</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" {...register('avec_finition')} className="sr-only peer" />
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        </label>
                                     </div>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" {...register('avec_finition')} className="sr-only peer" />
-                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                                    </label>
+
+                                    {watch('avec_finition') && (
+                                        <div className="pt-4 border-t border-indigo-100/50 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-200">
+                                            <FieldWrapper label="Statut du Choix" error={errors.statut_choix?.message}>
+                                                <select
+                                                    {...register('statut_choix')}
+                                                    className={inputCls(!!errors.statut_choix)}
+                                                >
+                                                    <option value="SANS_CHOIX">Sans Choix (Default)</option>
+                                                    <option value="CHOIX_FAIT">Choix Déjà Fait</option>
+                                                    <option value="CONTRAT_SIGNE">Contrat de Finition Signé</option>
+                                                </select>
+                                            </FieldWrapper>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 

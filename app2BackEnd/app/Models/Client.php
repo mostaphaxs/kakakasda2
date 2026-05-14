@@ -23,6 +23,7 @@ class Client extends Model
         'scan_contrat',
         'observation',
         'statut',
+        'statut_choix',
     ];
 
 
