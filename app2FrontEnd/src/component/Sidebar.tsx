@@ -75,6 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
         { icon: History, label: 'Historique', path: '/transactions' },
         { icon: MapPin, label: 'Projets', path: '/terrains' },
+        { icon: MapPin, label: 'Intervenants', path: '/Intervenants' },
         { icon: Building2, label: 'Biens', path: '/properties' },
         { icon: UserPlus, label: 'Clients', path: '/clients' },
         { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
