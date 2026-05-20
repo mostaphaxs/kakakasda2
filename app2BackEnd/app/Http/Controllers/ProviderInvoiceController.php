@@ -19,6 +19,18 @@ class ProviderInvoiceController extends Controller
             'invoice_date' => 'required|date',
             'notes' => 'nullable|string',
             'terrain_id' => 'nullable|exists:terrains,id',
+            'code_agence' => 'nullable|string|max:255',
+            'id_transaction' => 'nullable|string|max:255',
+            'reference_recu' => 'nullable|string|max:255',
+            'reference_cmi' => 'nullable|string|max:255',
+            'reference_creancier_new' => 'nullable|string|max:255',
+            'date_paiement' => 'nullable|date',
+            'identifiant_paiement' => 'nullable|string|max:255',
+            'table_identifiant' => 'nullable|string|max:255',
+            'table_description' => 'nullable|string|max:255',
+            'table_date' => 'nullable|string|max:255',
+            'table_montant' => 'nullable|numeric',
+            'frais_timbre' => 'nullable|numeric',
         ]);
 
         if ($request->hasFile('scan_path')) {
@@ -39,6 +51,18 @@ class ProviderInvoiceController extends Controller
             'invoice_date' => 'required|date',
             'notes' => 'nullable|string',
             'terrain_id' => 'nullable|exists:terrains,id',
+            'code_agence' => 'nullable|string|max:255',
+            'id_transaction' => 'nullable|string|max:255',
+            'reference_recu' => 'nullable|string|max:255',
+            'reference_cmi' => 'nullable|string|max:255',
+            'reference_creancier_new' => 'nullable|string|max:255',
+            'date_paiement' => 'nullable|date',
+            'identifiant_paiement' => 'nullable|string|max:255',
+            'table_identifiant' => 'nullable|string|max:255',
+            'table_description' => 'nullable|string|max:255',
+            'table_date' => 'nullable|string|max:255',
+            'table_montant' => 'nullable|numeric',
+            'frais_timbre' => 'nullable|numeric',
         ]);
 
         if ($request->hasFile('scan_path')) {

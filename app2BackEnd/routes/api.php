@@ -136,6 +136,10 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Contentieux (Dossiers Juridiques)
     Route::apiResource('contentieux', ContentieuxController::class);
+    Route::post('/contentieux/{id}/mouvements', [ContentieuxController::class, 'addMouvement']);
+    Route::delete('/contentieux-mouvements/{id}', [ContentieuxController::class, 'deleteMouvement']);
+    Route::post('/contentieux/{id}/fees', [ContentieuxController::class, 'addFee']);
+    Route::delete('/contentieux-fees/{id}', [ContentieuxController::class, 'deleteFee']);
 
     // Sociétés de Services
     Route::apiResource('service-providers', ServiceProviderController::class);

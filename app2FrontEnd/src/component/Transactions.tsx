@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { toast } from 'react-hot-toast';
-import { formatNumber, parseDate } from '../lib/utils';
+import { parseDate } from '../lib/utils';
 import { exportToExcel } from '../lib/excel';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -24,6 +24,8 @@ interface Transaction {
     method: string;
     project: string;
     notes: string;
+    source_bank?: string;
+    virement_type?: string;
 }
 
 const Transactions: React.FC = () => {
@@ -93,6 +95,7 @@ const Transactions: React.FC = () => {
             const matchesSearch =
                 tx.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.bank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (tx as any).source_bank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -576,10 +579,25 @@ const Transactions: React.FC = () => {
                                         <Building2 size={24} />
                                     </div>
                                     <div className="flex-grow">
-                                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Origine / Banque / RIB</p>
+                                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Compte de Destination (Notre Banque)</p>
                                         <p className="text-sm font-black text-slate-800">{selectedTx.bank || 'Caisse Centrale - Espèces'}</p>
                                     </div>
                                 </div>
+
+                                {(selectedTx as any).source_bank && (
+                                    <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
+                                        <div className="p-3 bg-blue-500 rounded-xl text-white">
+                                            <Briefcase size={24} />
+                                        </div>
+                                        <div className="flex-grow">
+                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Banque du Client (Source)</p>
+                                            <p className="text-sm font-black text-slate-800">{(selectedTx as any).source_bank}</p>
+                                            {(selectedTx as any).virement_type && (
+                                                <p className="text-[10px] text-blue-400 font-bold uppercase mt-1">{(selectedTx as any).virement_type}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Notes & Observations</p>

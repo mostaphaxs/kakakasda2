@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseNumber, stripMarkdown, parseDate } from '../lib/utils';
+import { formatNumber, parseNumber, stripMarkdown, parseDate, MAROC_BANKS } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
 import { Sparkles, Mail, FileSignature } from 'lucide-react';
@@ -36,6 +36,9 @@ interface Payment {
     method?: string;
     reference_no?: string;
     bank_name?: string;
+    source_bank?: string;
+    destination_bank?: string;
+    virement_type?: string;
     notes?: string;
     status: string;
     refund_amount?: string | number;
@@ -97,6 +100,9 @@ const Clients = () => {
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
     const [bankCommission, setBankCommission] = useState('');
     const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
+    const [virementType, setVirementType] = useState<'Transfert' | 'Versement'>('Transfert');
+    const [sourceBank, setSourceBank] = useState('');
+    const [destinationBank, setDestinationBank] = useState('');
 
     // Cancel / Associate State
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -107,6 +113,7 @@ const Clients = () => {
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
     const [selectedBienId, setSelectedBienId] = useState<string>('');
     const [isSubmittingAssociate, setIsSubmittingAssociate] = useState(false);
+    const [paymentViewId, setPaymentViewId] = useState<number | null>(null);
 
     // Edit Client Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -423,6 +430,9 @@ const Clients = () => {
             setPaymentBank('');
             setPaymentNotes('');
             setBankCommission('');
+            setVirementType('Transfert');
+            setSourceBank('');
+            setDestinationBank('');
             setPaymentDate(new Date().toLocaleDateString('fr-MA'));
         }
         setPaymentFile(null);
@@ -617,6 +627,9 @@ const Clients = () => {
             formData.append('method', paymentMethod);
             formData.append('reference_no', paymentReference);
             formData.append('bank_name', paymentBank);
+            formData.append('source_bank', sourceBank);
+            formData.append('destination_bank', destinationBank);
+            formData.append('virement_type', virementType);
             formData.append('bank_commission', parseNumber(bankCommission).toString());
             formData.append('notes', paymentNotes);
             if (paymentFile) {
@@ -1231,7 +1244,7 @@ const Clients = () => {
                                         {fieldErrors.method && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.method[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Type</label>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Type d'opération</label>
                                         <select
                                             value={paymentType}
                                             onChange={(e) => setPaymentType(e.target.value)}
@@ -1247,36 +1260,83 @@ const Clients = () => {
                                     </div>
                                 </div>
 
-                                {(paymentMethod === 'Chèque' || paymentMethod === 'Virement' || paymentMethod === 'Effet') && (
-                                    <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
-                                                {paymentMethod === 'Chèque' ? 'N° de Chèque' : paymentMethod === 'Virement' ? 'Référence' : 'N° d\'Effet'} <span className="text-[8px] opacity-50">(Facultatif)</span>
+                                {paymentMethod === 'Virement' && (
+                                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="virementType"
+                                                    checked={virementType === 'Transfert'}
+                                                    onChange={() => setVirementType('Transfert')}
+                                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-xs font-bold text-blue-900 uppercase tracking-tight group-hover:text-blue-700">Virement (Compte à Compte)</span>
                                             </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="virementType"
+                                                    checked={virementType === 'Versement'}
+                                                    onChange={() => setVirementType('Versement')}
+                                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                                />
+                                                <span className="text-xs font-bold text-blue-900 uppercase tracking-tight group-hover:text-blue-700">Versement (Espèces)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(paymentMethod === 'Virement' || paymentMethod === 'Chèque' || paymentMethod === 'Effet') && (
+                                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div className="col-span-2">
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Banque de Destination (Notre Compte)</label>
+                                            <select
+                                                value={destinationBank}
+                                                onChange={(e) => setDestinationBank(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold text-slate-700"
+                                            >
+                                                <option value="">Sélectionnez la banque de destination...</option>
+                                                {MAROC_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Banque Client</label>
+                                            <select
+                                                value={sourceBank}
+                                                onChange={(e) => setSourceBank(e.target.value)}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold text-slate-700"
+                                            >
+                                                <option value="">D'où vient l'argent ?</option>
+                                                {MAROC_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Référence / N°</label>
                                             <input
                                                 type="text"
                                                 value={paymentReference}
                                                 onChange={(e) => setPaymentReference(e.target.value)}
-                                                placeholder="Ex: CK-00123"
-                                                className={`w-full px-3 py-2.5 bg-gray-50 border ${fieldErrors.reference_no ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium`}
+                                                placeholder={paymentMethod === 'Chèque' ? 'N° Chèque' : 'Référence'}
+                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                                             />
-                                            {fieldErrors.reference_no && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.reference_no[0]}</p>}
                                         </div>
-                                        <div className="col-span-2 space-y-4">
-                                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
-                                                <span className="text-[10px] font-black text-emerald-800 uppercase tracking-widest leading-none">Net en compte (DH)</span>
-                                                <span className="text-xl font-black text-emerald-600 font-mono">
-                                                    {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
+
+                                        <div className="col-span-2 space-y-3 mt-2">
+                                            <div className="flex items-center justify-between px-2">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net en compte (DH)</span>
+                                                <span className="text-lg font-black text-emerald-600 font-mono">
+                                                    {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })}
                                                 </span>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-emerald-500 uppercase mb-2 tracking-wide font-black">Commission Bancaire (DH)</label>
+                                            <div className="relative">
+                                                <label className="block text-[10px] font-bold text-emerald-500 uppercase mb-2 tracking-wide font-black">Commission Bancaire / Frais (DH)</label>
                                                 <input
                                                     type="text"
                                                     value={bankCommission}
                                                     onChange={(e) => setBankCommission(formatNumber(e.target.value))}
                                                     placeholder="0 DH"
-                                                    className={`w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-sm text-emerald-600`}
+                                                    className="w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-sm text-emerald-600"
                                                 />
                                             </div>
                                         </div>
@@ -1908,89 +1968,117 @@ const Clients = () => {
                                                 if (dateB !== dateA) return dateB - dateA;
                                                 return b.id - a.id;
                                             }).map((p) => (
-                                                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 border-red-100 opacity-75' : p.type === 'Reprise' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`p-2 rounded-lg ${p.status === 'Cancelled' ? 'bg-red-100 text-red-600' : p.type === 'Caution' ? 'bg-amber-100 text-amber-600' : p.type === 'Reprise' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                            {p.type === 'Reprise' ? <TrendingDown size={16} /> : <Banknote size={16} />}
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="text-sm font-bold text-gray-800">{formatNumber(p.amount)} DH</p>
-                                                                {p.status === 'Cancelled' && (
-                                                                    <span className="text-[9px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase">Annulé (Remboursé: {formatNumber(p.refund_amount)} DH)</span>
-                                                                )}
+                                                <div key={p.id} className={`flex flex-col p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 border-red-100 opacity-75' : p.type === 'Reprise' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`p-2 rounded-lg ${p.status === 'Cancelled' ? 'bg-red-100 text-red-600' : p.type === 'Caution' ? 'bg-amber-100 text-amber-600' : p.type === 'Reprise' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                                {p.type === 'Reprise' ? <TrendingDown size={16} /> : <Banknote size={16} />}
                                                             </div>
-                                                            <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                                                                <span className="font-bold uppercase tracking-wider">{p.type}</span>
-                                                                <span>•</span>
-                                                                <span>{p.method}</span>
-                                                                <span>•</span>
-                                                                <span>{p.payment_date}</span>
-                                                                {p.bank_commission > 0 && (
-                                                                    <div className="mt-1 flex items-center gap-2">
-                                                                        <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100">
-                                                                            COMMISSION: {formatNumber(p.bank_commission)} DH
-                                                                        </span>
-                                                                        <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">
-                                                                            NET: {formatNumber(parseFloat(String(p.amount)) - parseFloat(String(p.bank_commission)))} DH
-                                                                        </span>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="text-sm font-bold text-gray-800">{formatNumber(p.amount)} DH</p>
+                                                                    {p.status === 'Cancelled' && (
+                                                                        <span className="text-[9px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase">Annulé (Remboursé: {formatNumber(p.refund_amount)} DH)</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                                                    <span className="font-bold uppercase tracking-wider">{p.type}</span>
+                                                                    <span>•</span>
+                                                                    <span>{p.method}</span>
+                                                                    <span>•</span>
+                                                                    <span>{p.payment_date}</span>
+                                                                    {p.bank_commission > 0 && (
+                                                                        <div className="mt-1 flex items-center gap-2">
+                                                                            <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                                COMMISSION: {formatNumber(p.bank_commission)} DH
+                                                                            </span>
+                                                                            <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">
+                                                                                NET: {formatNumber(parseFloat(String(p.amount)) - parseFloat(String(p.bank_commission)))} DH
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {p.bien && (
+                                                                    <div className="text-[9px] text-indigo-500 font-bold mt-1">
+                                                                        {p.bien.type_bien} {p.bien.num_appartement ? <>Bloc #<MarkdownText text={p.bien.num_appartement} /></> : `ID #${p.bien.id}`}
+                                                                    </div>
+                                                                )}
+                                                                {(p.reference_no || p.bank_name || p.destination_bank) && (
+                                                                    <div className="mt-0.5 flex items-center gap-2 text-[9px] text-gray-400 font-medium">
+                                                                        {p.reference_no && <span>Réf: {p.reference_no}</span>}
+                                                                        {(p.destination_bank || p.bank_name) && <span>• {p.destination_bank || p.bank_name}</span>}
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                            {p.bien && (
-                                                                <div className="text-[9px] text-indigo-500 font-bold mt-1">
-                                                                    {p.bien.type_bien} {p.bien.num_appartement ? <>Bloc #<MarkdownText text={p.bien.num_appartement} /></> : `ID #${p.bien.id}`}
-                                                                </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setPaymentViewId(paymentViewId === p.id ? null : p.id)}
+                                                                className={`p-2 rounded-lg border border-gray-100 shadow-sm transition-all ${paymentViewId === p.id ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                                                                title="Détails"
+                                                            >
+                                                                <Eye size={14} />
+                                                            </button>
+                                                            {p.status !== 'Cancelled' && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setTargetPayment(p);
+                                                                            setRefundAmount(formatNumber(p.amount));
+                                                                            setIsCancelModalOpen(true);
+                                                                        }}
+                                                                        className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
+                                                                        title="Remboursement"
+                                                                    >
+                                                                        <X size={14} />
+                                                                    </button>
+                                                                </>
                                                             )}
-                                                            {(p.reference_no || p.bank_name) && (
-                                                                <div className="mt-0.5 flex items-center gap-2 text-[9px] text-gray-400 font-medium">
-                                                                    {p.reference_no && <span>Réf: {p.reference_no}</span>}
-                                                                    {p.bank_name && <span>• {p.bank_name}</span>}
-                                                                </div>
+                                                            <button
+                                                                onClick={() => handleOpenPaymentModal(detailClient, p)}
+                                                                className="p-2 bg-white text-blue-600 rounded-lg border border-gray-100 shadow-sm hover:bg-blue-50 transition-all"
+                                                                title="Modifier le paiement"
+                                                            >
+                                                                <Edit2 size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeletePayment(p.id)}
+                                                                className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
+                                                                title="Supprimer le paiement"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                            {p.receipt_path && (
+                                                                <button
+                                                                    onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${p.receipt_path}`))}
+                                                                    className="p-2 bg-white text-indigo-600 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
+                                                                    title="Voir le reçu"
+                                                                >
+                                                                    <FileText size={16} />
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        {p.status !== 'Cancelled' && (
-                                                            <>
-
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setTargetPayment(p);
-                                                                        setRefundAmount(formatNumber(p.amount));
-                                                                        setIsCancelModalOpen(true);
-                                                                    }}
-                                                                    className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
-                                                                    title="Remboursement"
-                                                                >
-                                                                    <X size={14} />
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        <button
-                                                            onClick={() => handleOpenPaymentModal(detailClient, p)}
-                                                            className="p-2 bg-white text-blue-600 rounded-lg border border-gray-100 shadow-sm hover:bg-blue-50 transition-all"
-                                                            title="Modifier le paiement"
-                                                        >
-                                                            <Edit2 size={14} />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeletePayment(p.id)}
-                                                            className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
-                                                            title="Supprimer le paiement"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                        {p.receipt_path && (
-                                                            <button
-                                                                onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${p.receipt_path}`))}
-                                                                className="p-2 bg-white text-indigo-600 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
-                                                                title="Voir le reçu"
-                                                            >
-                                                                <FileText size={16} />
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                    {paymentViewId === p.id && (
+                                                        <div className="mt-4 pt-4 border-t border-gray-200/60 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2">
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Banque Source (Client)</p>
+                                                                <p className="text-[11px] font-bold text-slate-800">{p.source_bank || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Banque Dest. (Compte)</p>
+                                                                <p className="text-[11px] font-bold text-slate-800">{p.destination_bank || p.bank_name || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Type Virement</p>
+                                                                <p className="text-[11px] font-bold text-blue-600">{p.virement_type || 'N/A'}</p>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Notes / Observ.</p>
+                                                                <p className="text-[11px] font-medium text-slate-600 italic line-clamp-2">{p.notes || 'Aucune note'}</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

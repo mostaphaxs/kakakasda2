@@ -96,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
         { label: 'Construction', endpoint: '/contractors', fileName: 'entreprises_complet' },
         { label: 'Salariés', endpoint: '/salaries', fileName: 'salaries_complet' },
         { label: 'Charges', endpoint: '/charges', fileName: 'charges_complet' },
+        { label: 'Livre des Recettes', endpoint: '/payments', fileName: 'recettes_clients_complet' },
     ];
 
     const mapExportData = (endpoint: string, data: any[]) => {
@@ -160,7 +161,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     'ID': s.id, 'NOM': s.name.toUpperCase(), 'CIN': s.cin || '',
                     'TÉL': s.phone || '', 'SPÉCIALITÉ': s.speciality,
                     'GRADE': s.grade || '', 'FORMATION': s.education || '',
-                    'SALAIRE (DH)': s.monthly_salary, 'DATE EMBAUCHE': s.hiring_date
+                }));
+            case '/payments':
+                return data.map(p => ({
+                    'ID': p.id,
+                    'DATE': p.payment_date ? parseDate(p.payment_date).toLocaleDateString('fr-MA') : 'N/A',
+                    'CLIENT': (p.client?.nom + ' ' + p.client?.prenom).toUpperCase(),
+                    'BIEN': p.bien?.type_bien + ' - ' + (p.bien?.num_appartement || ''),
+                    'MONTANT (DH)': p.amount,
+                    'COMMISSION (DH)': p.bank_commission || 0,
+                    'NET (DH)': Number(p.amount) - Number(p.bank_commission || 0),
+                    'MODE': p.method,
+                    'DESTINATION': p.destination_bank || p.bank_name || 'CAISSE',
+                    'SOURCE (CLIENT)': p.source_bank || 'N/A',
+                    'TYPE VIREMENT': p.virement_type || 'N/A',
+                    'RÉFÉRÈNCE': p.reference_no || '',
+                    'NOTES': p.notes || ''
                 }));
             default:
                 return data;

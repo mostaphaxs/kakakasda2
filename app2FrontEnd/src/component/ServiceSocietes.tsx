@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     Building2, Plus, Search, Loader2, Trash2, Edit2, X, Check,
     Phone, MapPin, FileText, Upload, DollarSign, ChevronRight,
-    Download, History, Sparkles
+    Download, History, Sparkles, Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
@@ -34,6 +34,18 @@ interface Invoice {
     invoice_date: string;
     notes: string | null;
     terrain_id: number | null;
+    code_agence?: string;
+    id_transaction?: string;
+    reference_recu?: string;
+    reference_cmi?: string;
+    reference_creancier_new?: string;
+    date_paiement?: string;
+    identifiant_paiement?: string;
+    table_identifiant?: string;
+    table_description?: string;
+    table_date?: string;
+    table_montant?: string;
+    frais_timbre?: string;
     terrain?: { id: number; nom_projet: string };
 }
 
@@ -53,6 +65,7 @@ const ServiceSocietes = () => {
     const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
     const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
     const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+    const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [providerForm, setProviderForm] = useState({
@@ -60,7 +73,9 @@ const ServiceSocietes = () => {
     });
 
     const [invoiceForm, setInvoiceForm] = useState({
-        amount: '', reference: '', invoice_date: new Date().toLocaleDateString('fr-MA'), notes: '', terrain_id: ''
+        amount: '', reference: '', invoice_date: new Date().toLocaleDateString('fr-MA'), notes: '', terrain_id: '',
+        code_agence: '', id_transaction: '', reference_recu: '', reference_cmi: '', reference_creancier_new: '', date_paiement: '', identifiant_paiement: '',
+        table_identifiant: '', table_description: '', table_date: '', table_montant: '', frais_timbre: ''
     });
     const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -130,7 +145,19 @@ const ServiceSocietes = () => {
                         reference: result.invoice_no || '',
                         invoice_date: result.date || new Date().toLocaleDateString('fr-MA'),
                         notes: result.anomaly_detected ? `[ALERTE IA]: ${result.anomaly_description}` : '',
-                        terrain_id: ''
+                        terrain_id: '',
+                        code_agence: '',
+                        id_transaction: '',
+                        reference_recu: '',
+                        reference_cmi: '',
+                        reference_creancier_new: '',
+                        date_paiement: '',
+                        identifiant_paiement: '',
+                        table_identifiant: '',
+                        table_description: '',
+                        table_date: '',
+                        table_montant: '',
+                        frais_timbre: ''
                     });
                     setInvoiceFile(globalScanFile);
                     if (result.anomaly_detected) {
@@ -204,7 +231,19 @@ const ServiceSocietes = () => {
                 reference: invoice.reference || '',
                 invoice_date: invoice.invoice_date,
                 notes: invoice.notes || '',
-                terrain_id: invoice.terrain_id ? String(invoice.terrain_id) : ''
+                terrain_id: invoice.terrain_id ? String(invoice.terrain_id) : '',
+                code_agence: invoice.code_agence || '',
+                id_transaction: invoice.id_transaction || '',
+                reference_recu: invoice.reference_recu || '',
+                reference_cmi: invoice.reference_cmi || '',
+                reference_creancier_new: invoice.reference_creancier_new || '',
+                date_paiement: invoice.date_paiement ? new Date(invoice.date_paiement).toISOString().slice(0, 16) : '',
+                identifiant_paiement: invoice.identifiant_paiement || '',
+                table_identifiant: invoice.table_identifiant || '',
+                table_description: invoice.table_description || '',
+                table_date: invoice.table_date || '',
+                table_montant: invoice.table_montant ? String(invoice.table_montant) : '',
+                frais_timbre: invoice.frais_timbre ? String(invoice.frais_timbre) : ''
             });
         } else {
             setEditingInvoice(null);
@@ -213,7 +252,19 @@ const ServiceSocietes = () => {
                 reference: '',
                 invoice_date: new Date().toLocaleDateString('fr-MA'),
                 notes: '',
-                terrain_id: ''
+                terrain_id: '',
+                code_agence: '',
+                id_transaction: '',
+                reference_recu: '',
+                reference_cmi: '',
+                reference_creancier_new: '',
+                date_paiement: '',
+                identifiant_paiement: '',
+                table_identifiant: '',
+                table_description: '',
+                table_date: '',
+                table_montant: '',
+                frais_timbre: ''
             });
         }
         setInvoiceFile(null);
@@ -249,6 +300,18 @@ const ServiceSocietes = () => {
             data.append('invoice_date', invoiceForm.invoice_date);
             data.append('notes', invoiceForm.notes);
             if (invoiceForm.terrain_id) data.append('terrain_id', invoiceForm.terrain_id);
+            if (invoiceForm.code_agence) data.append('code_agence', invoiceForm.code_agence);
+            if (invoiceForm.id_transaction) data.append('id_transaction', invoiceForm.id_transaction);
+            if (invoiceForm.reference_recu) data.append('reference_recu', invoiceForm.reference_recu);
+            if (invoiceForm.reference_cmi) data.append('reference_cmi', invoiceForm.reference_cmi);
+            if (invoiceForm.reference_creancier_new) data.append('reference_creancier_new', invoiceForm.reference_creancier_new);
+            if (invoiceForm.date_paiement) data.append('date_paiement', invoiceForm.date_paiement);
+            if (invoiceForm.identifiant_paiement) data.append('identifiant_paiement', invoiceForm.identifiant_paiement);
+            if (invoiceForm.table_identifiant) data.append('table_identifiant', invoiceForm.table_identifiant);
+            if (invoiceForm.table_description) data.append('table_description', invoiceForm.table_description);
+            if (invoiceForm.table_date) data.append('table_date', invoiceForm.table_date);
+            if (invoiceForm.table_montant) data.append('table_montant', String(parseNumber(invoiceForm.table_montant)));
+            if (invoiceForm.frais_timbre) data.append('frais_timbre', String(parseNumber(invoiceForm.frais_timbre)));
             if (invoiceFile) data.append('scan_path', invoiceFile);
 
             const url = editingInvoice ? `/provider-invoices/${editingInvoice.id}` : '/provider-invoices';
@@ -554,6 +617,7 @@ const ServiceSocietes = () => {
                                         </td>
                                         <td className="px-8 py-4 text-right">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => setViewingInvoice(inv)} className="p-1.5 hover:bg-emerald-50 rounded text-emerald-400 hover:text-emerald-600"><Eye size={14} /></button>
                                                 <button onClick={() => handleOpenInvoiceModal(selectedProvider, inv)} className="p-1.5 hover:bg-indigo-50 rounded text-indigo-400 hover:text-indigo-600"><Edit2 size={14} /></button>
                                                 <button onClick={() => handleDeleteInvoice(inv.id)} className="p-1.5 hover:bg-rose-50 rounded text-rose-300 hover:text-rose-600"><Trash2 size={14} /></button>
                                             </div>
@@ -626,15 +690,15 @@ const ServiceSocietes = () => {
             {/* Invoice Modal */}
             {isInvoiceModalOpen && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50">
-                        <div className="px-8 py-8 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50">
+                        <div className="px-6 py-6 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50 shrink-0 sticky top-0 z-10">
                             <div>
                                 <h3 className="font-black text-emerald-900 text-sm uppercase tracking-widest">{editingInvoice ? 'Modifier Facture' : 'Nouvelle Facture'}</h3>
                                 <p className="text-[10px] text-emerald-600 font-bold uppercase mt-1 tracking-tight">Pour : {selectedProvider?.nom}</p>
                             </div>
-                            <button onClick={() => setIsInvoiceModalOpen(false)} className="p-3 hover:bg-white rounded-full transition-colors text-emerald-400"><X size={20} /></button>
+                            <button type="button" onClick={() => setIsInvoiceModalOpen(false)} className="p-3 hover:bg-white inset-auto rounded-full transition-colors text-emerald-400"><X size={20} /></button>
                         </div>
-                        <form onSubmit={handleInvoiceSubmit} className="p-10 space-y-6">
+                        <form onSubmit={handleInvoiceSubmit} className="p-6 space-y-5 overflow-y-auto">
                             {aiAnomaly && (
                                 <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-[10px] animate-in slide-in-from-top-2">
                                     <AlertTriangle className="shrink-0" size={20} />
@@ -645,12 +709,81 @@ const ServiceSocietes = () => {
                                 </div>
                             )}
                             <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 text-right opacity-50">Total TTC (Montant + Timbre)</label>
                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Montant Facture (DH)</label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" size={24} />
                                     <input required type="text" value={invoiceForm.amount} onChange={e => setInvoiceForm({ ...invoiceForm, amount: formatNumber(e.target.value) })} className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-black text-2xl text-slate-800 transition-all" placeholder="0" />
                                 </div>
                             </div>
+
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Identifiant Paiement</label>
+                                    <input type="text" value={invoiceForm.identifiant_paiement} onChange={e => setInvoiceForm({ ...invoiceForm, identifiant_paiement: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: 0674746974" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Code Agence</label>
+                                    <input type="text" value={invoiceForm.code_agence} onChange={e => setInvoiceForm({ ...invoiceForm, code_agence: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: 22854" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ID Transaction</label>
+                                    <input type="text" value={invoiceForm.id_transaction} onChange={e => setInvoiceForm({ ...invoiceForm, id_transaction: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: 239245789" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Référence Reçu</label>
+                                    <input type="text" value={invoiceForm.reference_recu} onChange={e => setInvoiceForm({ ...invoiceForm, reference_recu: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: MS_1777..." />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Référence CMI</label>
+                                    <input type="text" value={invoiceForm.reference_cmi} onChange={e => setInvoiceForm({ ...invoiceForm, reference_cmi: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: 103037072040" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Réf. Créancier</label>
+                                    <input type="text" value={invoiceForm.reference_creancier_new} onChange={e => setInvoiceForm({ ...invoiceForm, reference_creancier_new: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" placeholder="Ex: ZH8370" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date de Paiement</label>
+                                    <input type="datetime-local" value={invoiceForm.date_paiement} onChange={e => setInvoiceForm({ ...invoiceForm, date_paiement: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-emerald-500 font-mono" />
+                                </div>
+                            </div>
+
+                            {/* Table Reçu Fields */}
+                            <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl space-y-4">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><FileText size={12} /> Tableau Reçu Cash Plus</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Identifiant (Tableau)</label>
+                                        <input type="text" value={invoiceForm.table_identifiant} onChange={e => setInvoiceForm({ ...invoiceForm, table_identifiant: e.target.value })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500" placeholder="Ex: 0000300..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Description</label>
+                                        <input type="text" value={invoiceForm.table_description} onChange={e => setInvoiceForm({ ...invoiceForm, table_description: e.target.value })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500" placeholder="Ex: Période..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Date</label>
+                                        <input type="text" value={invoiceForm.table_date} onChange={e => setInvoiceForm({ ...invoiceForm, table_date: e.target.value })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500" placeholder="Ex: 01/03/2026" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Montant Ligne</label>
+                                        <input type="text" value={invoiceForm.table_montant} onChange={e => setInvoiceForm({ ...invoiceForm, table_montant: e.target.value })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500" placeholder="Ex: 1385.46" />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Frais de timbre (Bas de reçu)</label>
+                                        <input type="text" value={invoiceForm.frais_timbre} onChange={e => setInvoiceForm({ ...invoiceForm, frais_timbre: e.target.value })} className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-emerald-500" placeholder="Ex: 3.46" />
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 gap-5">
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Date Facture</label>
@@ -829,6 +962,119 @@ const ServiceSocietes = () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Viewing Invoice Detail Modal */}
+            {viewingInvoice && (
+                <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50">
+                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-yellow-50/50 shrink-0 sticky top-0 z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-white rounded-xl shadow-sm text-yellow-600 border border-yellow-100">
+                                    <Sparkles size={20} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <h3 className="font-black text-slate-800 text-sm">{selectedProvider?.nom || 'Fournisseur'}</h3>
+                                    <p className="text-[10px] text-yellow-600 font-bold uppercase tracking-widest mt-0.5">CASH PLUS REÇU</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setViewingInvoice(null)} className="p-3 hover:bg-white rounded-full transition-colors text-slate-400"><X size={20} /></button>
+                        </div>
+                        <div className="p-8 space-y-6 overflow-y-auto w-full bg-[#fdfdf8]">
+
+                            {/* Receipt Header Style */}
+                            <div className="text-center pb-4 border-b-2 border-dashed border-gray-200">
+                                <h4 className="font-extrabold text-lg text-slate-800 tracking-tight">{selectedProvider?.nom || 'Maroc Telecom'} {viewingInvoice.notes ? `: ${viewingInvoice.notes}` : ''}</h4>
+                            </div>
+
+                            {/* Main Info Block */}
+                            <div className="space-y-1">
+                                <div className="flex justify-between items-end border-b border-gray-100 pb-2">
+                                    <span className="text-xs font-bold text-slate-500">NUMÉRO DE TÉLÉPHONE / ID</span>
+                                    <span className="text-sm font-black text-slate-800">{viewingInvoice.identifiant_paiement || '--'}</span>
+                                </div>
+                                <div className="flex justify-between items-end pb-2">
+                                    <span className="text-xs font-bold text-slate-500">Identifiant paiement</span>
+                                    <span className="text-sm font-black text-slate-800">{viewingInvoice.identifiant_paiement || '--'}</span>
+                                </div>
+                            </div>
+
+                            {/* Details Block */}
+                            <div className="space-y-1 py-4 border-y border-gray-100 font-mono text-xs">
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Code Agence :</span>
+                                    <span className="font-black">{viewingInvoice.code_agence || '--'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Id Transaction :</span>
+                                    <span className="font-black">{viewingInvoice.id_transaction || '--'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Référence reçu :</span>
+                                    <span className="font-black break-all text-right max-w-[200px]">{viewingInvoice.reference_recu || '--'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Référence CMI :</span>
+                                    <span className="font-black">{viewingInvoice.reference_cmi || '--'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Référence Créancier :</span>
+                                    <span className="font-black">{viewingInvoice.reference_creancier_new || '--'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="font-bold text-slate-600">Date de paiement :</span>
+                                    <span className="font-black">{viewingInvoice.date_paiement ? new Date(viewingInvoice.date_paiement).toLocaleString('fr-FR', {
+                                        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    }).replace(',', '') : '--'}</span>
+                                </div>
+                            </div>
+
+                            {/* Simulated Table */}
+                            <div className="border-2 border-slate-800 rounded-lg overflow-hidden my-4">
+                                <div className="grid grid-cols-4 bg-white border-b-2 border-slate-800 p-2 text-center text-[9px] font-black text-slate-600 uppercase">
+                                    <div className="border-r-2 border-slate-800">Identifiant</div>
+                                    <div className="col-span-2 border-r-2 border-slate-800">Description</div>
+                                    <div className="border-r-2 border-slate-800">Date</div>
+                                    <div className="">Montant</div>
+                                </div>
+                                <div className="grid grid-cols-4 bg-white p-2 text-[10px] font-bold text-center">
+                                    <div className="border-r-2 border-slate-800 break-all pr-1 text-[8px] flex items-center justify-center">{viewingInvoice.table_identifiant || viewingInvoice.reference || '--'}</div>
+                                    <div className="col-span-2 border-r-2 border-slate-800 px-1 text-left whitespace-pre-wrap flex items-center">{viewingInvoice.table_description || 'Facture / Période'}</div>
+                                    <div className="border-r-2 border-slate-800 px-1 flex items-center justify-center">{viewingInvoice.table_date || viewingInvoice.invoice_date || '--'}</div>
+                                    <div className="flex items-center justify-center">{viewingInvoice.table_montant ? `${formatNumber(viewingInvoice.table_montant)} DH` : '--'}</div>
+                                </div>
+                            </div>
+
+                            {/* Totals Block */}
+                            <div className="border-2 border-slate-800 rounded-lg overflow-hidden bg-white">
+                                <div className="flex justify-between border-b border-slate-800 p-2 text-xs font-bold">
+                                    <span>Frais de timbre</span>
+                                    <span>{viewingInvoice.frais_timbre ? `${formatNumber(viewingInvoice.frais_timbre)} DH` : '--'}</span>
+                                </div>
+                                <div className="flex justify-between p-2 text-sm font-black">
+                                    <span>Montant Total TTC</span>
+                                    <span>{viewingInvoice.amount ? formatNumber(viewingInvoice.amount) : '--'} DH</span>
+                                </div>
+                            </div>
+
+                            {(viewingInvoice.terrain || viewingInvoice.scan_path) && (
+                                <div className="flex gap-3 pt-4 border-t border-gray-100">
+                                    {viewingInvoice.terrain && (
+                                        <div className="flex-1 p-4 bg-white rounded-2xl shadow-sm border border-slate-100">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Projet Affecté</p>
+                                            <p className="font-bold text-indigo-600 uppercase text-xs">{viewingInvoice.terrain.nom_projet}</p>
+                                        </div>
+                                    )}
+                                    {viewingInvoice.scan_path && (
+                                        <button onClick={() => openExternal(`${STORAGE_BASE}/${viewingInvoice.scan_path}`)} className="flex-1 py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-900 transition shadow-xl shadow-slate-200 flex items-center justify-center gap-2">
+                                            <FileText size={16} /> Original
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

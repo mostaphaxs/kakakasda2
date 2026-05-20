@@ -10,20 +10,30 @@ class ContentieuxController extends Controller
 {
     public function index()
     {
-        return response()->json(Contentieux::orderBy('created_at', 'desc')->get());
+        return response()->json(Contentieux::with(['mouvements', 'fees'])->orderBy('created_at', 'desc')->get());
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'project_name' => 'nullable|string',
             'courtType' => 'required|string',
+            'subject' => 'nullable|string',
+            'procedural_type' => 'nullable|string',
             'fileNumber' => 'required|string',
+            'fileNumber_appel' => 'nullable|string',
+            'fileNumber_cassation' => 'nullable|string',
+            'decision_appel' => 'nullable|string',
+            'decision_cassation' => 'nullable|string',
             'date' => 'required|date',
             'decision' => 'nullable|string',
             'stage' => 'required|string',
+            'is_final_decision' => 'nullable',
+            'final_decision_date' => 'nullable|date',
             'plaintiff' => 'required|string',
             'defendant' => 'required|string',
             'lawyerName' => 'nullable|string',
+            'lawyer_subject' => 'nullable|string',
             'lawyerPhone' => 'nullable|string',
             'lawyerAddress' => 'nullable|string',
             'lawyerFees' => 'numeric|nullable',
@@ -56,7 +66,7 @@ class ContentieuxController extends Controller
 
     public function show($id)
     {
-        $contentieux = Contentieux::findOrFail($id);
+        $contentieux = Contentieux::with(['mouvements', 'fees'])->findOrFail($id);
         return response()->json($contentieux);
     }
 
@@ -65,14 +75,24 @@ class ContentieuxController extends Controller
         $contentieux = Contentieux::findOrFail($id);
 
         $validated = $request->validate([
+            'project_name' => 'nullable|string',
             'courtType' => 'sometimes|string',
+            'subject' => 'nullable|string',
+            'procedural_type' => 'nullable|string',
             'fileNumber' => 'sometimes|string',
+            'fileNumber_appel' => 'nullable|string',
+            'fileNumber_cassation' => 'nullable|string',
+            'decision_appel' => 'nullable|string',
+            'decision_cassation' => 'nullable|string',
             'date' => 'sometimes|date',
             'decision' => 'nullable|string',
             'stage' => 'sometimes|string',
+            'is_final_decision' => 'nullable',
+            'final_decision_date' => 'nullable|date',
             'plaintiff' => 'sometimes|string',
             'defendant' => 'sometimes|string',
             'lawyerName' => 'nullable|string',
+            'lawyer_subject' => 'nullable|string',
             'lawyerPhone' => 'nullable|string',
             'lawyerAddress' => 'nullable|string',
             'lawyerFees' => 'numeric|nullable',
@@ -127,5 +147,48 @@ class ContentieuxController extends Controller
         }
         $contentieux->delete();
         return response()->json(['message' => 'Deleted successfully']);
+    }
+
+    public function addMouvement(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'stage' => 'required|string',
+            'date' => 'required|date',
+            'description' => 'required|string',
+            'next_date' => 'nullable|string'
+        ]);
+
+        $contentieux = Contentieux::findOrFail($id);
+        $mouvement = $contentieux->mouvements()->create($validated);
+
+        return response()->json($mouvement, 201);
+    }
+
+    public function deleteMouvement($id)
+    {
+        \App\Models\ContentieuxMouvement::findOrFail($id)->delete();
+        return response()->json(['message' => 'Mouvement supprimé']);
+    }
+
+    public function addFee(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'type' => 'required|string', // JUDICIAL, BAILIFF, OTHER
+            'category' => 'nullable|string',
+            'amount' => 'required|numeric',
+            'notes' => 'nullable|string',
+            'date' => 'nullable|date'
+        ]);
+
+        $contentieux = Contentieux::findOrFail($id);
+        $fee = $contentieux->fees()->create($validated);
+
+        return response()->json($fee, 201);
+    }
+
+    public function deleteFee($id)
+    {
+        \App\Models\ContentieuxFee::findOrFail($id)->delete();
+        return response()->json(['message' => 'Frais supprimé']);
     }
 }

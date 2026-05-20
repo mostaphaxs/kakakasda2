@@ -170,3 +170,19 @@ export const parseDate = (dateStr: string | null | undefined): Date => {
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? new Date() : d;
 };
+
+export const MAROC_BANKS = [
+    "Barid Bank",
+    "CIH Bank",
+    "Banque Populaire",
+    "BMCE Bank of Africa",
+    "Crédit du Maroc",
+    "Société Générale",
+    "BMCI",
+    "Attijariwafa Bank",
+    "Crédit Agricole du Maroc",
+    "CFG Bank",
+    "Arab Bank",
+    "Trésorerie Générale",
+    "Autre"
+];

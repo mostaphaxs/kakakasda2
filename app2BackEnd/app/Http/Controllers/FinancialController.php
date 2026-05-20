@@ -52,7 +52,9 @@ class FinancialController extends Controller
                     'is_cash' => true,
                     'category' => 'Recouvrement Client',
                     'entity' => $entityName,
-                    'bank' => $p->bank_name ?? 'Caisse/Inconnu',
+                    'bank' => $p->destination_bank ?: ($p->bank_name ?: 'Caisse/Inconnu'),
+                    'source_bank' => $p->source_bank,
+                    'virement_type' => $p->virement_type,
                     'reference' => $p->reference_no,
                     'method' => $p->method,
                     'project' => $p->bien?->terrain?->nom_projet ?? 'Global',
@@ -232,6 +234,29 @@ class FinancialController extends Controller
                     'method' => 'Accord/Prestation',
                     'project' => $m->terrain?->nom_projet ?? 'Global',
                     'notes' => ($m->description ?: 'Prestation') . " (" . $m->quantity . " x " . $m->unit_price . " DH)"
+                ]);
+            });
+
+            // 8. Service Provider Invoices (OUT) - ENGAGEMENT
+            $spQuery = \App\Models\ProviderInvoice::with(['serviceProvider', 'terrain']);
+            if ($startDate) $spQuery->whereDate('invoice_date', '>=', $startDate);
+            if ($endDate) $spQuery->whereDate('invoice_date', '<=', $endDate);
+            if ($terrainId) $spQuery->where('terrain_id', $terrainId);
+
+            $spQuery->get()->each(function($spi) use ($transactions) {
+                $transactions->push([
+                    'id' => 'SINV-' . $spi->id,
+                    'date' => \Carbon\Carbon::parse($spi->invoice_date)->toDateString(),
+                    'amount' => (float)$spi->amount,
+                    'flow' => 'OUT',
+                    'is_cash' => false,
+                    'category' => 'Abonnement / Service',
+                    'entity' => $spi->serviceProvider?->nom ?? 'Société Inconnue',
+                    'bank' => 'Engagement (Service)',
+                    'reference' => $spi->reference,
+                    'method' => 'Facturation',
+                    'project' => $spi->terrain?->nom_projet ?? 'Global',
+                    'notes' => $spi->notes ?: ($spi->serviceProvider?->categorie ?? 'Service')
                 ]);
             });
         }
