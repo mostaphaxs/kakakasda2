@@ -28,6 +28,11 @@ use App\Http\Controllers\ContentieuxController;
 use App\Http\Controllers\ServiceProviderController;
 use App\Http\Controllers\ProviderInvoiceController;
 use App\Http\Controllers\TerrainMapController;
+use App\Http\Controllers\EcheanceController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ChequeController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReservationController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -60,12 +65,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clients', [ClientController::class, 'index']);
     Route::post('/clients', [ClientController::class, 'store']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
-    Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::put('/clients/{client}', [ClientController::class, 'update']);
     Route::post('/clients/{client}/cancel', [ClientController::class, 'cancel']);
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::post('/clients/{client}/documents', [ClientController::class, 'uploadDocument']);
     Route::delete('/clients/{client}/documents/{documentIndex}', [ClientController::class, 'deleteDocument']);
+
+    // Échéancier (payment schedule) & notifications
+    Route::get('/echeances', [EcheanceController::class, 'index']);
+    Route::post('/echeances', [EcheanceController::class, 'store']);
+    Route::post('/echeances/plan', [EcheanceController::class, 'plan']);
+    Route::put('/echeances/{echeance}', [EcheanceController::class, 'update']);
+    Route::delete('/echeances/{echeance}', [EcheanceController::class, 'destroy']);
+    Route::get('/clients/{client}/statement', [EcheanceController::class, 'statement']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+
+    // Cheques, reports, one-click reservation
+    Route::get('/cheques', [ChequeController::class, 'index']);
+    Route::post('/cheques/{payment}/status', [ChequeController::class, 'updateStatus']);
+    Route::get('/reports/profit', [ReportController::class, 'profit']);
+    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+    Route::post('/biens/{bien}/reserve', [ReservationController::class, 'reserve']);
 
     // Stats
     Route::get('/stats', [StatsController::class, 'index']);
