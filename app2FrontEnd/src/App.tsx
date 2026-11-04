@@ -3,7 +3,17 @@ import './App.css'
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+import AppToaster from './component/common/AppToaster';
+import { ConfirmHost } from './component/common/ConfirmDialog';
+import { QuickPaymentHost } from './component/common/QuickPayment';
+import { WhatsAppReminderHost } from './component/common/WhatsAppReminder';
+import { CommandPaletteHost, useGlobalShortcuts } from './component/common/CommandPalette';
+import Echeancier from './component/Echeancier';
+import Cheques from './component/Cheques';
+import Rentabilite from './component/Rentabilite';
+import Disponibilites from './component/Disponibilites';
+import { ClientDocumentsHost } from './component/common/ClientDocuments';
+import { ProgressPhotosHost } from './component/common/ProgressPhotos';
 
 import Login from './component/Login'
 import Sidebar from './component/Sidebar';
@@ -68,10 +78,18 @@ const AppContent: React.FC = () => {
   }, [location]);
 
   const isPortal = location.pathname.startsWith('/portal');
+  const isAdmin = !!token && !isPortal && location.pathname !== '/login';
+  useGlobalShortcuts(isAdmin);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Toaster position="top-right" reverseOrder={false} />
+    <div className="flex min-h-screen bg-slate-100">
+      <AppToaster />
+      <ConfirmHost />
+      {isAdmin && <QuickPaymentHost />}
+      {isAdmin && <WhatsAppReminderHost />}
+      {isAdmin && <ClientDocumentsHost />}
+      {isAdmin && <ProgressPhotosHost />}
+      {isAdmin && <CommandPaletteHost />}
       <GlobalPreview />
 
       {!isPortal && (
@@ -87,17 +105,17 @@ const AppContent: React.FC = () => {
       >
         {/* Mobile Header */}
         {token && (
-          <header className="lg:hidden sticky top-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl h-[60px] flex items-center px-3">
+          <header className="lg:hidden sticky top-0 z-[100] bg-sidebar border-b border-sidebar-border shadow-lg h-[60px] flex items-center px-3">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className="p-2 text-white/60 rounded cursor-pointer hover:bg-white/10 mr-2"
             >
               <Menu size={24} />
             </button>
-            <div onClick={() => { }} className="flex items-center cursor-pointer group">
-              <img src="/assets/LogoNavbar.png" alt="Logo" className="h-8 w-auto mr-3" />
-              <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                Société les <span className="text-amber-500 font-black">cinq elements</span>
+            <div className="flex items-center">
+              <img src="/assets/LogoNavbar.webp" alt="Logo" className="h-8 w-auto mr-3" />
+              <span className="self-center text-base font-semibold whitespace-nowrap text-white tracking-tight">
+                Cinq <span className="text-brand-500">Éléments</span>
               </span>
             </div>
           </header>
@@ -106,7 +124,7 @@ const AppContent: React.FC = () => {
         {token && !isPortal && <AIAssistant />}
 
         <main className="flex-grow px-4 py-6">
-          <div className="max-w-7xl mx-auto">
+          <div key={location.pathname} className="max-w-7xl mx-auto animate-page-in">
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
@@ -144,6 +162,10 @@ const AppContent: React.FC = () => {
               <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
               <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
               <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
+              <Route path="/echeancier" element={<PrivateRoute><Echeancier /></PrivateRoute>} />
+              <Route path="/cheques" element={<PrivateRoute><Cheques /></PrivateRoute>} />
+              <Route path="/rentabilite" element={<PrivateRoute><Rentabilite /></PrivateRoute>} />
+              <Route path="/disponibilites" element={<PrivateRoute><Disponibilites /></PrivateRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<ClientLogin />} />

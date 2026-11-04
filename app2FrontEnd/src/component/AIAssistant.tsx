@@ -231,7 +231,7 @@ const AIAssistant = () => {
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 z-[1000] w-16 h-16 chat-bubble-trigger text-white shadow-xl hover:scale-110 active:scale-95 transition-all"
+                    className="fixed bottom-6 right-6 z-[1000] w-16 h-16 chat-bubble-trigger text-white shadow-lg active:scale-[0.98] transition"
                 >
                     <img src={novaFace} className="w-12 h-12 rounded-full object-cover" alt="Nova" />
                 </button>
@@ -239,18 +239,18 @@ const AIAssistant = () => {
 
             {/* Standard Chat Window */}
             {isOpen && (
-                <div className={`fixed right-6 bottom-6 z-[1000] chat-window-pro animate-slide-up transition-all ${isFullScreen ? 'w-[90vw] h-[90vh]' : 'w-[380px] h-[600px]'}`}>
+                <div className={`fixed right-6 bottom-6 z-[1000] chat-window-pro animate-slide-up transition ${isFullScreen ? 'w-[90vw] h-[90vh]' : 'w-[380px] h-[600px]'}`}>
 
                     {/* Professional Header */}
-                    <div className="bg-blue-600 px-6 py-4 flex items-center justify-between text-white shadow-md">
+                    <div className="bg-blue-600 px-6 py-4 flex items-center justify-between text-white shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="relative">
                                 <img src={novaFace} className="w-10 h-10 rounded-full border-2 border-white/20" alt="Nova" />
                                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-blue-600 rounded-full"></div>
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-bold text-sm tracking-tight">Nova Assistant</span>
-                                <span className="text-[10px] text-white/70">En ligne pour vous aider</span>
+                                <span className="font-semibold text-sm tracking-tight">Nova Assistant</span>
+                                <span className="text-xs text-white/70">En ligne pour vous aider</span>
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -270,14 +270,14 @@ const AIAssistant = () => {
                     <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 py-6 space-y-6 scroll-pro bg-slate-50/30">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[14px] leading-relaxed shadow-sm ${msg.role === 'user'
+                                <div className={`max-w-[85%] px-4 py-3 rounded-xl text-[12.3px] leading-relaxed shadow-sm ${msg.role === 'user'
                                     ? 'bg-blue-600 text-white rounded-tr-none'
                                     : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none markdown-pro'
                                     }`}>
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.parts}</ReactMarkdown>
 
                                     {msg.isAction && (
-                                        <div className="mt-3 flex items-center gap-2 text-[11px] font-bold text-emerald-600">
+                                        <div className="mt-3 flex items-center gap-2 text-xs font-medium text-emerald-600">
                                             <CheckCircle2 size={14} /> Action effectuée
                                         </div>
                                     )}
@@ -288,7 +288,7 @@ const AIAssistant = () => {
                                                 <button
                                                     key={ci}
                                                     onClick={() => handleChoice(choice, i)}
-                                                    className="w-full text-left px-4 py-2 bg-slate-100 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-xl text-[12px] font-semibold text-slate-700 transition-all flex justify-between items-center group"
+                                                    className="w-full text-left px-4 py-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg text-[10.6px] font-medium text-slate-700 transition flex justify-between items-center group"
                                                 >
                                                     {choice.label}
                                                     <Sparkles size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -313,7 +313,7 @@ const AIAssistant = () => {
                     {/* Footer / Input - Refactored for better spacing */}
                     <div className="p-4 border-t border-slate-100 bg-white">
                         {chatFile && (
-                            <div className="mb-3 flex items-center justify-between text-[11px] text-slate-500 px-3 bg-blue-50/50 py-2 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-bottom-1">
+                            <div className="mb-3 flex items-center justify-between text-xs text-slate-500 px-3 bg-blue-50/50 py-2 rounded-xl border border-blue-100">
                                 <span className="truncate max-w-[250px] flex items-center gap-2 font-medium">
                                     <FileText size={14} className="text-blue-500" /> {chatFile.name}
                                 </span>
@@ -324,10 +324,10 @@ const AIAssistant = () => {
                         )}
 
                         <div className="flex items-end gap-2">
-                            <div className="flex-grow flex items-center gap-2 bg-slate-100 rounded-2xl px-3 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 border border-transparent focus-within:border-blue-200 transition-all min-h-[48px]">
+                            <div className="flex-grow flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 border border-transparent focus-within:border-blue-200 transition min-h-[48px]">
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className={`p-2 rounded-xl transition-all ${chatFile ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
+                                    className={`p-2 rounded-lg transition ${chatFile ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
                                     title="Joindre un fichier"
                                 >
                                     <Paperclip size={20} />
@@ -343,11 +343,11 @@ const AIAssistant = () => {
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                                     placeholder="Message ou commande vocale..."
-                                    className="flex-grow bg-transparent border-none outline-none text-[14px] text-slate-700 placeholder:text-slate-400 py-1"
+                                    className="flex-grow pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                 />
                                 <button
                                     onClick={toggleListening}
-                                    className={`p-2 rounded-xl transition-all ${isListening ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
+                                    className={`p-2 rounded-lg transition ${isListening ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
                                     title="Commande vocale"
                                 >
                                     {isListening ? <MicOff size={20} /> : <Mic size={20} />}
@@ -357,7 +357,7 @@ const AIAssistant = () => {
                             <button
                                 onClick={handleSend}
                                 disabled={!input.trim() && !chatFile}
-                                className="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-500/30 hover:bg-blue-700 disabled:bg-slate-200 disabled:shadow-none transition-all active:scale-95 disabled:text-slate-400"
+                                className="flex items-center justify-center w-12 h-10 text-white rounded-lg shadow-sm disabled:bg-slate-200 disabled:shadow-none transition active:scale-[0.98] disabled:text-slate-400 text-sm font-medium bg-slate-900 hover:bg-slate-800"
                             >
                                 <Send size={20} />
                             </button>
@@ -367,7 +367,7 @@ const AIAssistant = () => {
                             <button onClick={() => setMessages([{ role: 'model', parts: 'Nouvelle conversation initialisée.' }])} className="text-slate-300 hover:text-rose-400 transition-colors">
                                 <Trash2 size={12} />
                             </button>
-                            <span className="text-[9px] text-slate-300 font-bold uppercase tracking-[0.2em]">
+                            <span className="text-xs text-slate-300 font-medium">
                                 Nova Pro Voice Ready
                             </span>
                         </div>

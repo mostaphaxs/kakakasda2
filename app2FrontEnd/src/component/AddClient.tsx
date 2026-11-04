@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { SubmitHandler } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { UserPlus, ArrowLeft, Save, Loader2, Upload, X, FileText, PlusCircle, Mail } from 'lucide-react';
 import { apiFetch } from '../lib/api';
@@ -40,9 +40,8 @@ interface ClientFormInputs {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const inputCls = (hasError?: boolean) =>
-    `w-full px-4 py-3 rounded-2xl border text-sm text-slate-800 bg-slate-50/50 placeholder-slate-400
-   focus:ring-4 focus:ring-amber-100 focus:border-amber-400 focus:bg-white outline-none transition-all
-   ${hasError ? 'border-red-400 focus:ring-red-100' : 'border-slate-100'}`;
+    `w-full placeholder-slate-400 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500
+   ${hasError ? '!border-red-400 focus:ring-red-100' : 'border-slate-100'}`;
 
 const FieldWrapper = ({ label, error, fieldError, children }: {
     label: string; error?: string; fieldError?: string[]; children: React.ReactNode;
@@ -50,7 +49,7 @@ const FieldWrapper = ({ label, error, fieldError, children }: {
     <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
         {children}
-        {fieldError && <p className="mt-1 text-[10px] text-red-500 font-bold">{fieldError[0]}</p>}
+        {fieldError && <p className="mt-1 text-xs text-red-500 font-medium">{fieldError[0]}</p>}
         {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
 );
@@ -68,6 +67,8 @@ const AddClient: React.FC = () => {
     const [existingClient, setExistingClient] = useState<any | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+    // ?bien=ID pre-selects a unit (from the availability grid)
+    const [searchParams] = useSearchParams();
     const {
         register,
         handleSubmit,
@@ -77,7 +78,7 @@ const AddClient: React.FC = () => {
         control,
     } = useForm<ClientFormInputs>({
         defaultValues: {
-            bien_id: '',
+            bien_id: searchParams.get('bien') ?? '',
             avec_finition: false,
             statut_choix: 'SANS_CHOIX',
         }
@@ -216,41 +217,41 @@ const AddClient: React.FC = () => {
 
     // ── Render ──────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gray-50 py-6 px-4">
+        <div className="min-h-screen bg-slate-50 py-6 px-4">
             <div className="max-w-2xl mx-auto">
 
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center mb-6 justify-end gap-0.5">
                     <button
                         onClick={() => navigate('/clients')}
-                        className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                         title="Retour"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
                         <UserPlus className="text-amber-600" size={26} />
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Nouveau Client</h1>
-                            <p className="text-xs text-gray-400">Enregistrer un nouveau client</p>
+                            <h1 className="text-2xl font-bold text-slate-800">Nouveau Client</h1>
+                            <p className="text-xs text-slate-400">Enregistrer un nouveau client</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Error banner */}
                 {serverError && (
-                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border border-red-200">
+                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border !border-red-200">
                         <span className="mt-0.5">⚠️</span>
                         <span>{serverError}</span>
                     </div>
                 )}
 
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
 
                         {/* ── Section: Identité ── */}
-                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">1 – Identité</h2>
+                        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                            <h2 className="text-sm font-semibold text-slate-600">1 – Identité</h2>
                         </div>
                         <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
 
@@ -302,14 +303,14 @@ const AddClient: React.FC = () => {
                                     )}
                                 />
                                 {existingClient && (
-                                    <div className="mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                        <p className="text-[10px] text-blue-700 font-bold uppercase tracking-tight">Client existant trouvé</p>
+                                    <div className="mt-2 p-2.5 bg-blue-50 border border-blue-100 rounded-lg flex flex-col gap-2 duration-200">
+                                        <p className="text-xs text-blue-700 font-medium tracking-tight">Client existant trouvé</p>
                                         <div className="flex items-center justify-between">
-                                            <p className="text-xs font-black text-slate-800 uppercase">{existingClient.nom} {existingClient.prenom}</p>
+                                            <p className="text-xs font-semibold text-slate-800">{existingClient.nom} {existingClient.prenom}</p>
                                             <button
                                                 type="button"
                                                 onClick={handleAutoFill}
-                                                className="px-3 py-1 bg-white border border-amber-200 text-amber-600 rounded text-[10px] font-black uppercase hover:bg-amber-600 hover:text-white transition-colors"
+                                                className="px-3 py-1 bg-white border border-amber-200 text-amber-600 rounded text-sm font-medium hover:bg-amber-600 hover:text-white transition-colors"
                                             >
                                                 Utiliser
                                             </button>
@@ -374,7 +375,7 @@ const AddClient: React.FC = () => {
                                             maxLength: { value: 255, message: 'Max 255 caractères.' },
                                         })}
                                         dir="auto"
-                                        className={inputCls(!!errors.adresse) + " h-32 py-4 resize-none"}
+                                        className={inputCls(!!errors.adresse) + " resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"}
                                         placeholder="Ex: 123 Avenue Mohammed V, Casablanca"
                                     />
                                 </FieldWrapper>
@@ -382,8 +383,8 @@ const AddClient: React.FC = () => {
                         </div>
 
                         {/* ── Section: Réservation ── */}
-                        <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">2 – Réservation</h2>
+                        <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                            <h2 className="text-sm font-semibold text-slate-600">2 – Réservation</h2>
                         </div>
                         <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
 
@@ -415,11 +416,11 @@ const AddClient: React.FC = () => {
                             </div>
 
                             {selectedBienId && (
-                                <div className="sm:col-span-2 bg-indigo-50/10 p-5 rounded-2xl border border-indigo-100 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-300">
+                                <div className="sm:col-span-2 bg-blue-50/10 p-5 rounded-xl border border-blue-100 flex flex-col gap-4 duration-300">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <p className="text-sm font-bold text-indigo-900">Options de Finition</p>
-                                            <p className="text-[10px] text-indigo-700/60 font-medium">Le client souhaite-t-il la finition ?</p>
+                                            <p className="text-sm font-semibold text-blue-900">Options de Finition</p>
+                                            <p className="text-xs text-blue-700/60 font-medium">Le client souhaite-t-il la finition ?</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" {...register('avec_finition')} className="sr-only peer" />
@@ -428,7 +429,7 @@ const AddClient: React.FC = () => {
                                     </div>
 
                                     {watch('avec_finition') && (
-                                        <div className="pt-4 border-t border-indigo-100/50 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="pt-4 border-t border-blue-100/50 grid grid-cols-1 sm:grid-cols-2 gap-4 duration-200">
                                             <FieldWrapper label="Statut du Choix" error={errors.statut_choix?.message}>
                                                 <select
                                                     {...register('statut_choix')}
@@ -483,8 +484,8 @@ const AddClient: React.FC = () => {
 
 
                         {/* ── Section: Documents ── */}
-                        <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">3 – Documents Scannés</h2>
+                        <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                            <h2 className="text-sm font-semibold text-slate-600">3 – Documents Scannés</h2>
                         </div>
                         <div className="px-6 py-6">
                             <div className="space-y-4">
@@ -493,7 +494,7 @@ const AddClient: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-100 transition"
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-lg text-xs font-medium hover:bg-amber-100 transition"
                                     >
                                         <PlusCircle size={14} />
                                         Ajouter
@@ -513,18 +514,18 @@ const AddClient: React.FC = () => {
                                         {selectedFiles.map((file, idx) => (
                                             <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl group">
                                                 <div className="flex items-center gap-3 overflow-hidden">
-                                                    <div className="p-2 bg-white rounded-lg text-blue-500 shadow-sm">
+                                                    <div className="p-2 bg-white rounded-lg text-blue-500 shadow-sm border border-slate-200">
                                                         <FileText size={16} />
                                                     </div>
                                                     <div className="overflow-hidden">
-                                                        <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
-                                                        <p className="text-[10px] text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
+                                                        <p className="text-xs font-medium text-slate-700 truncate">{file.name}</p>
+                                                        <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(1)} KB</p>
                                                     </div>
                                                 </div>
                                                 <button
                                                     type="button"
                                                     onClick={() => removeFile(idx)}
-                                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                 >
                                                     <X size={14} />
                                                 </button>
@@ -534,31 +535,31 @@ const AddClient: React.FC = () => {
                                 ) : (
                                     <div
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="py-10 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-all"
+                                        className="py-10 border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition"
                                     >
-                                        <div className="p-3 bg-white rounded-full text-slate-400 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                                        <div className="p-3 bg-white rounded-full text-slate-400 shadow-sm border border-slate-200 transition-transform">
                                             <Upload size={24} />
                                         </div>
                                         <p className="text-xs font-medium text-slate-500">Cliquez pour ajouter des documents</p>
-                                        <p className="text-[10px] text-slate-400">PDF, JPG, PNG (Max 5MB)</p>
+                                        <p className="text-xs text-slate-400">PDF, JPG, PNG (Max 5MB)</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* ── Footer ── */}
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
                             <button
                                 type="button"
                                 onClick={() => navigate('/clients')}
-                                className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition"
+                                className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition"
                             >
                                 Annuler
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting || uploadingDocs}
-                                className="flex items-center justify-center gap-2 px-8 py-3 rounded-2xl bg-amber-600 text-white text-sm font-black uppercase tracking-widest hover:bg-amber-700 disabled:bg-slate-300 transition-all shadow-lg shadow-amber-900/10 active:scale-[0.98]"
+                                className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium disabled:bg-slate-300 transition shadow-sm active:scale-[0.98] bg-slate-900 hover:bg-slate-800"
                             >
                                 {isSubmitting || uploadingDocs ? (
                                     <><Loader2 size={16} className="animate-spin" /> {uploadingDocs ? 'Envoi des fichiers…' : 'Enregistrement…'}</>

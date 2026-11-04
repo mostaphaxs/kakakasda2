@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { exportToExcel } from '../../lib/excel';
 import { useForm } from 'react-hook-form';
+import { confirmDialog } from '../common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../../lib/usePersistedState';
 
 interface Article {
     id: number;
@@ -18,7 +20,8 @@ const Articles: React.FC = () => {
     const navigate = useNavigate();
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = usePersistedState('Articles.searchTerm', '');
+    useUrlSearch(setSearchTerm);
     const [editingArticle, setEditingArticle] = useState<Article | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -66,7 +69,7 @@ const Articles: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Supprimer cet article ?')) return;
+        if (!await confirmDialog('Supprimer cet article ?')) return;
         try {
             await apiFetch(`/articles/${id}`, { method: 'DELETE' });
             toast.success('Article supprimé');
@@ -112,89 +115,89 @@ const Articles: React.FC = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+        <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
             <div
                 ref={headerRef}
-                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1"
+                className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 mx-1"
             >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
-                            <Package className="text-indigo-600 h-8 w-8" />
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                            <Package className="text-blue-600 h-8 w-8" />
                             Catalogue des Articles
                         </h1>
-                        <p className="text-gray-500 text-sm font-medium">Gérez votre référentiel de matériaux et fournitures.</p>
+                        <p className="text-slate-500 text-sm font-medium">Gérez votre référentiel de matériaux et fournitures.</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button onClick={handleExport} className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition font-black text-xs uppercase tracking-widest">
+                        <button onClick={handleExport} className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition font-medium text-sm">
                             <Download size={18} />
                             Exporter
                         </button>
-                        <button onClick={() => navigate('/add-article')} className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition font-black shadow-lg shadow-indigo-100 text-xs uppercase tracking-widest">
+                        <button onClick={() => navigate('/add-article')} className="flex items-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium shadow-sm text-sm bg-slate-900 hover:bg-slate-800">
                             <PlusCircle size={18} />
                             Nouveau
                         </button>
                     </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-50">
+                <div className="pt-4 border-t border-slate-50">
                     <div className="relative max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                         <input
                             type="text"
                             placeholder="Rechercher par désignation, code, catégorie..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
                 <table className="w-full text-sm text-left">
                     <thead
-                        className="sticky z-20 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                        className="sticky z-20 bg-white border-b border-slate-200"
                         style={{ top: `${stickyOffset}px` }}
                     >
                         <tr>
-                            <th className="px-6 py-4">Code</th>
-                            <th className="px-6 py-4">Désignation</th>
-                            <th className="px-6 py-4">Catégorie</th>
-                            <th className="px-6 py-4">Unité</th>
-                            <th className="px-6 py-4 text-right">Actions</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Code</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Désignation</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Catégorie</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Unité</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                         {loading ? (
-                            <tr><td colSpan={5} className="p-10 text-center text-gray-400 italic font-medium">Chargement du catalogue...</td></tr>
+                            <tr><td colSpan={5} className="p-10 text-center text-slate-400 font-medium">Chargement du catalogue...</td></tr>
                         ) : filtered.length === 0 ? (
-                            <tr><td colSpan={5} className="p-10 text-center text-gray-400 italic font-medium">Aucun article trouvé.</td></tr>
+                            <tr><td colSpan={5} className="p-10 text-center text-slate-400 font-medium">Aucun article trouvé.</td></tr>
                         ) : filtered.map(art => (
-                            <tr key={art.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                <td className="px-6 py-4 font-mono text-[11px] font-black text-indigo-600 uppercase tracking-wider">{art.code}</td>
-                                <td className="px-6 py-4 font-black text-gray-800 uppercase tracking-tight">{art.name}</td>
-                                <td className="px-6 py-4">
-                                    <span className="px-2.5 py-1 text-[9px] font-black uppercase rounded-md bg-gray-100 text-gray-500 border border-gray-200">
+                            <tr key={art.id} className="hover:bg-slate-50 transition-colors group">
+                                <td className="px-4 py-3 font-mono text-xs font-semibold text-blue-600">{art.code}</td>
+                                <td className="px-4 py-3 font-semibold text-slate-800 tracking-tight">{art.name}</td>
+                                <td className="px-4 py-3">
+                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">
                                         {art.category}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 font-bold text-gray-400 text-xs">{art.unit}</td>
-                                <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <td className="px-4 py-3 font-medium text-slate-400 text-xs">{art.unit}</td>
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex items-center md:transition-opacity justify-end gap-0.5">
                                         <button
                                             onClick={() => handleEdit(art)}
-                                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                             title="Modifier"
                                         >
-                                            <Edit2 size={18} />
+                                            <Edit2 size={16} />
                                         </button>
                                         <button
                                             onClick={() => handleDelete(art.id)}
-                                            className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
                                             title="Supprimer"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </td>
@@ -206,39 +209,39 @@ const Articles: React.FC = () => {
 
             {/* Edit Modal */}
             {isEditModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
-                            <h3 className="font-black text-gray-800 text-base uppercase tracking-widest">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
+                            <h3 className="font-semibold text-slate-800 text-base">
                                 Modifier Article
                             </h3>
-                            <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                                <X size={20} />
+                            <button onClick={() => setIsEditModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit(onSubmitUpdate)} className="p-8 space-y-6">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                    <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
                                         <Tag size={12} className="mr-2" /> Désignation
                                     </label>
-                                    <input {...register('name', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 transition-all font-bold text-sm outline-none shadow-sm" />
+                                    <input {...register('name', { required: true })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                        <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
                                             <Package size={12} className="mr-2" /> Catégorie
                                         </label>
-                                        <select {...register('category', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 transition-all font-bold text-sm outline-none shadow-sm">
+                                        <select {...register('category', { required: true })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500">
                                             {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                        <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
                                             <Ruler size={12} className="mr-2" /> Unité
                                         </label>
-                                        <select {...register('unit', { required: true })} className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-indigo-600 transition-all font-bold text-sm outline-none shadow-sm">
+                                        <select {...register('unit', { required: true })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500">
                                             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
                                     </div>
@@ -248,7 +251,7 @@ const Articles: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full h-14 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl flex items-center justify-center space-x-3 shadow-indigo-100"
+                                className="w-full h-11 text-white rounded-lg font-medium transition shadow-sm flex items-center justify-center space-x-3 text-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 <Save size={20} />
                                 <span>{isSubmitting ? 'Mise à jour...' : 'Confirmer les modifications'}</span>

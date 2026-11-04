@@ -22,9 +22,8 @@ interface TerrainFormInputs {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const inputCls = (hasError?: boolean) =>
-    `w-full px-4 py-2.5 rounded-lg border text-sm text-slate-800 bg-white placeholder-slate-400
-   focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition
-   ${hasError ? 'border-red-400 focus:ring-red-400' : 'border-slate-300'}`;
+    `w-full placeholder-slate-400 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500
+   ${hasError ? '!border-red-400 focus:ring-red-400' : 'border-slate-300'}`;
 
 const FieldWrapper = ({ label, error, fieldError, hint, children }: {
     label: string; error?: string; fieldError?: string[]; hint?: string; children: React.ReactNode;
@@ -33,7 +32,7 @@ const FieldWrapper = ({ label, error, fieldError, hint, children }: {
         <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
         {children}
         {hint && !error && !fieldError && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
-        {fieldError && <p className="mt-1 text-[10px] text-red-500 font-bold">{fieldError[0]}</p>}
+        {fieldError && <p className="mt-1 text-xs text-red-500 font-medium">{fieldError[0]}</p>}
         {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
 );
@@ -117,30 +116,30 @@ const EditTerrain: React.FC = () => {
 
     // ── Render ──────────────────────────────────────────────────────────────────
     return (
-        <div className="min-h-screen bg-gray-50 py-6 px-4">
+        <div className="min-h-screen bg-slate-50 py-6 px-4">
             <div className="max-w-6xl mx-auto">
 
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center mb-6 justify-end gap-0.5">
                     <button
                         onClick={() => navigate('/terrains')}
-                        className="p-2 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                         title="Retour"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
                         <MapPin className="text-blue-600" size={26} />
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-800">Modifier le Projet #{id}</h1>
-                            <p className="text-xs text-gray-400">Mettre à jour les informations foncières</p>
+                            <h1 className="text-2xl font-bold text-slate-800">Modifier le Projet #{id}</h1>
+                            <p className="text-xs text-slate-400">Mettre à jour les informations foncières</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Error banner */}
                 {serverError && (
-                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border border-red-200">
+                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border !border-red-200">
                         <span className="mt-0.5">⚠️</span>
                         <span>{serverError}</span>
                     </div>
@@ -151,11 +150,11 @@ const EditTerrain: React.FC = () => {
                     {/* ──── Left Column: Form (8 cols) ──── */}
                     <div className="lg:col-span-8 space-y-8 pb-12">
                         <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
 
                                 {/* ── Section: Identification ── */}
-                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
-                                    <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Identification du Projet</h2>
+                                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/60">
+                                    <h2 className="text-sm font-semibold text-slate-600">Identification du Projet</h2>
                                 </div>
                                 <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5 text-left">
                                     <div className="sm:col-span-2">
@@ -214,18 +213,18 @@ const EditTerrain: React.FC = () => {
                                 </div>
 
                                 {/* ── Footer ── */}
-                                <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex flex-col-reverse sm:flex-row justify-end gap-3">
                                     <button
                                         type="button"
                                         onClick={() => navigate('/terrains')}
-                                        className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-100 transition"
+                                        className="px-4 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:bg-indigo-300 transition shadow-md hover:shadow-lg"
+                                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium disabled:bg-indigo-300 transition shadow-sm hover:shadow-md bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmitting ? (
                                             <><Loader2 size={16} className="animate-spin" /> Mise à jour…</>
@@ -242,7 +241,7 @@ const EditTerrain: React.FC = () => {
                     <div className="lg:col-span-4 space-y-8 sticky top-8">
 
                         {/* Media Management - Photos */}
-                        <div className="bg-white border border-slate-200 shadow-xl p-6 rounded-xl space-y-6">
+                        <div className="bg-white border border-slate-200 shadow-sm p-6 rounded-xl space-y-6">
                             <MediaManager
                                 modelType="Terrain"
                                 modelId={id || ''}
@@ -252,7 +251,7 @@ const EditTerrain: React.FC = () => {
                         </div>
 
                         {/* Media Management - Documents */}
-                        <div className="bg-white border border-slate-200 shadow-xl p-6 rounded-xl space-y-6">
+                        <div className="bg-white border border-slate-200 shadow-sm p-6 rounded-xl space-y-6">
                             <MediaManager
                                 modelType="Terrain"
                                 modelId={id || ''}

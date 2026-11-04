@@ -170,3 +170,8 @@ export const parseDate = (dateStr: string | null | undefined): Date => {
     const d = new Date(dateStr);
     return isNaN(d.getTime()) ? new Date() : d;
 };
+
+
+/** YYYY-MM-DD in local time (toISOString() is UTC and can shift the day). */
+export const localISODate = (d: Date = new Date()): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

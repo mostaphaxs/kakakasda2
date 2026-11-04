@@ -22,6 +22,11 @@ class payments extends Model
         'notes',
         'status',
         'refund_amount',
+        'cheque_status',
+        'cheque_deposited_at',
+        'cheque_cashed_at',
+        'cheque_rejected_at',
+        'cheque_reject_reason',
     ];
 
     protected $casts = [

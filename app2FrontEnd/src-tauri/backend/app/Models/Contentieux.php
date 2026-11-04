@@ -26,6 +26,7 @@ class Contentieux extends Model
         'judicial_fees_scan_path',
         'commissaire_nom',
         'commissaire_fees',
-        'commissaire_scan_path'
+        'commissaire_scan_path',
+        'next_hearing_date',
     ];
 }

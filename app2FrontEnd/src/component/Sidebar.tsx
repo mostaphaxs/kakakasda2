@@ -4,13 +4,21 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck, History, Scale, Building
+    ChevronRight, BarChart3, UserCheck, History, Scale, Building, CalendarClock, Search, LayoutGrid, Banknote, TrendingUp
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
 import { toast } from 'react-hot-toast';
-import { formatNumber, parseDate } from '../lib/utils';
+import NotificationBell from './common/NotificationBell';
+import { openPalette } from './common/CommandPalette';
+import { parseDate } from '../lib/utils';
+
+interface NavItem {
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    label: string;
+    path: string;
+}
 
 interface SidebarProps {
     isMobileOpen: boolean;
@@ -19,8 +27,14 @@ interface SidebarProps {
 
 
 const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
-    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        try { return localStorage.getItem('sidebarCollapsed') === '1'; } catch { return false; }
+    });
+    useEffect(() => {
+        try { localStorage.setItem('sidebarCollapsed', isCollapsed ? '1' : '0'); } catch { /* ignore */ }
+    }, [isCollapsed]);
     const [isExportOpen, setIsExportOpen] = useState(false);
+    const [tooltip, setTooltip] = useState<{ label: string; top: number; left: number } | null>(null);
     const [user, setUser] = useState<{ name: string; email: string } | null>(null);
 
     const navigate = useNavigate();
@@ -63,34 +77,65 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     }, []);
 
     const handleLogout = () => {
+        const collapsedPref = localStorage.getItem('sidebarCollapsed');
         localStorage.clear();
+        if (collapsedPref) localStorage.setItem('sidebarCollapsed', collapsedPref);
         setUser(null);
         navigate('/login');
         window.location.reload();
     };
 
 
-    const navItems = [
-        { icon: Home, label: 'Accueil', path: '/home' },
-        { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
-        { icon: History, label: 'Historique', path: '/transactions' },
-        { icon: MapPin, label: 'Projets', path: '/terrains' },
-        { icon: Building2, label: 'Biens', path: '/properties' },
-        { icon: Users, label: 'Intervenants', path: '/intervenants' },
-        { icon: UserPlus, label: 'Clients', path: '/clients' },
-        { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
-        { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
-        { icon: HardHat, label: 'Construction', path: '/contractors' },
-        { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
-        { icon: WalletCards, label: 'Charges', path: '/charges' },
-        { icon: Package, label: 'Catalogue Articles', path: '/articles' },
-        { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
-        { icon: Building, label: 'Sociétés Services', path: '/services-tiers' },
-        { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
-        { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
-        { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
-        { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
-        { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
+    const navGroups: { title: string; items: NavItem[] }[] = [
+        {
+            title: 'Général',
+            items: [
+                { icon: Home, label: 'Accueil', path: '/home' },
+                { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
+                { icon: History, label: 'Historique', path: '/transactions' },
+            ],
+        },
+        {
+            title: 'Immobilier',
+            items: [
+                { icon: MapPin, label: 'Projets', path: '/terrains' },
+                { icon: Building2, label: 'Biens', path: '/properties' },
+                { icon: LayoutGrid, label: 'Disponibilités', path: '/disponibilites' },
+                { icon: UserPlus, label: 'Clients', path: '/clients' },
+                { icon: CalendarClock, label: 'Échéancier', path: '/echeancier' },
+                { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
+            ],
+        },
+        {
+            title: 'Chantier & Équipes',
+            items: [
+                { icon: HardHat, label: 'Construction', path: '/contractors' },
+                { icon: Users, label: 'Intervenants', path: '/intervenants' },
+                { icon: UserCheck, label: 'Gestion Ouvriers', path: '/workers' },
+                { icon: Users, label: 'Gestion Salariés', path: '/salaries' },
+                { icon: Wrench, label: 'Travaux Généraux', path: '/travaux' },
+            ],
+        },
+        {
+            title: 'Achats & Stock',
+            items: [
+                { icon: Package, label: 'Catalogue Articles', path: '/articles' },
+                { icon: Truck, label: 'Fournisseurs', path: '/suppliers' },
+                { icon: ShoppingCart, label: 'Achats / Entrées', path: '/achats' },
+                { icon: LogOut, label: 'Sortie Stock', path: '/add-stock-exit' },
+                { icon: Layers, label: 'Inventaire Stock', path: '/stock' },
+            ],
+        },
+        {
+            title: 'Finance',
+            items: [
+                { icon: Banknote, label: 'Chèques clients', path: '/cheques' },
+                { icon: TrendingUp, label: 'Rentabilité', path: '/rentabilite' },
+                { icon: WalletCards, label: 'Charges', path: '/charges' },
+                { icon: Building, label: 'Sociétés Services', path: '/services-tiers' },
+                { icon: FileText, label: 'Liste Factures', path: '/factures-list' },
+            ],
+        },
     ];
 
     const exportItems = [
@@ -217,88 +262,129 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
 
     if (!token) return null;
 
+    const go = (path: string) => { navigate(path); setIsMobileOpen(false); setTooltip(null); };
+
+    // Collapsed-mode labels are rendered with fixed positioning so the
+    // scrollable nav container doesn't clip them.
+    const showTooltip = (e: React.MouseEvent<HTMLElement>, label: string) => {
+        if (!isCollapsed) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        setTooltip({ label, top: r.top + r.height / 2, left: r.right + 12 });
+    };
+
+    const NavButton = ({ item, active }: { item: NavItem; active: boolean }) => (
+        <button
+            onClick={() => go(item.path)}
+            onMouseEnter={(e) => showTooltip(e, item.label)}
+            onMouseLeave={() => setTooltip(null)}
+            className={`
+                group/nav relative w-full flex items-center gap-3 rounded-lg text-[11.4px] font-medium transition-colors
+                ${isCollapsed ? 'justify-center h-10' : 'px-3 h-9'}
+                ${active
+                    ? 'bg-white/[0.07] text-white'
+                    : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-100'}
+            `}
+            aria-current={active ? 'page' : undefined}
+        >
+            {active && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-brand-500" />}
+            <item.icon size={17} className={`flex-shrink-0 transition-colors ${active ? 'text-brand-400' : 'text-slate-500 group-hover/nav:text-slate-300'}`} />
+            {!isCollapsed && <span className="truncate whitespace-nowrap">{item.label}</span>}
+        </button>
+    );
+
     return (
         <>
             {/* Mobile Overlay */}
             {isMobileOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 z-[120] lg:hidden" onClick={() => setIsMobileOpen(false)} />
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-[120] lg:hidden animate-fade-in" onClick={() => setIsMobileOpen(false)} />
             )}
 
             {/* Sidebar */}
             <aside
                 className={`
-                    fixed top-0 left-0 h-full bg-[#1e293b] text-slate-300 z-[130] 
-                    border-r border-slate-800 transition-all duration-300 flex flex-col
+                    fixed top-0 left-0 h-full bg-sidebar text-slate-300 z-[130]
+                    border-r border-sidebar-border transition-all duration-300 flex flex-col
                     ${isCollapsed ? 'w-20' : 'w-[260px]'}
                     ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 `}
             >
                 {/* Logo Section */}
-                <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800/50 flex-shrink-0">
+                <div className={`h-16 flex items-center border-b border-white/[0.06] flex-shrink-0 ${isCollapsed ? 'justify-center px-2' : 'justify-between px-5'}`}>
                     {!isCollapsed && (
-                        <div className="flex items-center gap-3 overflow-hidden">
-                            <img src="/assets/LogoNavbar.png" alt="" className="h-7 w-auto flex-shrink-0" />
-                            <span className="font-semibold text-white tracking-tight text-sm truncate">CINQ ÉLÉMENTS</span>
-                        </div>
+                        <button onClick={() => go('/home')} className="flex items-center gap-3 overflow-hidden">
+                            <img src="/assets/LogoNavbar.webp" alt="" className="h-8 w-auto flex-shrink-0" />
+                            <div className="flex flex-col leading-tight text-left min-w-0">
+                                <span className="font-semibold text-white tracking-tight text-sm truncate">Cinq Éléments</span>
+                                <span className="text-[8.8px] text-slate-500 font-medium truncate">Gestion immobilière</span>
+                            </div>
+                        </button>
                     )}
+                    {!isCollapsed && <div className="ml-auto mr-1 hidden lg:block"><NotificationBell /></div>}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="p-1 hover:text-white transition-colors lg:block hidden flex-shrink-0 ml-auto"
+                        className="p-1.5 rounded-md text-slate-500 hover:text-white hover:bg-white/[0.06] transition-colors lg:block hidden flex-shrink-0"
+                        title={isCollapsed ? 'Déplier le menu' : 'Replier le menu'}
                     >
                         {isCollapsed ? <ChevronRight size={18} /> : <Menu size={18} />}
                     </button>
-                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden flex-shrink-0 ml-auto">
+                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden flex-shrink-0 p-1.5 rounded-md hover:bg-white/[0.06]">
                         <X size={20} />
                     </button>
                 </div>
 
-                {/* Main Content */}
-                <div className="flex-grow flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar-white">
-
-
-                    {/* Navigation Items */}
-                    <nav className="space-y-1 px-1">
-                        {navItems.map((item) => {
-                            const isActive = location.pathname === item.path;
-                            return (
-                                <button
-                                    key={item.path}
-                                    onClick={() => { navigate(item.path); setIsMobileOpen(false); }}
-                                    className={`
-                                        w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
-                                        ${isActive
-                                            ? 'bg-slate-800 text-white'
-                                            : 'hover:bg-slate-800/50 hover:text-white'}
-                                    `}
-                                >
-                                    <item.icon size={18} className={`flex-shrink-0 ${isActive ? 'text-amber-500' : ''}`} />
-                                    {!isCollapsed && <span className="truncate whitespace-nowrap">{item.label}</span>}
-                                </button>
-                            );
-                        })}
+                {/* Navigation */}
+                <div className={`flex-grow flex flex-col py-4 overflow-y-auto overflow-x-hidden custom-scrollbar-white ${isCollapsed ? 'px-2' : 'px-3'}`}>
+                    {/* Search / command palette */}
+                    {isCollapsed ? (
+                        <div className="flex flex-col items-center gap-1 mb-4">
+                            <NotificationBell compact />
+                            <button onClick={() => openPalette()} onMouseEnter={(e) => showTooltip(e, 'Rechercher (Ctrl+K)')} onMouseLeave={() => setTooltip(null)}
+                                className="w-10 h-10 inline-flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06]">
+                                <Search size={17} />
+                            </button>
+                        </div>
+                    ) : (
+                        <button onClick={() => openPalette()} className="mb-4 w-full flex items-center gap-2.5 h-9 px-3 rounded-lg bg-white/[0.05] ring-1 ring-inset ring-white/[0.06] text-slate-400 hover:text-slate-200 hover:bg-white/[0.08] transition-colors text-[11.4px]">
+                            <Search size={15} />
+                            <span className="flex-1 text-left">Rechercher…</span>
+                            <kbd className="text-[10px] font-medium text-slate-500 border border-white/10 rounded px-1.5 py-0.5">Ctrl K</kbd>
+                        </button>
+                    )}
+                    <nav className="space-y-5">
+                        {navGroups.map((group, gi) => (
+                            <div key={group.title}>
+                                {isCollapsed
+                                    ? gi > 0 && <div className="mx-3 mb-3 border-t border-white/[0.06]" />
+                                    : <p className="px-3 mb-1.5 text-[8.8px] font-semibold text-slate-500 uppercase tracking-[0.12em]">{group.title}</p>}
+                                <div className="space-y-0.5">
+                                    {group.items.map(item => (
+                                        <NavButton key={item.path} item={item} active={location.pathname === item.path} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </nav>
 
-                    <div className="mt-6 mb-2 border-t border-slate-800/50 pt-4 px-3">
-                        {!isCollapsed && <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Outils</span>}
-                    </div>
-
-                    {/* Simple Export Dropdown */}
-                    <div className="px-1" ref={exportDropdownRef}>
+                    {/* Export */}
+                    <div className="mt-5 pt-4 border-t border-white/[0.06]" ref={exportDropdownRef}>
+                        {!isCollapsed && <p className="px-3 mb-1.5 text-[8.8px] font-semibold text-slate-500 uppercase tracking-[0.12em]">Outils</p>}
                         <button
-                            onClick={() => setIsExportOpen(!isExportOpen)}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-slate-800/50 hover:text-white transition-all text-sm font-medium"
+                            onClick={() => isCollapsed ? setIsCollapsed(false) : setIsExportOpen(!isExportOpen)}
+                            className={`w-full flex items-center gap-3 rounded-lg text-[11.4px] font-medium text-slate-400 hover:bg-white/[0.04] hover:text-slate-100 transition-colors ${isCollapsed ? 'justify-center h-10' : 'px-3 h-9'}`}
+                            onMouseEnter={(e) => showTooltip(e, 'Exporter')}
+                            onMouseLeave={() => setTooltip(null)}
                         >
-                            <Download size={18} />
+                            <Download size={17} className="text-slate-500 flex-shrink-0" />
                             {!isCollapsed && <span>Exporter</span>}
                             {!isCollapsed && <ChevronDown size={14} className={`ml-auto transition-transform ${isExportOpen ? 'rotate-180' : ''}`} />}
                         </button>
                         {isExportOpen && !isCollapsed && (
-                            <div className="mt-1 ml-6 space-y-1">
+                            <div className="mt-1 ml-[22px] pl-3 border-l border-white/[0.08] space-y-0.5 animate-fade-in">
                                 {exportItems.map((item) => (
                                     <button
                                         key={item.endpoint}
                                         onClick={() => handleGlobalExport(item)}
-                                        className={`w-full flex items-center gap-2 text-left px-3 py-2 text-xs transition-colors ${item.endpoint === 'all' ? 'text-emerald-400 hover:text-emerald-300 font-bold' : 'text-slate-400 hover:text-white'}`}
+                                        className={`w-full flex items-center gap-2 text-left px-2.5 py-1.5 rounded-md text-xs transition-colors ${item.endpoint === 'all' ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 font-semibold' : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'}`}
                                     >
                                         {item.endpoint === 'all' && <Database size={12} />}
                                         {item.label}
@@ -309,46 +395,46 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                     </div>
                 </div>
 
-                {/* Bottom Section: Profile & Settings */}
-                <div className="mt-auto p-3 border-t border-slate-800/50 space-y-1 flex-shrink-0">
-                    <button
-                        onClick={() => { navigate('/property-pricing'); setIsMobileOpen(false); }}
-                        className={`
-                            w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
-                            ${location.pathname === '/property-pricing' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}
-                        `}
-                    >
-                        <Settings2 size={18} />
-                        {!isCollapsed && <span>Configuration</span>}
-                    </button>
+                {/* Bottom Section: Settings & Profile */}
+                <div className={`mt-auto border-t border-white/[0.06] space-y-0.5 flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-3'}`}>
+                    <NavButton item={{ icon: Settings2, label: 'Configuration', path: '/property-pricing' }} active={location.pathname === '/property-pricing'} />
 
-                    <button
-                        onClick={() => { navigate('/profile'); setIsMobileOpen(false); }}
-                        className={`
-                            w-full flex items-center gap-3 px-3 py-2 rounded-md transition-all text-sm font-medium
-                            ${location.pathname === '/profile' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800/50 hover:text-white'}
-                        `}
-                    >
-                        <div className="w-6 h-6 rounded bg-slate-700 flex items-center justify-center text-[10px] uppercase font-bold text-white flex-shrink-0">
-                            {user?.name?.charAt(0) || 'U'}
-                        </div>
-                        {!isCollapsed && (
-                            <div className="flex flex-col min-w-0 flex-1 text-left">
-                                <span className="truncate text-sm">{user?.name || 'Profil'}</span>
-                                <span className="truncate text-[10px] text-slate-500">{user?.email}</span>
+                    <div className={`flex items-center gap-2 mt-2 rounded-lg ${location.pathname === '/profile' ? 'bg-white/[0.07]' : ''} ${isCollapsed ? 'flex-col' : ''}`}>
+                        <button
+                            onClick={() => go('/profile')}
+                            className={`flex items-center gap-3 min-w-0 flex-1 rounded-lg hover:bg-white/[0.04] transition-colors ${isCollapsed ? 'justify-center p-1.5' : 'p-2'}`}
+                            onMouseEnter={(e) => showTooltip(e, user?.name || 'Profil')}
+                            onMouseLeave={() => setTooltip(null)}
+                        >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-700 flex items-center justify-center text-xs uppercase font-bold text-white flex-shrink-0 ring-2 ring-white/10">
+                                {user?.name?.charAt(0) || 'U'}
                             </div>
-                        )}
-                    </button>
-
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-950/20 transition-all text-sm font-medium"
-                    >
-                        <LogOut size={18} />
-                        {!isCollapsed && <span>Déconnexion</span>}
-                    </button>
+                            {!isCollapsed && (
+                                <div className="flex flex-col min-w-0 flex-1 text-left">
+                                    <span className="truncate text-[11.4px] font-medium text-slate-100">{user?.name || 'Profil'}</span>
+                                    <span className="truncate text-[9.7px] text-slate-500">{user?.email}</span>
+                                </div>
+                            )}
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors flex-shrink-0"
+                            title="Déconnexion"
+                        >
+                            <LogOut size={17} />
+                        </button>
+                    </div>
                 </div>
             </aside>
+
+            {isCollapsed && tooltip && (
+                <div
+                    className="fixed z-[140] -translate-y-1/2 px-2.5 py-1.5 rounded-md bg-slate-800 text-white text-xs font-medium whitespace-nowrap shadow-lg ring-1 ring-white/10 pointer-events-none animate-fade-in"
+                    style={{ top: tooltip.top, left: tooltip.left }}
+                >
+                    {tooltip.label}
+                </div>
+            )}
         </>
     );
 };

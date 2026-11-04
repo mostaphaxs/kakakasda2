@@ -33,7 +33,8 @@ class MediaController extends Controller
             'file'       => 'required|file|max:51200', // max 50MB
             'model_type' => 'required|string',
             'model_id'   => 'required|integer',
-            'category'   => 'required|string|in:photo,document',
+            'category'   => 'required|string|in:photo,document,avancement',
+            'caption'    => 'nullable|string|max:120',
         ]);
 
         if (!$request->hasFile('file')) {
@@ -65,6 +66,7 @@ class MediaController extends Controller
             'file_size'  => $file->getSize(),
             'file_type'  => $file->getMimeType(),
             'category'   => $request->category,
+            'caption'    => $request->input('caption'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);

@@ -1,12 +1,14 @@
 // Terrains.tsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Plus, Loader2, Trash2, X, Search, Download, FileText, Edit2, Briefcase } from 'lucide-react';
+import { MapPin, Plus, Trash2, X, Search, Download, FileText, Edit2, Map as MapIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
 import { parseDate } from '../lib/utils';
 import MediaManager from './media/MediaManager';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
 
 interface Terrain {
     id: number;
@@ -31,7 +33,8 @@ const Terrains = () => {
     const navigate = useNavigate();
     const [terrains, setTerrains] = useState<Terrain[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = usePersistedState('Terrains.searchTerm', '');
+    useUrlSearch(setSearchTerm);
 
     // Modals State
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -53,7 +56,7 @@ const Terrains = () => {
     }, []);
 
     const handleDeleteTerrain = async (id: number) => {
-        if (!window.confirm('Supprimer ce projet ?')) return;
+        if (!await confirmDialog('Supprimer ce projet ?')) return;
         try {
             await apiFetch(`/terrains/${id}`, { method: 'DELETE' });
             toast.success('Projet supprimé');
@@ -106,20 +109,20 @@ const Terrains = () => {
 
     return (
         <div className="space-y-6">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
+            <div className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
-                        <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                             <MapPin className="text-blue-600" size={32} />
                             Gestion des Projets
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-semibold">Société les cinq elements</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest border border-slate-200 active:scale-[0.98]"
+                            className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition font-medium text-sm border border-slate-200 active:scale-[0.98]"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
@@ -128,7 +131,7 @@ const Terrains = () => {
 
                         <button
                             onClick={() => navigate('/add-terrain')}
-                            className="flex items-center gap-2 bg-amber-600 text-white px-8 py-3.5 rounded-2xl hover:bg-amber-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98]"
+                            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition font-medium text-sm shadow-sm active:scale-[0.98] bg-slate-900 hover:bg-slate-800"
                         >
                             <Plus size={18} />
                             Nouveau Projet
@@ -145,13 +148,13 @@ const Terrains = () => {
                             placeholder="Recherche par Projet, TF..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black uppercase tracking-tight text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none transition-all placeholder:text-slate-300"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                     </div>
 
                     <button
                         onClick={resetFilters}
-                        className="w-full text-slate-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-100 rounded-2xl py-3 hover:bg-slate-50"
+                        className="w-full text-slate-400 hover:text-blue-600 text-sm font-medium flex items-center justify-center gap-2 transition border border-slate-100 rounded-lg py-2.5 hover:bg-slate-50"
                     >
                         <X size={14} />
                         Réinitialiser
@@ -159,46 +162,51 @@ const Terrains = () => {
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                    <thead className="bg-white border-b border-slate-200">
                         <tr>
-                            <th className="px-6 py-4 rounded-tl-xl flex-1 whitespace-nowrap">Désignation</th>
-                            <th className="px-6 py-4 rounded-tr-xl flex-shrink-0 text-right whitespace-nowrap">Actions</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Projet</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Terrain d'origine</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">N° Titre Foncier</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Acquisition</th>
+                            <th className="whitespace-nowrap text-right px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                         {loading ? (
-                            <tr>
-                                <td colSpan={4} className="py-20 text-center text-gray-400">
-                                    <Loader2 className="animate-spin inline-block mb-2" size={32} />
-                                    <p className="italic">Chargement des projets...</p>
-                                </td>
-                            </tr>
+                            Array.from({ length: 3 }).map((_, i) => (
+                                <tr key={i}>
+                                    <td colSpan={5} className="px-4 py-3">
+                                        <div className="h-4 w-1/3 rounded bg-slate-100 animate-pulse" />
+                                    </td>
+                                </tr>
+                            ))
                         ) : filteredTerrains.length > 0 ? (
                             filteredTerrains.map((t) => (
-                                <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-6 py-4 flex-1">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-800 text-sm">{t.nom_projet || `Projet #${t.id}`}</span>
-                                            {t.nom_terrain && <p className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">Origine: {t.nom_terrain}</p>}
-                                            <span className="text-[11px] text-gray-500 font-bold uppercase tracking-widest mt-1">
-                                                {t.numero_TF ? `TF: ${t.numero_TF}` : ''}
-                                            </span>
-                                        </div>
+                                <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3">
+                                        <button onClick={() => handleOpenDetails(t)} className="font-medium text-slate-900 hover:underline underline-offset-2 text-left">
+                                            {t.nom_projet || `Projet #${t.id}`}
+                                        </button>
                                     </td>
-                                    <td className="px-6 py-4 text-right flex-shrink-0">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleOpenDetails(t)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Détails">
+                                    <td className="px-4 py-3 text-slate-600 capitalize">{t.nom_terrain || <span className="text-slate-300">—</span>}</td>
+                                    <td className="px-4 py-3 text-slate-600 tabular-nums">{t.numero_TF || <span className="text-slate-300">—</span>}</td>
+                                    <td className="px-4 py-3 text-slate-600 tabular-nums">
+                                        {t.created_at ? parseDate(t.created_at).toLocaleDateString('fr-FR') : <span className="text-slate-300">—</span>}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex items-center justify-end gap-0.5">
+                                            <button onClick={() => handleOpenDetails(t)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Détails">
                                                 <FileText size={16} />
                                             </button>
-                                            <button onClick={() => navigate(`/terrain-map/${t.id}`)} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors" title="Voir la Carte Interactive">
-                                                <Briefcase size={16} />
+                                            <button onClick={() => navigate(`/terrain-map/${t.id}`)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Voir la carte interactive">
+                                                <MapIcon size={16} />
                                             </button>
-                                            <button onClick={() => navigate(`/edit-terrain/${t.id}`)} className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Modifier">
+                                            <button onClick={() => navigate(`/edit-terrain/${t.id}`)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
                                                 <Edit2 size={16} />
                                             </button>
-                                            <button onClick={() => handleDeleteTerrain(t.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                                            <button onClick={() => handleDeleteTerrain(t.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50" title="Supprimer">
                                                 <Trash2 size={16} />
                                             </button>
                                         </div>
@@ -207,7 +215,7 @@ const Terrains = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} className="py-20 text-center text-gray-400 italic">Aucun projet enregistré.</td>
+                                <td colSpan={5} className="py-16 text-center text-slate-400">Aucun projet enregistré.</td>
                             </tr>
                         )}
                     </tbody>
@@ -217,42 +225,42 @@ const Terrains = () => {
             {/* Details Modal */}
             {
                 isDetailsModalOpen && selectedTerrain && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                 <div>
-                                    <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest">
+                                    <h3 className="font-semibold text-slate-800 text-lg">
                                         {selectedTerrain.nom_projet || `Projet #${selectedTerrain.id}`}
                                     </h3>
-                                    {selectedTerrain.nom_terrain && <p className="text-sm text-gray-500 font-medium mb-1">Projet d'origine: {selectedTerrain.nom_terrain}</p>}
-                                    <p className="text-[10px] font-bold text-gray-400">
+                                    {selectedTerrain.nom_terrain && <p className="text-sm text-slate-500 font-medium mb-1">Projet d'origine: {selectedTerrain.nom_terrain}</p>}
+                                    <p className="text-xs font-medium text-slate-400">
                                         {selectedTerrain.numero_TF ? `TITRE FONCIER: ${selectedTerrain.numero_TF} • ` : ''}DÉTAILS COMPLETS DU DOSSIER FONCIER
                                     </p>
                                 </div>
-                                <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                    <X size={20} />
+                                <button onClick={() => setIsDetailsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
 
                             <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
                                 {/* Key Stats */}
                                 <div className="grid grid-cols-1 gap-4">
-                                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-center">
-                                        <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Dossier TF</p>
-                                        <p className="text-lg font-black text-blue-700">{selectedTerrain.numero_TF || '-'}</p>
+                                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-center">
+                                        <p className="text-xs font-medium text-blue-400 mb-1">Dossier TF</p>
+                                        <p className="text-lg font-semibold text-blue-700">{selectedTerrain.numero_TF || '-'}</p>
                                     </div>
                                 </div>
 
                                 {selectedTerrain.description && (
                                     <div className="mt-4">
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-3 tracking-widest">Observations / Description</label>
-                                        <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                                            <p className="text-sm text-gray-600 leading-relaxed italic">{selectedTerrain.description}</p>
+                                        <label className="text-xs font-medium block mb-3 text-slate-600">Observations / Description</label>
+                                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                            <p className="text-sm text-slate-600 leading-relaxed">{selectedTerrain.description}</p>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-1 gap-6 pt-4 border-t border-gray-100">
+                                <div className="grid grid-cols-1 gap-6 pt-4 border-t border-slate-100">
                                     {/* Media Management - Photos */}
                                     <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl">
                                         <MediaManager
@@ -275,17 +283,17 @@ const Terrains = () => {
                                 </div>
                             </div>
 
-                            <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+                            <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
                                 <button
                                     onClick={() => {
                                         setIsDetailsModalOpen(false);
                                         navigate(`/edit-terrain/${selectedTerrain.id}`);
                                     }}
-                                    className="flex-grow py-3 bg-indigo-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-colors"
+                                    className="flex-grow py-2 text-white rounded-lg font-medium text-sm transition-colors bg-slate-900 hover:bg-slate-800"
                                 >
                                     Modifier ces informations
                                 </button>
-                                <button onClick={() => setIsDetailsModalOpen(false)} className="px-6 py-3 bg-white border border-gray-200 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-gray-50 transition-colors">
+                                <button onClick={() => setIsDetailsModalOpen(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors">
                                     Fermer
                                 </button>
                             </div>

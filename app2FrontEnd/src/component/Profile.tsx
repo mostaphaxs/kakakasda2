@@ -149,37 +149,37 @@ const Profile: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-8 duration-500">
             {/* Header */}
             <div>
-                <h2 className="text-3xl font-black text-gray-800 uppercase tracking-tight flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                     <User className="text-blue-600" size={32} />
                     Mon Profil
                 </h2>
-                <p className="text-gray-500 mt-1 font-medium italic">Gérez vos informations personnelles et la sécurité de votre compte.</p>
+                <p className="text-slate-500 mt-1 font-medium">Gérez vos informations personnelles et la sécurité de votre compte.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Profile Settings */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
-                    <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+                    <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center gap-3">
+                        <div className="hidden">
                             <Mail size={20} />
                         </div>
-                        <h3 className="font-black text-gray-800 uppercase tracking-wider text-sm">Informations Générales</h3>
+                        <h3 className="font-semibold text-slate-800 text-sm">Informations Générales</h3>
                     </div>
 
                     <form onSubmit={handleUpdateProfile} className="p-8 space-y-6">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nom Complet</label>
+                                <label className="block text-xs font-medium mb-1.5 text-slate-600">Nom Complet</label>
                                 <div className="relative group">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                                     <input
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Votre nom"
                                         required
                                     />
@@ -187,14 +187,14 @@ const Profile: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Adresse E-mail</label>
+                                <label className="block text-xs font-medium mb-1.5 text-slate-600">Adresse E-mail</label>
                                 <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={18} />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="email@exemple.com"
                                         required
                                     />
@@ -205,7 +205,7 @@ const Profile: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isSubmittingProfile}
-                            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-4 rounded-2xl hover:bg-blue-700 transition font-black text-sm uppercase tracking-widest shadow-xl shadow-blue-100 disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium text-sm shadow-sm disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                         >
                             {isSubmittingProfile ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Enregistrer les modifications</>}
                         </button>
@@ -213,25 +213,25 @@ const Profile: React.FC = () => {
                 </div>
 
                 {/* Password Settings */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
-                    <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-3">
-                        <div className="p-2 bg-red-50 text-red-600 rounded-xl">
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+                    <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center gap-3">
+                        <div className="hidden">
                             <ShieldCheck size={20} />
                         </div>
-                        <h3 className="font-black text-gray-800 uppercase tracking-wider text-sm">Sécurité du Compte</h3>
+                        <h3 className="font-semibold text-slate-800 text-sm">Sécurité du Compte</h3>
                     </div>
 
                     <form onSubmit={handleUpdatePassword} className="p-8 space-y-5">
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Mot de passe actuel</label>
+                                <label className="block text-xs font-medium mb-1.5 text-slate-600">Mot de passe actuel</label>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18} />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors" size={18} />
                                     <input
                                         type="password"
                                         value={currentPassword}
                                         onChange={(e) => setCurrentPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -239,14 +239,14 @@ const Profile: React.FC = () => {
                             </div>
 
                             <div className="pt-2">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nouveau mot de passe</label>
+                                <label className="block text-xs font-medium mb-1.5 text-slate-600">Nouveau mot de passe</label>
                                 <div className="relative group">
-                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18} />
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors" size={18} />
                                     <input
                                         type="password"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -254,14 +254,14 @@ const Profile: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Confirmer le mot de passe</label>
+                                <label className="block text-xs font-medium mb-1.5 text-slate-600">Confirmer le mot de passe</label>
                                 <div className="relative group">
-                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors" size={18} />
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-500 transition-colors" size={18} />
                                     <input
                                         type="password"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-red-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="••••••••"
                                         required
                                     />
@@ -272,7 +272,7 @@ const Profile: React.FC = () => {
                         <button
                             type="submit"
                             disabled={isSubmittingPassword}
-                            className="w-full flex items-center justify-center gap-2 bg-red-600 text-white px-6 py-4 rounded-2xl hover:bg-red-700 transition font-black text-sm uppercase tracking-widest shadow-xl shadow-red-100 disabled:opacity-50"
+                            className="w-full flex items-center justify-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium text-sm shadow-sm disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                         >
                             {isSubmittingPassword ? <Loader2 size={18} className="animate-spin" /> : <><ShieldCheck size={18} /> Mettre à jour la sécurité</>}
                         </button>
@@ -280,28 +280,28 @@ const Profile: React.FC = () => {
                 </div>
             </div>
             {/* Database Management */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
-                <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center justify-between">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300">
+                <div className="p-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                        <div className="hidden">
                             <Database size={20} />
                         </div>
-                        <h3 className="font-black text-gray-800 uppercase tracking-wider text-sm">Gestion de la base de données</h3>
+                        <h3 className="font-semibold text-slate-800 text-sm">Gestion de la base de données</h3>
                     </div>
                 </div>
 
                 <div className="p-8">
-                    <div className="bg-purple-50/50 rounded-2xl p-6 border border-purple-100 mb-6">
-                        <h4 className="text-purple-800 font-black uppercase tracking-wider text-[11px] mb-2">Importation de données</h4>
+                    <div className="bg-purple-50/50 rounded-xl p-6 border border-purple-100 mb-6">
+                        <h4 className="text-purple-800 font-semibold text-xs mb-2">Importation de données</h4>
                         <p className="text-purple-600 text-sm font-medium leading-relaxed mb-4">
                             Vous pouvez importer une base de données existante (fichier .sqlite).
-                            <span className="block mt-2 font-black text-purple-700">⚠️ Attention : Cette opération remplacera toutes vos données actuelles.</span>
+                            <span className="block mt-2 font-semibold text-purple-700">⚠️ Attention : Cette opération remplacera toutes vos données actuelles.</span>
                         </p>
 
                         <div className="pt-4 border-t border-purple-100">
-                            <h4 className="text-purple-800 font-black uppercase tracking-wider text-[10px] mb-2 opacity-70">Emplacement de la base de données actuelle :</h4>
-                            <div className="bg-white/50 p-3 rounded-xl border border-purple-200 break-all">
-                                <code className="text-[11px] font-mono font-bold text-purple-900 leading-tight">
+                            <h4 className="text-purple-800 font-semibold text-xs mb-2 opacity-70">Emplacement de la base de données actuelle :</h4>
+                            <div className="bg-white p-3 rounded-xl border border-purple-200 break-all">
+                                <code className="text-xs font-mono font-medium text-purple-900 leading-tight">
                                     {dbPath || 'Chargement du chemin...'}
                                 </code>
                             </div>
@@ -312,7 +312,7 @@ const Profile: React.FC = () => {
                         <button
                             onClick={handleImportDatabase}
                             disabled={isImporting || isExporting}
-                            className="flex items-center justify-center gap-3 bg-purple-600 text-white px-6 py-4 rounded-2xl hover:bg-purple-700 transition font-black text-sm uppercase tracking-widest shadow-xl shadow-purple-100 disabled:opacity-50"
+                            className="flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg transition font-medium text-sm shadow-sm disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                         >
                             {isImporting ? <Loader2 size={18} className="animate-spin" /> : <><Upload size={18} /> Importer (.sqlite)</>}
                         </button>
@@ -320,13 +320,13 @@ const Profile: React.FC = () => {
                         <button
                             onClick={handleExportDatabase}
                             disabled={isImporting || isExporting}
-                            className="flex items-center justify-center gap-3 bg-white text-purple-600 border-2 border-purple-100 px-6 py-4 rounded-2xl hover:bg-purple-50 transition font-black text-sm uppercase tracking-widest shadow-lg shadow-purple-50 disabled:opacity-50"
+                            className="flex items-center justify-center gap-3 bg-white text-purple-600 border-2 border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-50 transition font-medium text-sm shadow-sm disabled:opacity-50"
                         >
                             {isExporting ? <Loader2 size={18} className="animate-spin" /> : <><Download size={18} /> Sauvegarder (.sqlite)</>}
                         </button>
                     </div>
 
-                    <p className="text-center text-gray-400 text-[10px] uppercase font-bold tracking-widest mt-6 italic">
+                    <p className="text-center text-slate-400 text-xs font-medium mt-6">
                         L'importation remplacera vos données actuelles. La sauvegarde créera une copie de sécurité.
                     </p>
                 </div>

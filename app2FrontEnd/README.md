@@ -1,4 +1,4 @@
-# Project: MyAmical (Real Estate & Construction Management System)
+# Project: ImmoTrack ERP (Real Estate & Construction Management System)
 
 A comprehensive management system for real estate promotion and construction monitoring, built with a modern stack featuring a React/Tauri desktop application and a Laravel backend.
 
@@ -95,3 +95,11 @@ APP2/
 - **Data Validation**: Strict Laravel request validation and TypeScript types.
 - **Performance**: Optimized React Query caching and lazy loading of components.
 - **Exporting**: Client-side generation of documents for privacy and speed.
+
+## 📚 Detailed Documentation
+
+Comprehensive guides outlining the system architecture, API schemas, and frontend implementation are located in the main `APP2/docs` folder:
+- [Architecture Overview](../docs/architecture.md)
+- [Database Schema](../docs/database_schema.md)
+- [API Reference](../docs/api_reference.md)
+- [Frontend Guide](../docs/frontend_guide.md)

@@ -6,6 +6,8 @@ import {
 import { toast } from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { openExternal } from '../lib/tauri';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
 
 export type CourtType = 'CIVILE' | 'COMMERCIALE' | 'PENALE';
 export type CaseStage = 'PREMIERE_INSTANCE' | 'APPEL' | 'CASSATION';
@@ -15,6 +17,7 @@ export interface LegalCase {
     courtType: CourtType;
     fileNumber: string;
     date: string;
+    next_hearing_date?: string | null; // prochaine audience
     decision: string;
     stage: CaseStage;
 
@@ -45,6 +48,7 @@ const initialFormState: Partial<LegalCase> = {
     stage: 'PREMIERE_INSTANCE',
     fileNumber: '',
     date: new Date().toISOString().split('T')[0],
+    next_hearing_date: '',
     decision: '',
     plaintiff: '',
     defendant: '',
@@ -63,7 +67,8 @@ const initialFormState: Partial<LegalCase> = {
 const Contentieux = () => {
     const [cases, setCases] = useState<LegalCase[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = usePersistedState('Contentieux.searchTerm', '');
+    useUrlSearch(setSearchTerm);
 
     const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -156,7 +161,7 @@ const Contentieux = () => {
     };
 
     const handleDelete = async (id: number | string) => {
-        if (!window.confirm("Êtes-vous sûr de vouloir supprimer définitivement ce dossier contentieux ?")) {
+        if (!await confirmDialog("Êtes-vous sûr de vouloir supprimer définitivement ce dossier contentieux ?")) {
             return;
         }
 
@@ -174,7 +179,7 @@ const Contentieux = () => {
     };
 
     const openEditModal = (c: LegalCase) => {
-        setFormData({ ...c, date: c.date.split('T')[0], documentFile: null, judicialFeesScanFile: null, commissaireScanFile: null });
+        setFormData({ ...c, date: c.date.split('T')[0], next_hearing_date: c.next_hearing_date ? String(c.next_hearing_date).split('T')[0] : '', documentFile: null, judicialFeesScanFile: null, commissaireScanFile: null });
         setIsAddEditModalOpen(true);
     };
 
@@ -211,11 +216,11 @@ const Contentieux = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 duration-500">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                         <Scale className="text-amber-500" size={32} />
                         Affaires Juridiques (Les Cinq Élements)
                     </h1>
@@ -227,7 +232,7 @@ const Contentieux = () => {
                         setFormData({ ...initialFormState });
                         setIsAddEditModalOpen(true);
                     }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl shadow-lg hover:bg-slate-800 transition-all active:scale-95 font-bold"
+                    className="flex items-center gap-2 px-4 py-2.5 text-white rounded-lg shadow-sm transition active:scale-[0.98] font-medium text-sm bg-slate-900 hover:bg-slate-800"
                 >
                     <Plus size={20} />
                     Nouveau Dossier
@@ -236,37 +241,37 @@ const Contentieux = () => {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Dossiers</p>
-                    <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-400 mb-1">Total Dossiers</p>
+                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                         <FileText className="text-blue-500" size={24} />
                         {stats.totalCases}
                     </h2>
                 </div>
-                <div className="bg-amber-50 p-5 rounded-[24px] border border-amber-100 shadow-sm">
-                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Honoraires Avocats</p>
-                    <h2 className="text-2xl font-black text-amber-700">{formatCurrency(stats.totalLawyerFees)}</h2>
+                <div className="bg-amber-50 p-5 rounded-xl border border-amber-100 shadow-sm">
+                    <p className="text-xs font-semibold text-amber-600 mb-1">Honoraires Avocats</p>
+                    <h2 className="text-2xl font-bold text-amber-700">{formatCurrency(stats.totalLawyerFees)}</h2>
                 </div>
-                <div className="bg-slate-50 p-5 rounded-[24px] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Frais Judiciaires & Commissaires</p>
-                    <h2 className="text-2xl font-black text-slate-800 flex flex-col">
+                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-500 mb-1">Frais Judiciaires & Commissaires</p>
+                    <h2 className="text-2xl font-bold text-slate-800 flex flex-col">
                         <span>{formatCurrency(stats.totalJudicialFees + stats.totalCommissaireFees)}</span>
                         <div className="flex gap-4 mt-1">
-                            <span className="text-[10px] font-bold text-emerald-600">Tribunal: {formatCurrency(stats.totalJudicialFees)}</span>
-                            <span className="text-[10px] font-bold text-blue-600">Commissaire: {formatCurrency(stats.totalCommissaireFees)}</span>
+                            <span className="text-xs font-medium text-emerald-600">Tribunal: {formatCurrency(stats.totalJudicialFees)}</span>
+                            <span className="text-xs font-medium text-blue-600">Commissaire: {formatCurrency(stats.totalCommissaireFees)}</span>
                         </div>
                     </h2>
                 </div>
             </div>
 
             {/* Filters Bar */}
-            <div className="bg-white p-4 rounded-[20px] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-4 items-center">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center">
                 <div className="relative flex-grow w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher N° dossier, plaignant, défendeur, avocat..."
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500/20 transition-all"
+                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -274,84 +279,89 @@ const Contentieux = () => {
             </div>
 
             {/* Content Table */}
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Tribunal / Phase</th>
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Date / N° Dossier</th>
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[200px]">Parties Impliquées</th>
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[180px]">Représentation (Avocat)</th>
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right whitespace-nowrap">Coûts (Frais & Hon.)</th>
-                                <th className="px-4 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest min-w-[150px]">Décision</th>
-                                <th className="px-4 py-4 text-center">Actions</th>
+                            <tr className="">
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Tribunal / Phase</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Date / N° Dossier</th>
+                                <th className="min-w-[200px] whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Parties Impliquées</th>
+                                <th className="min-w-[180px] whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Représentation (Avocat)</th>
+                                <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Coûts (Frais & Hon.)</th>
+                                <th className="min-w-[150px] whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Décision</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {filteredCases.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-bold bg-white">
+                                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400 font-semibold bg-white">
                                         Aucun dossier trouvé dans la base de données.
                                     </td>
                                 </tr>
                             ) : (
                                 filteredCases.map((c) => (
-                                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
+                                    <tr key={c.id} className="hover:bg-slate-50 transition-colors group">
                                         {/* Tribunal / Phase */}
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-4 py-3 align-top">
                                             <div className="flex flex-col gap-1.5 items-start">
-                                                <span className={`px-2 py-0.5 text-[9px] font-black rounded-md uppercase tracking-widest ${c.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
+                                                <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium ${c.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
                                                     c.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
                                                         'bg-rose-50 text-rose-600'
                                                     }`}>
                                                     {c.courtType}
                                                 </span>
-                                                <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-black rounded-md uppercase">
+                                                <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">
                                                     {c.stage.replace('_', ' ')}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {/* Date / Num */}
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-4 py-3 align-top">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-sm font-black text-slate-800">{c.fileNumber}</span>
-                                                <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                <span className="text-sm font-semibold text-slate-800">{c.fileNumber}</span>
+                                                <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                                                     <Scale size={10} /> {new Date(c.date).toLocaleDateString('fr-MA')}
                                                 </span>
+                                                {c.next_hearing_date && (
+                                                    <span className="text-xs font-medium text-amber-700">
+                                                        Audience : {new Date(String(c.next_hearing_date).split('T')[0] + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
 
                                         {/* Parties */}
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-4 py-3 align-top">
                                             <div className="flex flex-col gap-1.5">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                                                    <span className="text-[8px] font-semibold text-slate-400 shrink-0">
                                                         {c.courtType === 'PENALE' ? 'Plaint.' : 'Dem.'}:
                                                     </span>
-                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1 truncate">{c.plaintiff}</span>
+                                                    <span className="text-xs font-medium text-slate-800 line-clamp-1 truncate">{c.plaintiff}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest shrink-0">
+                                                    <span className="text-[8px] font-semibold text-slate-400 shrink-0">
                                                         {c.courtType === 'PENALE' ? 'Accusé' : 'Déf.'}:
                                                     </span>
-                                                    <span className="text-xs font-bold text-slate-800 line-clamp-1 truncate">{c.defendant}</span>
+                                                    <span className="text-xs font-medium text-slate-800 line-clamp-1 truncate">{c.defendant}</span>
                                                 </div>
                                             </div>
                                         </td>
 
                                         {/* Avocat */}
-                                        <td className="px-4 py-4 align-top">
+                                        <td className="px-4 py-3 align-top">
                                             <div className="flex gap-2">
-                                                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg h-fit">
+                                                <div className="inline-flex flex-shrink-0 text-amber-600">
                                                     <Gavel size={14} />
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-xs font-bold text-slate-800">{c.lawyerName}</span>
-                                                    <span className="text-[9px] font-medium text-slate-500 flex items-center gap-1">
+                                                    <span className="text-xs font-medium text-slate-800">{c.lawyerName}</span>
+                                                    <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
                                                         <Phone size={9} /> {c.lawyerPhone}
                                                     </span>
                                                 </div>
@@ -359,10 +369,10 @@ const Contentieux = () => {
                                         </td>
 
                                         {/* Coûts */}
-                                        <td className="px-4 py-4 align-top text-right">
+                                        <td className="px-4 py-3 align-top text-right">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-black text-slate-900">{formatCurrency((Number(c.lawyerFees) || 0) + (Number(c.judicialFees) || 0) + (Number(c.commissaire_fees) || 0))}</span>
-                                                <div className="flex flex-col text-[9px] font-bold text-slate-400 mt-1">
+                                                <span className="text-xs font-semibold text-slate-900">{formatCurrency((Number(c.lawyerFees) || 0) + (Number(c.judicialFees) || 0) + (Number(c.commissaire_fees) || 0))}</span>
+                                                <div className="flex flex-col text-xs font-medium text-slate-400 mt-1">
                                                     <span className="flex justify-between gap-3 font-semibold"><span>Avocat:</span> <span>{formatCurrency(c.lawyerFees)}</span></span>
                                                     <span className={`flex justify-between gap-3 px-1 rounded ${c.judicial_fees_scan_path ? 'bg-emerald-50 text-emerald-600' : ''}`}>
                                                         <span>Tribunal:</span>
@@ -370,7 +380,7 @@ const Contentieux = () => {
                                                             {c.judicial_fees_scan_path && (
                                                                 <button
                                                                     onClick={(e) => { e.stopPropagation(); openExternal(encodeURI(`${STORAGE_BASE}/${c.judicial_fees_scan_path}`)); }}
-                                                                    className="hover:scale-110 transition-transform"
+                                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                                     title="Voir le scan des frais"
                                                                 >
                                                                     <FileText size={10} />
@@ -386,7 +396,7 @@ const Contentieux = () => {
                                                                 {c.commissaire_scan_path && (
                                                                     <button
                                                                         onClick={(e) => { e.stopPropagation(); openExternal(encodeURI(`${STORAGE_BASE}/${c.commissaire_scan_path}`)); }}
-                                                                        className="hover:scale-110 transition-transform"
+                                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                                         title="Voir le scan du commissaire"
                                                                     >
                                                                         <FileText size={10} />
@@ -401,22 +411,22 @@ const Contentieux = () => {
                                         </td>
 
                                         {/* Decision */}
-                                        <td className="px-4 py-4 align-top">
-                                            <div className="text-[10px] font-medium text-slate-600 italic line-clamp-2 bg-slate-50 p-2 rounded-lg break-words">
+                                        <td className="px-4 py-3 align-top">
+                                            <div className="text-xs font-medium text-slate-600 line-clamp-2 bg-slate-50 p-2 rounded-lg break-words">
                                                 {c.decision || "En attente de décision..."}
                                             </div>
                                         </td>
 
                                         {/* Actions */}
-                                        <td className="px-4 py-4 align-middle text-center">
-                                            <div className="flex justify-center gap-1">
-                                                <button onClick={() => openViewModal(c)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-500 transition-all" title="Détails">
+                                        <td className="px-4 py-3 align-middle text-center">
+                                            <div className="flex items-center justify-end gap-0.5">
+                                                <button onClick={() => openViewModal(c)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Détails">
                                                     <Eye size={16} />
                                                 </button>
-                                                <button onClick={() => openEditModal(c)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-amber-500 transition-all" title="Modifier">
+                                                <button onClick={() => openEditModal(c)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
                                                     <Edit size={16} />
                                                 </button>
-                                                <button onClick={() => c.id && handleDelete(c.id)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-500 transition-all" title="Supprimer">
+                                                <button onClick={() => c.id && handleDelete(c.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50" title="Supprimer">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -431,72 +441,72 @@ const Contentieux = () => {
 
             {/* Modal: View Details */}
             {isViewModalOpen && selectedCase && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
-                    <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-300 pointer-events-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden duration-300 ring-1 ring-slate-900/5 animate-dialog-in">
                         <div className="p-6 bg-slate-900 text-white flex justify-between items-start">
                             <div>
-                                <h3 className="text-2xl font-black tracking-tight">Détails du Dossier</h3>
-                                <p className="text-white/70 text-sm font-bold uppercase tracking-widest mt-1">{selectedCase.fileNumber}</p>
+                                <h3 className="text-2xl font-bold tracking-tight">Détails du Dossier</h3>
+                                <p className="text-white/70 text-sm font-semibold mt-1">{selectedCase.fileNumber}</p>
                             </div>
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                             >
-                                <X size={24} />
+                                <X size={16} />
                             </button>
                         </div>
 
                         <div className="p-8 space-y-6">
                             <div className="flex gap-4">
-                                <div className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest ${selectedCase.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
+                                <div className={`px-4 py-2 rounded-xl text-xs font-semibold ${selectedCase.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
                                     selectedCase.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
                                         'bg-rose-50 text-rose-600'
                                     }`}>
                                     Tribunal {selectedCase.courtType}
                                 </div>
-                                <div className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-black uppercase tracking-widest">
+                                <div className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold">
                                     Phase: {selectedCase.stage.replace('_', ' ')}
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                            <div className="grid grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-100">
                                 <div className="space-y-1 border-r border-slate-200">
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                                    <p className="text-xs font-semibold text-emerald-600">
                                         {selectedCase.courtType === 'PENALE' ? 'Plaignant (المشتكي)' : 'Demandeur'}
                                     </p>
-                                    <p className="text-base font-bold text-slate-800">{selectedCase.plaintiff}</p>
+                                    <p className="text-base font-semibold text-slate-800">{selectedCase.plaintiff}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">
+                                    <p className="text-xs font-semibold text-rose-600">
                                         {selectedCase.courtType === 'PENALE' ? 'Accusé (المشتكي عليه)' : 'Défendeur'}
                                     </p>
-                                    <p className="text-base font-bold text-slate-800">{selectedCase.defendant}</p>
+                                    <p className="text-base font-semibold text-slate-800">{selectedCase.defendant}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
                                 <div className="space-y-4">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Représentation</h4>
-                                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 space-y-2">
-                                        <p className="font-bold text-amber-800 text-sm">{selectedCase.lawyerName || 'Non défini'}</p>
+                                    <h4 className="text-xs font-semibold text-slate-400">Représentation</h4>
+                                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 space-y-2">
+                                        <p className="font-semibold text-amber-800 text-sm">{selectedCase.lawyerName || 'Non défini'}</p>
                                         <p className="text-xs font-medium text-amber-700 flex items-center gap-1"><Phone size={12} />{selectedCase.lawyerPhone}</p>
                                         <p className="text-xs font-medium text-amber-700 flex items-center gap-1"><MapPin size={12} />{selectedCase.lawyerAddress}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Coûts Associés</h4>
-                                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-                                        <div className="flex justify-between items-center text-sm font-bold text-slate-700">
+                                    <h4 className="text-xs font-semibold text-slate-400">Coûts Associés</h4>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                                        <div className="flex justify-between items-center text-sm font-semibold text-slate-700">
                                             <span>Honoraires:</span>
                                             <span>{formatCurrency(selectedCase.lawyerFees)}</span>
                                         </div>
-                                        <div className="flex justify-between items-center text-sm font-bold text-slate-700">
+                                        <div className="flex justify-between items-center text-sm font-semibold text-slate-700">
                                             <span>Frais Tribunal:</span>
                                             <div className="flex items-center gap-2">
                                                 {selectedCase.judicial_fees_scan_path && (
                                                     <button
                                                         onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedCase.judicial_fees_scan_path}`))}
-                                                        className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] rounded flex items-center gap-1 hover:bg-emerald-100 transition-colors"
+                                                        className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs rounded flex items-center gap-1 hover:bg-emerald-100 transition-colors"
                                                         title="Voir le justificatif"
                                                     >
                                                         <FileText size={10} /> SCAN
@@ -506,16 +516,16 @@ const Contentieux = () => {
                                             </div>
                                         </div>
                                         {selectedCase.commissaire_fees > 0 && (
-                                            <div className="flex justify-between items-center text-sm font-bold text-slate-700">
+                                            <div className="flex justify-between items-center text-sm font-semibold text-slate-700">
                                                 <span className="flex flex-col">
                                                     <span>Commissaire:</span>
-                                                    <span className="text-[10px] text-slate-400">{selectedCase.commissaire_nom}</span>
+                                                    <span className="text-xs text-slate-400">{selectedCase.commissaire_nom}</span>
                                                 </span>
                                                 <div className="flex items-center gap-2">
                                                     {selectedCase.commissaire_scan_path && (
                                                         <button
                                                             onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedCase.commissaire_scan_path}`))}
-                                                            className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[9px] rounded flex items-center gap-1 hover:bg-blue-100 transition-colors"
+                                                            className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded flex items-center gap-1 hover:bg-blue-100 transition-colors"
                                                             title="Voir le justificatif du commissaire"
                                                         >
                                                             <FileText size={10} /> SCAN
@@ -525,7 +535,7 @@ const Contentieux = () => {
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center text-base font-black text-slate-900">
+                                        <div className="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center text-base font-semibold text-slate-900">
                                             <span>Coût Total:</span>
                                             <span>{formatCurrency((Number(selectedCase.lawyerFees) || 0) + (Number(selectedCase.judicialFees) || 0) + (Number(selectedCase.commissaire_fees) || 0))}</span>
                                         </div>
@@ -534,15 +544,15 @@ const Contentieux = () => {
                             </div>
 
                             <div className="space-y-4">
-                                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Jugement / Décision</h4>
-                                <div className="p-4 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl text-sm font-medium italic text-slate-600">
+                                <h4 className="text-xs font-semibold text-slate-400">Jugement / Décision</h4>
+                                <div className="p-4 bg-slate-50 border-l-4 border-slate-300 rounded-r-xl text-sm font-medium text-slate-600">
                                     {selectedCase.decision || "Aucune décision enregistrée."}
                                 </div>
                             </div>
 
                             {selectedCase.document_path && (
                                 <div className="space-y-2">
-                                    <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Document Attaché</h4>
+                                    <h4 className="text-xs font-semibold text-slate-400">Document Attaché</h4>
                                     <button
                                         onClick={() => {
                                             if (selectedCase.document_path) {
@@ -550,7 +560,7 @@ const Contentieux = () => {
                                                 openExternal(url);
                                             }
                                         }}
-                                        className="flex items-center gap-2 p-4 bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-100 transition-colors w-fit font-bold"
+                                        className="flex items-center gap-2 p-4 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors w-fit font-semibold"
                                     >
                                         <FileText size={20} />
                                         Consulter le Scan / Document
@@ -562,7 +572,7 @@ const Contentieux = () => {
                         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="px-8 py-3 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                                className="px-4 py-2 text-white font-medium rounded-lg transition shadow-sm active:scale-[0.98] text-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 Fermer
                             </button>
@@ -573,21 +583,21 @@ const Contentieux = () => {
 
             {/* Modal: Add/Edit Case */}
             {isAddEditModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
-                    <div className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-2xl animate-in zoom-in-95 duration-300 relative pointer-events-auto">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-300 pointer-events-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl duration-300 relative pointer-events-auto ring-1 ring-slate-900/5 animate-dialog-in">
                         {/* Header */}
-                        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl p-6 border-b border-slate-100 flex justify-between items-center rounded-t-[32px]">
+                        <div className="sticky top-0 z-10 bg-white p-6 border-b border-slate-200 flex justify-between items-center rounded-t-xl">
                             <div>
-                                <h2 className="text-2xl font-black text-slate-800">
+                                <h2 className="text-2xl font-bold text-slate-800">
                                     {formData.id ? 'Modifier le Dossier' : 'Nouveau Dossier'}
                                 </h2>
                                 <p className="text-sm font-medium text-slate-500">Saisissez les informations du dossier contentieux.</p>
                             </div>
                             <button
                                 onClick={() => setIsAddEditModalOpen(false)}
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-rose-500"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                             >
-                                <X size={24} />
+                                <X size={16} />
                             </button>
                         </div>
 
@@ -595,15 +605,15 @@ const Contentieux = () => {
                         <div className="p-8 space-y-8">
                             {/* Section 1: Qualité & Tribunal */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-slate-400 flex items-center gap-2">
                                     <Gavel size={16} className="text-amber-500" />
                                     Nature du Contentieux
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-1 relative">
-                                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Type de Tribunal</label>
+                                        <label className="text-xs font-medium text-slate-600">Type de Tribunal</label>
                                         <select
-                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.courtType}
                                             onChange={(e) => setFormData({ ...formData, courtType: e.target.value as CourtType })}
                                         >
@@ -613,9 +623,9 @@ const Contentieux = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-1 relative">
-                                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Étape / Phase</label>
+                                        <label className="text-xs font-medium text-slate-600">Étape / Phase</label>
                                         <select
-                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.stage}
                                             onChange={(e) => setFormData({ ...formData, stage: e.target.value as CaseStage })}
                                         >
@@ -625,22 +635,31 @@ const Contentieux = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-1 relative">
-                                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">N° Dossier / Plainte</label>
+                                        <label className="text-xs font-medium text-slate-600">N° Dossier / Plainte</label>
                                         <input
                                             type="text"
                                             placeholder="Ex: CIV-2024-..."
-                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.fileNumber}
                                             onChange={(e) => setFormData({ ...formData, fileNumber: e.target.value })}
                                         />
                                     </div>
-                                    <div className="space-y-1 relative md:col-span-3">
-                                        <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Date d'ouverture</label>
+                                    <div className="space-y-1 relative">
+                                        <label className="text-xs font-medium text-slate-600">Date d'ouverture</label>
                                         <input
                                             type="date"
-                                            className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.date}
                                             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-1 relative md:col-span-2">
+                                        <label className="text-xs font-medium text-slate-600">Prochaine audience <span className="text-slate-400 font-normal">(rappel dans les notifications)</span></label>
+                                        <input
+                                            type="date"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                            value={formData.next_hearing_date || ''}
+                                            onChange={(e) => setFormData({ ...formData, next_hearing_date: e.target.value })}
                                         />
                                     </div>
                                 </div>
@@ -648,27 +667,27 @@ const Contentieux = () => {
 
                             {/* Section 2: Parties */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-slate-400 flex items-center gap-2">
                                     <Users size={16} className="text-amber-500" />
                                     Parties Impliquées
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">{labels.plaintiff}</label>
+                                        <label className="text-xs font-medium text-emerald-600 text-slate-600">{labels.plaintiff}</label>
                                         <input
                                             type="text"
                                             placeholder={labels.plaintiff}
-                                            className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.plaintiff}
                                             onChange={(e) => setFormData({ ...formData, plaintiff: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-rose-600 uppercase tracking-widest ml-1">{labels.defendant}</label>
+                                        <label className="text-xs font-medium text-rose-600 text-slate-600">{labels.defendant}</label>
                                         <input
                                             type="text"
                                             placeholder={labels.defendant}
-                                            className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-rose-500/20"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={formData.defendant}
                                             onChange={(e) => setFormData({ ...formData, defendant: e.target.value })}
                                         />
@@ -678,39 +697,39 @@ const Contentieux = () => {
 
                             {/* Section 3: Avocat & Coûts */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-slate-400 flex items-center gap-2">
                                     <WalletCards size={16} className="text-amber-500" />
                                     Représentation & Frais
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-4 bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+                                    <div className="space-y-4 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
                                         <div className="space-y-1 relative">
-                                            <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest ml-1">Nom de l'Avocat</label>
+                                            <label className="text-xs font-medium text-amber-700 text-slate-600">Nom de l'Avocat</label>
                                             <input
                                                 type="text"
                                                 placeholder="Me. Nom Prénom"
-                                                className="w-full px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                 value={formData.lawyerName}
                                                 onChange={(e) => setFormData({ ...formData, lawyerName: e.target.value })}
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 gap-4">
                                             <div className="space-y-1 relative">
-                                                <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest ml-1">Téléphone</label>
+                                                <label className="text-xs font-medium text-amber-700 text-slate-600">Téléphone</label>
                                                 <input
                                                     type="tel"
                                                     placeholder="06..."
-                                                    className="w-full px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                                    className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                     value={formData.lawyerPhone}
                                                     onChange={(e) => setFormData({ ...formData, lawyerPhone: e.target.value })}
                                                 />
                                             </div>
                                             <div className="space-y-1 relative">
-                                                <label className="text-[10px] font-black text-amber-700 uppercase tracking-widest ml-1">Bureau</label>
+                                                <label className="text-xs font-medium text-amber-700 text-slate-600">Bureau</label>
                                                 <input
                                                     type="text"
                                                     placeholder="Adresse..."
-                                                    className="w-full px-4 py-3 bg-white border border-amber-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20"
+                                                    className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                     value={formData.lawyerAddress}
                                                     onChange={(e) => setFormData({ ...formData, lawyerAddress: e.target.value })}
                                                 />
@@ -720,29 +739,29 @@ const Contentieux = () => {
 
                                     <div className="space-y-4">
                                         <div className="space-y-1 relative">
-                                            <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1"> Honoraires Avocat (MAD)</label>
+                                            <label className="text-xs font-medium text-slate-600"> Honoraires Avocat (MAD)</label>
                                             <input
                                                 type="number"
-                                                className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                 value={formData.lawyerFees || ''}
                                                 onChange={(e) => setFormData({ ...formData, lawyerFees: parseFloat(e.target.value) || 0 })}
                                             />
                                         </div>
                                         <div className="flex gap-2">
                                             <div className="space-y-1 relative flex-1">
-                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Frais Judiciaires (MAD)</label>
+                                                <label className="text-xs font-medium text-slate-600">Frais Judiciaires (MAD)</label>
                                                 <input
                                                     type="number"
-                                                    className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                    className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                     value={formData.judicialFees || ''}
                                                     onChange={(e) => setFormData({ ...formData, judicialFees: parseFloat(e.target.value) || 0 })}
                                                 />
                                             </div>
                                             <div className="space-y-1 relative">
-                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Justificatif (Scan)</label>
-                                                <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all h-[44px] ${formData.judicialFeesScanFile ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : (formData.judicial_fees_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
+                                                <label className="text-xs font-medium text-slate-600">Justificatif (Scan)</label>
+                                                <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition h-[44px] ${formData.judicialFeesScanFile ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : (formData.judicial_fees_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
                                                     <FileText size={16} />
-                                                    <span className="text-[10px] font-black uppercase">
+                                                    <span className="text-xs font-semibold">
                                                         {formData.judicialFeesScanFile ? 'Ajouté' : (formData.judicial_fees_scan_path ? 'Modif.' : '+ Scan')}
                                                     </span>
                                                     <input
@@ -761,29 +780,29 @@ const Contentieux = () => {
 
                                         <div className="pt-2 border-t border-slate-100 space-y-4">
                                             <div className="space-y-1 relative">
-                                                <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Commissaire Judiciaire (Nom)</label>
+                                                <label className="text-xs font-medium text-slate-600">Commissaire Judiciaire (Nom)</label>
                                                 <input
                                                     type="text"
-                                                    className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                    className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                     value={formData.commissaire_nom || ''}
                                                     onChange={(e) => setFormData({ ...formData, commissaire_nom: e.target.value })}
                                                 />
                                             </div>
                                             <div className="flex gap-2">
                                                 <div className="space-y-1 relative flex-1">
-                                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Frais Commissaire (MAD)</label>
+                                                    <label className="text-xs font-medium text-slate-600">Frais Commissaire (MAD)</label>
                                                     <input
                                                         type="number"
-                                                        className="w-full px-4 py-3 bg-white border border-slate-100 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-slate-500/20"
+                                                        className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                         value={formData.commissaire_fees || ''}
                                                         onChange={(e) => setFormData({ ...formData, commissaire_fees: parseFloat(e.target.value) || 0 })}
                                                     />
                                                 </div>
                                                 <div className="space-y-1 relative">
-                                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">Scan Commissaire</label>
-                                                    <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition-all h-[44px] ${formData.commissaireScanFile ? 'bg-blue-50 border-blue-300 text-blue-700' : (formData.commissaire_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
+                                                    <label className="text-xs font-medium text-slate-600">Scan Commissaire</label>
+                                                    <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed cursor-pointer transition h-[44px] ${formData.commissaireScanFile ? 'bg-blue-50 border-blue-300 text-blue-700' : (formData.commissaire_scan_path ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-white border-slate-200 text-slate-400 hover:border-amber-400 hover:bg-slate-50')}`}>
                                                         <FileText size={16} />
-                                                        <span className="text-[10px] font-black uppercase">
+                                                        <span className="text-xs font-semibold">
                                                             {formData.commissaireScanFile ? 'Ajouté' : (formData.commissaire_scan_path ? 'Modif.' : '+ Scan')}
                                                         </span>
                                                         <input
@@ -806,18 +825,18 @@ const Contentieux = () => {
 
                             {/* Section 4: Décision & Scan */}
                             <div className="space-y-4">
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-slate-400 flex items-center gap-2">
                                     <FileText size={16} className="text-amber-500" />
                                     Suivi du Cas
                                 </h3>
 
                                 <div className="space-y-1 relative">
-                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <label className="text-xs font-medium flex items-center gap-2 text-slate-600">
                                         <Info size={14} className="text-amber-500" />
                                         Décision / Jugement
                                     </label>
                                     <textarea
-                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 min-h-[100px] resize-y"
+                                        className="w-full min-h-[100px] resize-y pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Indiquez le jugement s'il y en a un, ou la situation actuelle..."
                                         value={formData.decision}
                                         onChange={(e) => setFormData({ ...formData, decision: e.target.value })}
@@ -825,14 +844,14 @@ const Contentieux = () => {
                                 </div>
 
                                 <div className="space-y-1 relative">
-                                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <label className="text-xs font-medium flex items-center gap-2 text-slate-600">
                                         <FileText size={14} className="text-amber-500" />
                                         Scan / Pièce Jointe
                                     </label>
                                     <input
                                         type="file"
                                         accept="image/*,.pdf"
-                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-amber-500/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-black file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
+                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-500/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
                                         onChange={(e) => {
                                             if (e.target.files && e.target.files.length > 0) {
                                                 setFormData({ ...formData, documentFile: e.target.files[0] });
@@ -847,16 +866,16 @@ const Contentieux = () => {
                         </div>
 
                         {/* Footer */}
-                        <div className="sticky bottom-0 p-6 bg-white border-t border-slate-100 rounded-b-[32px] flex justify-end gap-3 z-10 pointer-events-auto">
+                        <div className="sticky bottom-0 p-6 bg-white border-t border-slate-200 rounded-b-xl flex justify-end gap-3 z-10 pointer-events-auto">
                             <button
                                 onClick={() => setIsAddEditModalOpen(false)}
-                                className="px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+                                className="px-6 py-2.5 rounded-lg font-semibold text-slate-500 hover:bg-slate-50 transition-colors"
                             >
                                 Annuler
                             </button>
                             <button
                                 onClick={handleSave}
-                                className="px-8 py-2.5 rounded-xl font-black bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                                className="px-4 py-2.5 rounded-lg font-medium text-white transition-colors shadow-sm text-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 {formData.id ? 'Modifier' : 'Enregistrer'}
                             </button>

@@ -361,8 +361,7 @@ const Navbar: React.FC = () => {
                                     </button>
 
                                     {isNavMenuOpen && (
-                                        <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-xl py-1.5 z-50
-                                                        animate-[fadeInDown_0.15s_ease-out]">
+                                        <div className="absolute left-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-xl py-1.5 z-50 animate-[fadeInDown_0.15s_ease-out]">
                                             {navItems.map(({ icon: Icon, label, path }) => (
                                                 <button
                                                     key={path}
@@ -392,8 +391,7 @@ const Navbar: React.FC = () => {
 
                                     {/* Dropdown panel */}
                                     {isAddMenuOpen && (
-                                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1.5 z-50
-                                                        animate-[fadeInDown_0.15s_ease-out]">
+                                        <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-lg py-1.5 z-50 animate-[fadeInDown_0.15s_ease-out]">
                                             {quickAddItems.map(({ icon: Icon, label, path, color }) => (
                                                 <button
                                                     key={path}
@@ -424,8 +422,7 @@ const Navbar: React.FC = () => {
                                     </button>
 
                                     {isExportMenuOpen && (
-                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-lg py-1.5 z-50
-                                                        animate-[fadeInDown_0.15s_ease-out]">
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-gray-100 shadow-lg py-1.5 z-50 animate-[fadeInDown_0.15s_ease-out]">
                                             <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50 mb-1">
                                                 Sauvegarde Complète
                                             </div>
@@ -458,7 +455,7 @@ const Navbar: React.FC = () => {
                                         title="Mon Profil"
                                     >
                                         <p className="text-sm font-bold text-white group-hover:text-amber-500 transition-colors">{user?.name || 'Utilisateur'}</p>
-                                        <p className="text-[11px] text-white/40 font-mono">{user?.email || 'N/A'}</p>
+                                        <p className="text-[8.8px] text-white/40 font-mono">{user?.email || 'N/A'}</p>
                                     </div>
                                     <button
                                         onClick={handleLogout}

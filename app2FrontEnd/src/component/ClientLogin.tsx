@@ -37,18 +37,18 @@ const ClientLogin = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] border border-white overflow-hidden p-8 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden p-8 space-y-8 duration-500 ring-1 ring-slate-900/5 animate-dialog-in">
                 <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 mb-2">
+                    <div className="hidden">
                         <Home size={32} />
                     </div>
-                    <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Espace Acquéreur</h1>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Espace Acquéreur</h1>
                     <p className="text-sm font-medium text-slate-400">Société Les Cinq Éléments</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Votre Identifiant (CIN)</label>
+                        <label className="block text-xs font-medium pl-1 text-slate-600">Votre Identifiant (CIN)</label>
                         <div className="relative group">
                             <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" size={20} />
                             <input
@@ -57,7 +57,7 @@ const ClientLogin = () => {
                                 onChange={(e) => setCin(e.target.value.toUpperCase())}
                                 placeholder="Tapez votre CIN ici..."
                                 required
-                                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-amber-50 focus:border-amber-200 outline-none transition-all font-bold text-slate-700 tracking-wider"
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                             />
                         </div>
                     </div>
@@ -65,7 +65,7 @@ const ClientLogin = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group disabled:opacity-50"
+                        className="w-full py-2.5 text-white rounded-lg font-medium text-sm transition shadow-sm flex items-center justify-center gap-2 group disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin" size={18} />
@@ -79,7 +79,7 @@ const ClientLogin = () => {
                 </form>
 
                 <div className="pt-8 border-t border-slate-50 text-center">
-                    <p className="text-[10px] text-slate-400 font-medium">© 2024 Société Les Cinq Éléments</p>
+                    <p className="text-xs text-slate-400 font-medium">© 2024 Société Les Cinq Éléments</p>
                 </div>
             </div>
         </div>

@@ -101,7 +101,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
                 onBlur={() => setIsFocused(false)}
                 onKeyDown={handleKeyDown}
                 dir={dir}
-                className={`${className} overflow-y-auto outline-none transition-all pr-12 min-h-[40px] ${type === 'textarea' ? 'h-auto' : 'flex items-center whitespace-nowrap overflow-x-hidden'
+                className={`${className} overflow-y-auto outline-none transition pr-12 min-h-[40px] ${type === 'textarea' ? 'h-auto' : 'flex items-center whitespace-nowrap overflow-x-hidden'
                     } ${isEmpty && !isFocused ? 'before:content-[attr(data-placeholder)] before:text-slate-400 before:absolute' : ''}`}
                 data-placeholder={placeholder}
                 style={{
@@ -114,7 +114,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
                 <button
                     type="button"
                     onMouseDown={applyBold}
-                    className="p-1 rounded bg-white/90 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 border border-slate-200 shadow-sm transition-all active:scale-90"
+                    className="p-1 rounded bg-white text-slate-400 hover:text-blue-600 hover:bg-slate-100 border border-slate-200 shadow-sm transition active:scale-[0.98]"
                     title="Gras (Sélection)"
                 >
                     <Bold size={14} />
@@ -123,7 +123,7 @@ const EnhancedInput: React.FC<EnhancedInputProps> = ({
                     <button
                         type="button"
                         onMouseDown={applyPolite}
-                        className="p-1 rounded bg-white/90 text-amber-500 hover:text-amber-700 hover:bg-amber-50 border border-amber-200 shadow-sm transition-all active:scale-90"
+                        className="p-1 rounded bg-white text-amber-500 hover:text-amber-700 hover:bg-amber-50 border border-amber-200 shadow-sm transition active:scale-[0.98]"
                         title="Style Poli"
                     >
                         <Sparkles size={14} />

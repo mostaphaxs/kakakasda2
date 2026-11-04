@@ -44,20 +44,20 @@ const StockDashboard: React.FC = () => {
     const lowStockItems = stocks.filter(item => item.remaining_stock < 10);
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1">
+        <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+            <div className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
-                            <Package className="text-indigo-600 h-8 w-8" />
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                            <Package className="text-blue-600 h-8 w-8" />
                             Inventaire & Stock
                         </h1>
-                        <p className="text-gray-500 text-sm font-medium">Suivez l'état de vos stocks et affectations en temps réel.</p>
+                        <p className="text-slate-500 text-sm font-medium">Suivez l'état de vos stocks et affectations en temps réel.</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => window.location.hash = '#/add-stock-exit'}
-                            className="flex items-center gap-2 bg-rose-600 text-white px-4 py-2.5 rounded-xl hover:bg-rose-700 transition font-black shadow-lg shadow-rose-100 text-xs uppercase tracking-widest"
+                            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium shadow-sm text-sm bg-slate-900 hover:bg-slate-800"
                         >
                             <ArrowRight size={18} />
                             Nouvelle Sortie
@@ -93,63 +93,63 @@ const StockDashboard: React.FC = () => {
 
             {/* Stock Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                    <div className="p-3 bg-indigo-100 rounded-xl">
-                        <Package className="h-6 w-6 text-indigo-600" />
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                    <div className="hidden">
+                        <Package className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Total Articles</p>
-                        <p className="text-2xl font-bold text-gray-900">{stocks.length}</p>
+                        <p className="text-sm font-medium text-slate-500">Total Articles</p>
+                        <p className="text-2xl font-bold text-slate-900">{stocks.length}</p>
                     </div>
                 </div>
                 {/* Add more stats as needed */}
             </div>
 
             {/* Inventory Table */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-white border-b border-slate-200">
                         <tr>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Article</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Catégorie</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Initial</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Consommé</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Restant</th>
-                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Statut</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Article</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Catégorie</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Initial</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Consommé</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Restant</th>
+                            <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Statut</th>
                         </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
+                    <tbody className="bg-white divide-y divide-slate-100">
                         {stocks.map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4">
+                            <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-semibold text-gray-900">{item.article.name}</span>
-                                        <span className="text-xs text-gray-400 font-mono uppercase">{item.article.code}</span>
+                                        <span className="text-sm font-semibold text-slate-900">{item.article.name}</span>
+                                        <span className="text-xs text-slate-400 font-mono">{item.article.code}</span>
                                     </div>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                <td className="px-4 py-3">
+                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
                                         {item.article.category}
                                     </span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-600">
-                                    {item.initial_stock} <span className="text-xs text-gray-400 uppercase ml-0.5">{item.article.unit}</span>
+                                <td className="px-4 py-3 text-sm font-medium text-slate-600">
+                                    {item.initial_stock} <span className="text-xs text-slate-400 ml-0.5">{item.article.unit}</span>
                                 </td>
-                                <td className="px-6 py-4 text-sm font-medium text-gray-600">
-                                    {item.consumed_qty} <span className="text-xs text-gray-400 uppercase ml-0.5">{item.article.unit}</span>
+                                <td className="px-4 py-3 text-sm font-medium text-slate-600">
+                                    {item.consumed_qty} <span className="text-xs text-slate-400 ml-0.5">{item.article.unit}</span>
                                 </td>
-                                <td className="px-6 py-4">
-                                    <span className={`text-sm font-bold ${item.remaining_stock < 10 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                        {item.remaining_stock} <span className="text-xs uppercase ml-0.5">{item.article.unit}</span>
+                                <td className="px-4 py-3">
+                                    <span className={`text-sm font-semibold ${item.remaining_stock < 10 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                        {item.remaining_stock} <span className="text-xs ml-0.5">{item.article.unit}</span>
                                     </span>
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-4 py-3">
                                     {item.remaining_stock < 10 ? (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800">
+                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">
                                             Action requise
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
+                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                                             Correct
                                         </span>
                                     )}

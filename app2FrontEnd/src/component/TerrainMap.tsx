@@ -272,73 +272,73 @@ const TerrainMap: React.FC = () => {
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="animate-spin text-indigo-500" size={40} />
+            <Loader2 className="animate-spin text-blue-500" size={40} />
         </div>
     );
 
     return (
-        <div className="p-4 md:p-8 space-y-6 bg-gray-50/50 min-h-screen">
+        <div className="p-4 md:p-8 space-y-6 bg-slate-50/50 min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/terrains')} className="p-2.5 bg-white rounded-2xl border border-gray-100 shadow-sm text-gray-500 hover:text-indigo-600 hover:border-indigo-200 transition-all">
-                        <ArrowLeft size={20} />
+                <div className="flex items-center justify-end gap-0.5">
+                    <button onClick={() => navigate('/terrains')} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                        <ArrowLeft size={16} />
                     </button>
                     <div>
-                        <h1 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
-                            <MapPin size={22} className="text-indigo-600" />
+                        <h1 className="text-xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+                            <MapPin size={22} className="text-blue-600" />
                             {terrain?.nom_projet ?? 'Carte du Terrain'}
                         </h1>
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Digital Twin — Vue Interactive</p>
+                        <p className="text-xs font-medium text-slate-400 mt-0.5">Digital Twin — Vue Interactive</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* View Switcher */}
-                    <div className="flex bg-white p-1 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
                         <button
                             onClick={() => setViewMode('progress')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'progress' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${viewMode === 'progress' ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
                         >
                             <Briefcase size={14} /> Chantiers
                         </button>
                         <button
                             onClick={() => setViewMode('recovery')}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'recovery' ? 'bg-emerald-50 text-emerald-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-2 ${viewMode === 'recovery' ? 'bg-emerald-50 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
                         >
                             <DollarSign size={14} /> Recouvrement
                         </button>
                     </div>
 
                     {/* Legend */}
-                    <div className="hidden lg:flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="hidden lg:flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm">
                         {(viewMode === 'progress' ? PROGRESS_STATUSES : RECOVERY_STATUSES).map(s => (
                             <div key={s.key} className="flex items-center gap-1.5">
                                 <div className="w-3 h-3 rounded-full" style={{ background: s.color }} />
-                                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">{s.label}</span>
+                                <span className="text-xs font-semibold text-slate-500">{s.label}</span>
                             </div>
                         ))}
                     </div>
 
                     {/* Controls */}
-                    <div className="flex items-center gap-1 bg-white rounded-2xl border border-gray-100 shadow-sm p-1">
-                        <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="p-2 hover:bg-gray-50 rounded-xl text-gray-500 transition-all"><ZoomOut size={16} /></button>
-                        <span className="text-[10px] font-black text-gray-400 px-2">{Math.round(zoom * 100)}%</span>
-                        <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="p-2 hover:bg-gray-50 rounded-xl text-gray-500 transition-all"><ZoomIn size={16} /></button>
+                    <div className="flex items-center bg-white rounded-xl border border-slate-200 shadow-sm p-1 justify-end gap-0.5">
+                        <button onClick={() => setZoom(z => Math.max(0.4, z - 0.1))} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"><ZoomOut size={16} /></button>
+                        <span className="text-xs font-semibold text-slate-400 px-2">{Math.round(zoom * 100)}%</span>
+                        <button onClick={() => setZoom(z => Math.min(2, z + 0.1))} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"><ZoomIn size={16} /></button>
                     </div>
                     <button
                         onClick={() => setEditMode(!editMode)}
-                        className={`p-3 rounded-2xl border font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 ${editMode ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-200 shadow-lg' : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50'}`}
+                        className={`p-3 rounded-lg border font-semibold text-xs transition flex items-center gap-2 ${editMode ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white text-blue-600 border-blue-200 hover:bg-blue-50'}`}
                     >
                         {editMode ? <CheckCircle2 size={16} /> : <Edit2 size={16} />}
                         {editMode ? 'Fin Édition' : 'Éditer'}
                     </button>
                     {editMode && (
                         <>
-                            <button onClick={handleAutoLayout} className="p-3 bg-violet-600 text-white rounded-2xl border border-violet-600 shadow-lg shadow-violet-100 font-black text-xs uppercase tracking-widest transition-all hover:bg-violet-700 flex items-center gap-2">
+                            <button onClick={handleAutoLayout} className="p-3 text-white rounded-lg border border-violet-600 shadow-sm font-medium text-sm transition flex items-center gap-2 bg-slate-900 hover:bg-slate-800">
                                 <LayoutDashboard size={16} />
                                 Auto-Layout
                             </button>
-                            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-700 transition-all font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-100 disabled:opacity-50">
+                            <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition font-medium text-sm shadow-sm disabled:opacity-50 bg-slate-900 hover:bg-slate-800">
                                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Sauvegarder
                             </button>
@@ -349,7 +349,7 @@ const TerrainMap: React.FC = () => {
 
             {/* Main layout: canvas + sidebar */}
             <div className="flex gap-6 items-start">
-                <div className="flex-1 bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-auto">
+                <div className="flex-1 bg-white rounded-xl border border-slate-200 shadow-sm overflow-auto">
                     <svg
                         ref={svgRef}
                         viewBox={`0 0 ${canvasW} ${canvasH}`}
@@ -424,20 +424,20 @@ const TerrainMap: React.FC = () => {
                 </div>
 
                 {/* Sidebar Panel */}
-                <div className="w-80 space-y-4 flex-shrink-0 animate-in slide-in-from-right-4 duration-300">
+                <div className="w-80 space-y-4 flex-shrink-0 duration-300">
                     {/* Stats Card */}
-                    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 space-y-4">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
                         <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Résumé {viewMode === 'progress' ? 'Technique' : 'Financier'}</p>
-                            <TrendingUp size={16} className="text-indigo-400" />
+                            <p className="text-xs font-semibold text-slate-400">Résumé {viewMode === 'progress' ? 'Technique' : 'Financier'}</p>
+                            <TrendingUp size={16} className="text-blue-400" />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             {(viewMode === 'progress' ? PROGRESS_STATUSES : RECOVERY_STATUSES).map(s => {
                                 const count = biens.filter(b => (viewMode === 'progress' ? getBienProgressStatus(b) : getBienRecoveryStatus(b)).key === s.key).length;
                                 return (
-                                    <div key={s.key} className="p-3 rounded-2xl border text-center transition-all hover:scale-105" style={{ background: s.fill, borderColor: s.border }}>
-                                        <p className="text-xl font-black" style={{ color: s.color }}>{count}</p>
-                                        <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: s.color }}>{s.label}</p>
+                                    <div key={s.key} className="p-3 rounded-xl border text-center transition" style={{ background: s.fill, borderColor: s.border }}>
+                                        <p className="text-xl font-semibold" style={{ color: s.color }}>{count}</p>
+                                        <p className="text-[8px] font-semibold" style={{ color: s.color }}>{s.label}</p>
                                     </div>
                                 );
                             })}
@@ -446,14 +446,14 @@ const TerrainMap: React.FC = () => {
 
                     {/* Detailed Card */}
                     {selectedBien ? (
-                        <div className="bg-white rounded-[2.5rem] border border-indigo-100 shadow-xl overflow-hidden">
-                            <div className="bg-indigo-600 p-6 text-white">
+                        <div className="bg-white rounded-xl border border-blue-100 shadow-sm overflow-hidden">
+                            <div className="bg-blue-600 p-6 text-white">
                                 <div className="flex items-center justify-between opacity-80 mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{selectedBien.type_bien}</span>
+                                    <span className="text-xs font-semibold">{selectedBien.type_bien}</span>
                                     <Home size={18} />
                                 </div>
-                                <h3 className="text-lg font-black uppercase mb-1">{selectedBien.nom}</h3>
-                                <p className="text-[11px] font-bold opacity-80 flex items-center gap-1">
+                                <h3 className="text-lg font-semibold mb-1">{selectedBien.nom}</h3>
+                                <p className="text-xs font-medium opacity-80 flex items-center gap-1">
                                     <UserIcon size={12} /> {selectedBien.client_name || 'Aucun acquéreur'}
                                 </p>
                             </div>
@@ -462,38 +462,38 @@ const TerrainMap: React.FC = () => {
                                 {/* Construction Progress */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Construction</span>
-                                        <span className="text-[10px] font-black text-indigo-600">{selectedBien.progress || 0}%</span>
+                                        <span className="text-xs font-semibold text-slate-400">Construction</span>
+                                        <span className="text-xs font-semibold text-blue-600">{selectedBien.progress || 0}%</span>
                                     </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${selectedBien.progress || 0}%` }} />
+                                    <div className="w-full bg-slate-100 rounded-full h-2">
+                                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${selectedBien.progress || 0}%` }} />
                                     </div>
                                 </div>
 
                                 {/* Financial Recovery */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recouvrement</span>
-                                        <span className="text-[10px] font-black text-emerald-600">{recoveryProgress}%</span>
+                                        <span className="text-xs font-semibold text-slate-400">Recouvrement</span>
+                                        <span className="text-xs font-semibold text-emerald-600">{recoveryProgress}%</span>
                                     </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-2">
+                                    <div className="w-full bg-slate-100 rounded-full h-2">
                                         <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${recoveryProgress}%` }} />
                                     </div>
                                 </div>
 
                                 {/* Detailed Stats */}
-                                <div className="grid grid-cols-2 gap-4 py-4 border-y border-gray-50">
+                                <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-50">
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Prix Vente</p>
-                                        <p className="text-xs font-black text-gray-800">{formatNumber(selectedBien.sale_price || 0)} DH</p>
+                                        <p className="text-xs font-semibold text-slate-400">Prix Vente</p>
+                                        <p className="text-xs font-semibold text-slate-800">{formatNumber(selectedBien.sale_price || 0)} DH</p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Déjà Payé</p>
-                                        <p className="text-xs font-black text-emerald-600">{formatNumber(selectedBien.total_paid || 0)} DH</p>
+                                        <p className="text-xs font-semibold text-slate-400">Déjà Payé</p>
+                                        <p className="text-xs font-semibold text-emerald-600">{formatNumber(selectedBien.total_paid || 0)} DH</p>
                                     </div>
                                     <div className="space-y-1 col-span-2">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Coût Chantiers (Excl. Mat.)</p>
-                                        <p className="text-xs font-black text-amber-600">{formatNumber(selectedBien.total_cost || 0)} DH</p>
+                                        <p className="text-xs font-semibold text-slate-400">Coût Chantiers (Excl. Mat.)</p>
+                                        <p className="text-xs font-semibold text-amber-600">{formatNumber(selectedBien.total_cost || 0)} DH</p>
                                     </div>
                                 </div>
 
@@ -501,32 +501,32 @@ const TerrainMap: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-2 pt-2">
                                     <button
                                         onClick={() => navigate(`/edit-property/${selectedBien.id}`)}
-                                        className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 rounded-2xl border border-blue-100 hover:bg-blue-100 transition-all group"
+                                        className="flex flex-col items-center justify-center gap-2 p-4 bg-blue-50 rounded-lg border border-blue-100 hover:bg-blue-100 transition group"
                                     >
-                                        <div className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+                                        <div className="hidden">
                                             <Briefcase size={20} />
                                         </div>
-                                        <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Suivi</span>
+                                        <span className="text-xs font-semibold text-blue-700">Suivi</span>
                                     </button>
 
                                     <button
                                         onClick={() => navigate(`/clients?client_id=${selectedBien.client_id}&action=payment`)}
-                                        className="flex flex-col items-center justify-center gap-2 p-4 bg-emerald-50 rounded-2xl border border-emerald-100 hover:bg-emerald-100 transition-all group"
+                                        className="flex flex-col items-center justify-center gap-2 p-4 bg-emerald-50 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition group"
                                     >
-                                        <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 group-hover:scale-110 transition-transform">
+                                        <div className="hidden">
                                             <DollarSign size={20} />
                                         </div>
-                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Paiement</span>
+                                        <span className="text-xs font-semibold text-emerald-700">Paiement</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-10 text-center opacity-50 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <MapPin size={32} className="text-gray-200" />
+                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center opacity-50 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                <MapPin size={32} className="text-slate-200" />
                             </div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
+                            <p className="text-xs font-semibold text-slate-400 leading-relaxed">
                                 Sélectionnez une parcelle<br />pour les détails profonds
                             </p>
                         </div>

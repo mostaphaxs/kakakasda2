@@ -79,19 +79,19 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
 
     return (
         <div className="max-w-2xl mx-auto p-6">
-            <button onClick={() => navigate(-1)} className="flex items-center text-gray-500 hover:text-gray-800 mb-6 transition-colors font-bold text-sm">
+            <button onClick={() => navigate(-1)} className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors font-semibold text-sm">
                 <ArrowLeft size={18} className="mr-2" />
                 Retour
             </button>
 
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8">
-                <div className="flex items-center space-x-4 mb-10 pb-6 border-b border-gray-50">
-                    <div className="p-3 bg-rose-100 rounded-2xl">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <div className="flex items-center space-x-4 mb-10 pb-6 border-b border-slate-50">
+                    <div className="hidden">
                         <ArrowDownLeft className="h-8 w-8 text-rose-600" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter">Affectation Sortie</h2>
-                        <p className="text-gray-400 text-sm font-medium">Déduisez du stock pour un bloc ou villa.</p>
+                        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Affectation Sortie</h2>
+                        <p className="text-slate-400 text-sm font-medium">Déduisez du stock pour un bloc ou villa.</p>
                     </div>
                 </div>
 
@@ -99,13 +99,13 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                     <div className="grid grid-cols-1 gap-6">
                         {/* Article Selection */}
                         <div>
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
-                                <Box className="h-4 w-4 mr-2 text-gray-400" />
+                            <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
+                                <Box className="h-4 w-4 mr-2 text-slate-400" />
                                 Article
                             </label>
                             <select
                                 {...register('article_id', { required: 'Ce champ est obligatoire' })}
-                                className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-rose-500 focus:ring-rose-500/20 text-sm font-bold transition-all shadow-sm outline-none"
+                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                             >
                                 <option value="">Sélectionner un article</option>
                                 {articles.map(article => (
@@ -114,31 +114,31 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                                     </option>
                                 ))}
                             </select>
-                            {errors.article_id && <p className="mt-1 text-[10px] text-rose-500 font-bold uppercase">{errors.article_id.message as string}</p>}
+                            {errors.article_id && <p className="mt-1 text-xs text-rose-500 font-medium">{errors.article_id.message as string}</p>}
                         </div>
 
                         {/* Quantity */}
                         <div>
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Quantité à affecter</label>
+                            <label className="block text-xs font-medium mb-2 text-slate-600">Quantité à affecter</label>
                             <input
                                 type="number"
                                 step="0.01"
                                 {...register('qty', { required: 'Ce champ est obligatoire', min: 0.01 })}
-                                className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-rose-500 focus:ring-rose-500/20 text-sm font-bold transition-all shadow-sm outline-none"
+                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                 placeholder="0.00"
                             />
-                            {errors.qty && <p className="mt-1 text-[10px] text-rose-500 font-bold uppercase">{errors.qty.message as string}</p>}
+                            {errors.qty && <p className="mt-1 text-xs text-rose-500 font-medium">{errors.qty.message as string}</p>}
                         </div>
 
                         {/* Destination (Bien) */}
                         <div>
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
-                                <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                            <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
+                                <Building2 className="h-4 w-4 mr-2 text-slate-400" />
                                 Destination (Villa/Bloc)
                             </label>
                             <select
                                 {...register('destination_id', { required: 'Ce champ est obligatoire' })}
-                                className="w-full h-12 px-4 rounded-xl border-gray-200 bg-gray-50 focus:bg-white focus:border-rose-500 focus:ring-rose-500/20 text-sm font-bold transition-all shadow-sm outline-none"
+                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                             >
                                 <option value="">Sélectionner une destination</option>
                                 {biens.map(bien => (
@@ -147,7 +147,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                                     </option>
                                 ))}
                             </select>
-                            {errors.destination_id && <p className="mt-1 text-[10px] text-rose-500 font-bold uppercase">{errors.destination_id.message as string}</p>}
+                            {errors.destination_id && <p className="mt-1 text-xs text-rose-500 font-medium">{errors.destination_id.message as string}</p>}
                         </div>
                     </div>
 
@@ -155,7 +155,7 @@ const StockExitForm: React.FC<StockExitFormProps> = ({ onSuccess }) => {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full h-14 flex items-center justify-center space-x-3 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 disabled:opacity-50 transition-all shadow-lg active:scale-95 shadow-rose-100"
+                            className="w-full h-11 flex items-center justify-center space-x-3 text-white rounded-lg font-medium disabled:opacity-50 transition shadow-sm active:scale-[0.98] text-sm bg-slate-900 hover:bg-slate-800"
                         >
                             <Save className="h-5 w-5" />
                             <span>{isSubmitting ? 'Enregistrement...' : 'Confirmer la sortie'}</span>
