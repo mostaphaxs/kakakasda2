@@ -33,6 +33,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ChequeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\TaskController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -86,6 +87,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/profit', [ReportController::class, 'profit']);
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
     Route::post('/biens/{bien}/reserve', [ReservationController::class, 'reserve']);
+
+    // Tasks / follow-ups
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
 
     // Stats
     Route::get('/stats', [StatsController::class, 'index']);

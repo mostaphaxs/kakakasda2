@@ -135,6 +135,24 @@ class NotificationController extends Controller
             ];
         }
 
+        // 6. Tasks due today or overdue (not done)
+        $tasks = \App\Models\Task::with('client:id,nom,prenom')->whereNull('done_at')
+            ->whereNotNull('due_date')->where('due_date', '<=', $today->toDateString())->get();
+        foreach ($tasks as $t) {
+            $d = Carbon::parse($t->getRawOriginal('due_date'));
+            $late = $d->lt($today);
+            $who = $t->client ? self::name($t->client) : ($t->contact_name ?: null);
+            $items[] = [
+                'id' => "task-{$t->id}-" . $d->toDateString(),
+                'type' => 'task',
+                'severity' => $late || $t->priority === 'haute' ? 'critical' : 'warning',
+                'title' => $t->title,
+                'detail' => trim(($late ? 'En retard depuis le ' . $d->format('d/m') : "Aujourd'hui" . ($t->due_time ? " à {$t->due_time}" : '')) . ($who ? " · {$who}" : '')),
+                'date' => $d->toDateString(),
+                'link' => '/taches',
+            ];
+        }
+
         $rank = ['critical' => 0, 'warning' => 1, 'info' => 2];
         usort($items, fn ($a, $b) => [$rank[$a['severity']], $a['date'] ?? '9999'] <=> [$rank[$b['severity']], $b['date'] ?? '9999']);
 

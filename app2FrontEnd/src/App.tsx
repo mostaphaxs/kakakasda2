@@ -12,6 +12,8 @@ import Echeancier from './component/Echeancier';
 import Cheques from './component/Cheques';
 import Rentabilite from './component/Rentabilite';
 import Disponibilites from './component/Disponibilites';
+import Taches from './component/Taches';
+import { TaskEditorHost } from './component/common/TaskEditor';
 import { ClientDocumentsHost } from './component/common/ClientDocuments';
 import { ProgressPhotosHost } from './component/common/ProgressPhotos';
 
@@ -89,6 +91,7 @@ const AppContent: React.FC = () => {
       {isAdmin && <WhatsAppReminderHost />}
       {isAdmin && <ClientDocumentsHost />}
       {isAdmin && <ProgressPhotosHost />}
+      {isAdmin && <TaskEditorHost />}
       {isAdmin && <CommandPaletteHost />}
       <GlobalPreview />
 
@@ -166,6 +169,7 @@ const AppContent: React.FC = () => {
               <Route path="/cheques" element={<PrivateRoute><Cheques /></PrivateRoute>} />
               <Route path="/rentabilite" element={<PrivateRoute><Rentabilite /></PrivateRoute>} />
               <Route path="/disponibilites" element={<PrivateRoute><Disponibilites /></PrivateRoute>} />
+              <Route path="/taches" element={<PrivateRoute><Taches /></PrivateRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<ClientLogin />} />

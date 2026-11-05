@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { ArrowRight, Plus, UserPlus, Wallet, UserRound, ChevronRight, AlertTriangle, CalendarClock } from 'lucide-react';
+import { ArrowRight, Plus, UserPlus, Wallet, UserRound, ChevronRight, AlertTriangle, CalendarClock, ListTodo } from 'lucide-react';
 import { openQuickPayment } from './common/QuickPayment';
 import MonthlyReportButton from './common/MonthlyReportButton';
+import type { Task } from './common/TaskEditor';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
 
@@ -107,6 +108,10 @@ const Home = () => {
         staleTime: 60_000,
     });
     const late = ech?.summary;
+    const { data: tasks = [] } = useQuery({ queryKey: ['tasks'], queryFn: () => apiFetch<Task[]>('/tasks?status=open'), staleTime: 30_000 });
+    const todayISO = new Date().toLocaleDateString('en-CA');
+    const tasksDue = tasks.filter(t => !t.done_at && t.due_date && t.due_date <= todayISO);
+    const tasksLate = tasksDue.filter(t => t.due_date! < todayISO).length;
 
     const ca = num(s?.chiffre_affaires);
     const encaisse = num(s?.encaissements);
@@ -182,9 +187,19 @@ const Home = () => {
             </header>
 
             {/* ── Payment alerts ─────────────────────────────────────── */}
-            {late && (late.overdue_count > 0 || late.upcoming_count > 0) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {late.overdue_count > 0 && (
+            {((late && (late.overdue_count > 0 || late.upcoming_count > 0)) || tasksDue.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {tasksDue.length > 0 && (
+                        <button onClick={() => navigate('/taches')} className={`group flex items-center gap-3 px-4 py-3 rounded-xl text-left ring-1 ring-inset transition-colors ${tasksLate ? 'bg-red-50 ring-red-600/15 hover:bg-red-100/70' : 'bg-white ring-slate-200 hover:bg-slate-50'}`}>
+                            <ListTodo size={18} className={tasksLate ? 'text-red-600 flex-shrink-0' : 'text-slate-400 flex-shrink-0'} />
+                            <span className="flex-1 min-w-0">
+                                <span className={`block text-sm font-semibold ${tasksLate ? 'text-red-900' : 'text-slate-900'}`}>{tasksDue.length} tâche{tasksDue.length > 1 ? 's' : ''} pour aujourd'hui</span>
+                                <span className={`block text-xs truncate ${tasksLate ? 'text-red-700' : 'text-slate-500'}`}>{tasksLate ? `dont ${tasksLate} en retard · ` : ''}{tasksDue[0]?.title}</span>
+                            </span>
+                            <ArrowRight size={16} className="text-slate-300 group-hover:text-slate-700 transition-colors" />
+                        </button>
+                    )}
+                    {late && late.overdue_count > 0 && (
                         <button onClick={() => navigate('/echeancier')} className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 ring-1 ring-inset ring-red-600/15 text-left hover:bg-red-100/70 transition-colors">
                             <AlertTriangle size={18} className="text-red-600 flex-shrink-0" />
                             <span className="flex-1 min-w-0">
@@ -196,7 +211,7 @@ const Home = () => {
                             <ArrowRight size={16} className="text-red-400 group-hover:text-red-700 transition-colors" />
                         </button>
                     )}
-                    {late.upcoming_count > 0 && (
+                    {late && late.upcoming_count > 0 && (
                         <button onClick={() => navigate('/echeancier')} className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-white ring-1 ring-inset ring-slate-200 text-left hover:bg-slate-50 transition-colors">
                             <CalendarClock size={18} className="text-slate-400 flex-shrink-0" />
                             <span className="flex-1 min-w-0">

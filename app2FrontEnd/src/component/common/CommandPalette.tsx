@@ -13,10 +13,11 @@ import toast from 'react-hot-toast';
 import {
     Search, UserPlus, Wallet, Plus, Building2, MapPin, FileText, Truck, Users, CalendarClock,
     Home, BarChart3, History, Scale, HardHat, UserCheck, Wrench, Package, ShoppingCart, Layers,
-    WalletCards, Building, Settings2, Keyboard, CornerDownLeft, FileDown, LayoutGrid, Banknote, TrendingUp, FileBarChart, FileSignature,
+    WalletCards, Building, Settings2, Keyboard, CornerDownLeft, FileDown, LayoutGrid, Banknote, TrendingUp, FileBarChart, FileSignature, ListTodo,
 } from 'lucide-react';
 import { generateMonthlyReport } from './MonthlyReportButton';
 import { openClientDocuments } from './ClientDocuments';
+import { openTaskEditor } from './TaskEditor';
 import { apiFetch } from '../../lib/api';
 import { downloadStatement } from '../../lib/documents';
 import { openQuickPayment, useClientsLite } from './QuickPayment';
@@ -34,6 +35,7 @@ const subscribe = (f: () => void) => { subs.add(f); return () => subs.delete(f);
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
     { keys: ['Ctrl', 'K'], label: 'Recherche globale et actions' },
     { keys: ['E'], label: 'Encaisser un paiement' },
+    { keys: ['T'], label: 'Nouvelle tâche / rappel' },
     { keys: ['N'], label: 'Nouveau (client, projet, bien… selon la page)' },
     { keys: ['/'], label: 'Aller au champ de recherche de la page' },
     { keys: ['Ctrl', 'S'], label: 'Enregistrer le formulaire ouvert' },
@@ -45,13 +47,15 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
     { keys: ['G', 'P'], label: 'Aller aux projets' },
     { keys: ['G', 'E'], label: 'Aller à l’échéancier' },
     { keys: ['G', 'T'], label: 'Aller à l’historique' },
+    { keys: ['G', 'A'], label: 'Aller aux tâches' },
     { keys: ['?'], label: 'Afficher cette aide' },
 ];
 
-const GOTO: Record<string, string> = { h: '/home', d: '/dashboard', c: '/clients', b: '/properties', p: '/terrains', e: '/echeancier', t: '/transactions' };
+const GOTO: Record<string, string> = { h: '/home', d: '/dashboard', c: '/clients', b: '/properties', p: '/terrains', e: '/echeancier', t: '/transactions', a: '/taches' };
 
 const PAGES: { label: string; path: string; icon: ComponentType<{ size?: number }> }[] = [
     { label: 'Accueil', path: '/home', icon: Home },
+    { label: 'Tâches', path: '/taches', icon: ListTodo },
     { label: 'Dashboard', path: '/dashboard', icon: BarChart3 },
     { label: 'Historique / Livre de caisse', path: '/transactions', icon: History },
     { label: 'Échéancier', path: '/echeancier', icon: CalendarClock },
@@ -134,6 +138,7 @@ function Palette({ initialMode }: { initialMode: Mode }) {
 
         const actions: Item[] = [
             { id: 'a-pay', group: '', title: 'Encaisser un paiement', subtitle: 'E', icon: Wallet, run: () => { closePalette(); openQuickPayment(); } },
+            { id: 'a-task', group: '', title: 'Nouvelle tâche / rappel', subtitle: 'T', icon: ListTodo, run: () => { closePalette(); openTaskEditor(); } },
             { id: 'a-client', group: '', title: 'Nouveau client', icon: UserPlus, run: () => go('/add-client') },
             { id: 'a-projet', group: '', title: 'Nouveau projet', icon: Plus, run: () => go('/add-terrain') },
             { id: 'a-bien', group: '', title: 'Nouveau bien', icon: Building2, run: () => go('/add-property') },
@@ -143,7 +148,7 @@ function Palette({ initialMode }: { initialMode: Mode }) {
             { id: 'a-dispo', group: '', title: 'Disponibilités des biens', icon: LayoutGrid, run: () => go('/disponibilites') },
             { id: 'a-keys', group: '', title: 'Raccourcis clavier', subtitle: '?', icon: Keyboard, run: () => { setView('shortcuts'); } },
         ];
-        push('Actions', query ? actions.filter(a => matches(norm(a.title), query)) : actions, query ? 4 : 9);
+        push('Actions', query ? actions.filter(a => matches(norm(a.title), query)) : actions, query ? 4 : 10);
         if (!query) return out;
 
         push('Clients', (clients.data ?? [])
@@ -157,6 +162,7 @@ function Palette({ initialMode }: { initialMode: Mode }) {
                     { label: 'Encaisser', run: () => { closePalette(); openQuickPayment({ clientId: c.id }); } },
                     { label: 'Relevé PDF', run: () => { closePalette(); toast.promise(downloadStatement(c.id), { loading: 'Génération du relevé…', success: 'Relevé téléchargé', error: (e: Error) => e.message }); } },
                     { label: 'Documents', run: () => { closePalette(); openClientDocuments(c.id); } },
+                    { label: 'Tâche', run: () => { closePalette(); openTaskEditor({ clientId: c.id }); } },
                 ],
             })));
         push('Biens', (biens.data ?? [])
@@ -259,7 +265,7 @@ function Palette({ initialMode }: { initialMode: Mode }) {
                                                 {it.secondary.map(s => (
                                                     <button key={s.label} onClick={e => { e.stopPropagation(); s.run(); }}
                                                         className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50">
-                                                        {s.label === 'Relevé PDF' ? <FileDown size={12} /> : s.label === 'Documents' ? <FileSignature size={12} /> : <Wallet size={12} />}{s.label}
+                                                        {s.label === 'Relevé PDF' ? <FileDown size={12} /> : s.label === 'Documents' ? <FileSignature size={12} /> : s.label === 'Tâche' ? <ListTodo size={12} /> : <Wallet size={12} />}{s.label}
                                                     </button>
                                                 ))}
                                             </span>
@@ -351,6 +357,7 @@ export function useGlobalShortcuts(enabled: boolean) {
 
             if (e.key === '?') { e.preventDefault(); openPalette('shortcuts'); return; }
             if (key === 'e') { e.preventDefault(); openQuickPayment(); return; }
+            if (key === 't') { e.preventDefault(); openTaskEditor(); return; }
             if (key === '/') {
                 const input = Array.from(document.querySelectorAll<HTMLInputElement>('main input'))
                     .find(i => visible(i) && /rech|search/i.test(i.placeholder || ''))

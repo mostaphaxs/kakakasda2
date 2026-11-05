@@ -7,12 +7,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, CalendarClock, Banknote, FileSignature, Package, Scale, Check } from 'lucide-react';
+import { Bell, CalendarClock, Banknote, FileSignature, Package, Scale, Check, ListTodo } from 'lucide-react';
 import { apiFetch } from '../../lib/api';
 
 export interface AppNotification {
     id: string;
-    type: 'echeance_retard' | 'echeance_avenir' | 'cheque' | 'contrat' | 'stock' | 'audience';
+    type: 'echeance_retard' | 'echeance_avenir' | 'cheque' | 'contrat' | 'stock' | 'audience' | 'task';
     severity: 'critical' | 'warning' | 'info';
     title: string;
     detail?: string;
@@ -30,7 +30,7 @@ const writeSeen = (s: Set<string>) => {
 
 const ICON = {
     echeance_retard: CalendarClock, echeance_avenir: CalendarClock, cheque: Banknote,
-    contrat: FileSignature, stock: Package, audience: Scale,
+    contrat: FileSignature, stock: Package, audience: Scale, task: ListTodo,
 } as const;
 const DOT = { critical: 'bg-red-500', warning: 'bg-amber-500', info: 'bg-slate-400' } as const;
 

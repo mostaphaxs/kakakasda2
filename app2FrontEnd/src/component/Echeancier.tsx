@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { CalendarClock, Plus, Search, X, MessageCircle, Wallet, FileDown, Trash2, Loader2, Eye, Paperclip, Receipt, FileSignature } from 'lucide-react';
+import { CalendarClock, Plus, Search, X, MessageCircle, Wallet, FileDown, Trash2, Loader2, Eye, Paperclip, Receipt, FileSignature, ListTodo } from 'lucide-react';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { openExternal } from '../lib/tauri';
 import { formatNumber, parseNumber, localISODate } from '../lib/utils';
@@ -16,6 +16,7 @@ import { confirmDialog } from './common/ConfirmDialog';
 import { openQuickPayment, useClientsLite } from './common/QuickPayment';
 import { openWhatsAppReminder } from './common/WhatsAppReminder';
 import { openClientDocuments } from './common/ClientDocuments';
+import { openTaskEditor } from './common/TaskEditor';
 
 type Status = 'en_retard' | 'a_venir' | 'partielle' | 'payee';
 interface Allocation {
@@ -492,6 +493,10 @@ function DetailModal({ row, all, onClose, onSelect }: { row: Row; all: Row[]; on
                 <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
                     <button onClick={() => openClientDocuments(row.client_id)} className="mr-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">
                         <FileSignature size={15} /> Documents
+                    </button>
+                    <button onClick={() => openTaskEditor({ clientId: row.client_id, title: `Relancer ${row.client?.prenom ?? ''} ${row.client?.nom ?? ''} – ${row.label ?? 'échéance'}`.replace(/\s+/g, ' ') })}
+                        className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">
+                        <ListTodo size={15} /> Rappel
                     </button>
                     <button onClick={() => toast.promise(downloadStatement(row.client_id), { loading: 'Génération du relevé…', success: 'Relevé téléchargé', error: (e: Error) => e.message })}
                         className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">

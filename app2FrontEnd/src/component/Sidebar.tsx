@@ -4,7 +4,7 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck, History, Scale, Building, CalendarClock, Search, LayoutGrid, Banknote, TrendingUp
+    ChevronRight, BarChart3, UserCheck, History, Scale, Building, CalendarClock, Search, LayoutGrid, Banknote, TrendingUp, ListTodo
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
@@ -91,6 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
             title: 'Général',
             items: [
                 { icon: Home, label: 'Accueil', path: '/home' },
+                { icon: ListTodo, label: 'Tâches', path: '/taches' },
                 { icon: BarChart3, label: 'Dashboard', path: '/dashboard' },
                 { icon: History, label: 'Historique', path: '/transactions' },
             ],
