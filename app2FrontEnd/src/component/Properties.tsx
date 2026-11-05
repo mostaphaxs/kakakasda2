@@ -339,7 +339,7 @@ const Properties = () => {
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                            <Home className="text-amber-600" size={32} />
+                            <Home className="text-slate-400 flex-shrink-0" size={26} />
                             Parc Immobilier
                         </h2>
                         <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-semibold">Société les cinq elements</span>.</p>
@@ -1006,7 +1006,7 @@ const Properties = () => {
                                                 onChange={e => setAssocAvecFinition(e.target.checked)}
                                                 className="sr-only peer"
                                             />
-                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                         </label>
                                     </div>
                                 )}

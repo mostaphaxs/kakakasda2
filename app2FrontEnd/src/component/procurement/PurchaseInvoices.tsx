@@ -398,7 +398,7 @@ const PurchaseInvoices: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <ShoppingCart className="text-emerald-600 h-8 w-8" />
+                            <ShoppingCart className="text-slate-400 flex-shrink-0" size={26} />
                             Factures des Achats
                         </h1>
                         <p className="text-slate-500 text-sm font-medium">Suivi détaillé des entrées en stock et factures.</p>

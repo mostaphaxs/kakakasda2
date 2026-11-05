@@ -242,11 +242,11 @@ const AIAssistant = () => {
                 <div className={`fixed right-6 bottom-6 z-[1000] chat-window-pro animate-slide-up transition ${isFullScreen ? 'w-[90vw] h-[90vh]' : 'w-[380px] h-[600px]'}`}>
 
                     {/* Professional Header */}
-                    <div className="bg-blue-600 px-6 py-4 flex items-center justify-between text-white shadow-sm">
+                    <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="relative">
                                 <img src={novaFace} className="w-10 h-10 rounded-full border-2 border-white/20" alt="Nova" />
-                                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-blue-600 rounded-full"></div>
+                                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-slate-900 rounded-full"></div>
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-semibold text-sm tracking-tight">Nova Assistant</span>
@@ -271,7 +271,7 @@ const AIAssistant = () => {
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] px-4 py-3 rounded-xl text-[12.3px] leading-relaxed shadow-sm ${msg.role === 'user'
-                                    ? 'bg-blue-600 text-white rounded-tr-none'
+                                    ? 'bg-slate-900 text-white rounded-tr-none'
                                     : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none markdown-pro'
                                     }`}>
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.parts}</ReactMarkdown>
@@ -288,10 +288,10 @@ const AIAssistant = () => {
                                                 <button
                                                     key={ci}
                                                     onClick={() => handleChoice(choice, i)}
-                                                    className="w-full text-left px-4 py-2 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg text-[10.6px] font-medium text-slate-700 transition flex justify-between items-center group"
+                                                    className="w-full text-left px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg text-[10.6px] font-medium text-slate-700 transition flex justify-between items-center group"
                                                 >
                                                     {choice.label}
-                                                    <Sparkles size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    <Sparkles size={14} className="text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                 </button>
                                             ))}
                                         </div>
@@ -302,9 +302,9 @@ const AIAssistant = () => {
                         {isLoading && (
                             <div className="flex justify-start">
                                 <div className="px-4 py-2 bg-white border border-slate-200 rounded-full flex gap-1 items-center">
-                                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce"></div>
-                                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                                    <div className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce"></div>
+                                    <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                                    <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce [animation-delay:0.4s]"></div>
                                 </div>
                             </div>
                         )}
@@ -313,9 +313,9 @@ const AIAssistant = () => {
                     {/* Footer / Input - Refactored for better spacing */}
                     <div className="p-4 border-t border-slate-100 bg-white">
                         {chatFile && (
-                            <div className="mb-3 flex items-center justify-between text-xs text-slate-500 px-3 bg-blue-50/50 py-2 rounded-xl border border-blue-100">
+                            <div className="mb-3 flex items-center justify-between text-xs text-slate-500 px-3 bg-slate-100/50 py-2 rounded-xl border border-slate-200">
                                 <span className="truncate max-w-[250px] flex items-center gap-2 font-medium">
-                                    <FileText size={14} className="text-blue-500" /> {chatFile.name}
+                                    <FileText size={14} className="text-brand-500" /> {chatFile.name}
                                 </span>
                                 <button onClick={() => setChatFile(null)} className="p-1 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-rose-500">
                                     <X size={14} />
@@ -324,10 +324,10 @@ const AIAssistant = () => {
                         )}
 
                         <div className="flex items-end gap-2">
-                            <div className="flex-grow flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 border border-transparent focus-within:border-blue-200 transition min-h-[48px]">
+                            <div className="flex-grow flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-500/20/20 border border-transparent focus-within:border-blue-200 transition min-h-[48px]">
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className={`p-2 rounded-lg transition ${chatFile ? 'text-blue-600 bg-blue-50' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
+                                    className={`p-2 rounded-lg transition ${chatFile ? 'text-slate-900 bg-slate-100' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-200/50'}`}
                                     title="Joindre un fichier"
                                 >
                                     <Paperclip size={20} />
@@ -347,7 +347,7 @@ const AIAssistant = () => {
                                 />
                                 <button
                                     onClick={toggleListening}
-                                    className={`p-2 rounded-lg transition ${isListening ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-slate-400 hover:text-blue-600 hover:bg-slate-200/50'}`}
+                                    className={`p-2 rounded-lg transition ${isListening ? 'bg-rose-100 text-rose-500 animate-pulse' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-200/50'}`}
                                     title="Commande vocale"
                                 >
                                     {isListening ? <MicOff size={20} /> : <Mic size={20} />}

@@ -4,7 +4,7 @@ import {
     Home, MapPin, UserPlus, WalletCards, HardHat,
     Users, Layers, Download, Database, Package,
     ShoppingCart, Truck, Wrench, Settings2, FileText,
-    ChevronRight, BarChart3, UserCheck, History, Scale, Building, CalendarClock, Search, LayoutGrid, Banknote, TrendingUp, ListTodo
+    ChevronRight, BarChart3, UserCheck, History, Scale, Building, CalendarClock, Search, LayoutGrid, Banknote, TrendingUp, ListTodo, MessagesSquare
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
@@ -104,6 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 { icon: LayoutGrid, label: 'Disponibilités', path: '/disponibilites' },
                 { icon: UserPlus, label: 'Clients', path: '/clients' },
                 { icon: CalendarClock, label: 'Échéancier', path: '/echeancier' },
+                { icon: MessagesSquare, label: 'Messages WhatsApp', path: '/messages' },
                 { icon: Scale, label: 'Affaires Juridiques', path: '/contentieux' },
             ],
         },

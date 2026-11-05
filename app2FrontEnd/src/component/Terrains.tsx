@@ -113,7 +113,7 @@ const Terrains = () => {
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                            <MapPin className="text-blue-600" size={32} />
+                            <MapPin className="text-slate-400 flex-shrink-0" size={26} />
                             Gestion des Projets
                         </h2>
                         <p className="text-slate-500 font-medium text-sm mt-1">Acquisitions foncières et dossiers techniques de <span className="text-slate-800 font-semibold">Société les cinq elements</span>.</p>

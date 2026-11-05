@@ -117,14 +117,13 @@ const ConfigPrixBiens: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-12 mt-12">
+        <div className="space-y-5 pb-10">
             {/* Header */}
-            <div className="mb-10 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-3 mb-2">
-                    <Settings2 size={20} className="text-slate-400" />
-                    <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Paramètres de Tarification par Type</h1>
-                </div>
-                <p className="text-slate-500 text-sm">Configurez les prix unitaires par projet pour chaque type de bien.</p>
+            <div className="bg-white p-6 rounded-xl border border-slate-200">
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                    <Settings2 size={26} className="text-slate-400 flex-shrink-0" /> Configuration des prix
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">Prix unitaires (DH/m²) par projet et par type de bien, avec ou sans finition.</p>
             </div>
 
             <div className="space-y-4">

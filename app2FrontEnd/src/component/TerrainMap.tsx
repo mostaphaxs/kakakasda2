@@ -286,7 +286,7 @@ const TerrainMap: React.FC = () => {
                     </button>
                     <div>
                         <h1 className="text-xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-                            <MapPin size={22} className="text-blue-600" />
+                            <MapPin className="text-slate-400 flex-shrink-0" size={26} />
                             {terrain?.nom_projet ?? 'Carte du Terrain'}
                         </h1>
                         <p className="text-xs font-medium text-slate-400 mt-0.5">Digital Twin — Vue Interactive</p>

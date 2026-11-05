@@ -373,7 +373,7 @@ const Charges = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <WalletCards className="text-rose-600" />
+                            <WalletCards className="text-slate-400 flex-shrink-0" size={26} />
                             Gestion des Charges
                         </h2>
                         <p className="text-slate-400 text-xs font-medium">Suivi des dépenses de bureau, impôts et carburant.</p>

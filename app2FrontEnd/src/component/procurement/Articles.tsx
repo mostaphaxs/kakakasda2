@@ -123,7 +123,7 @@ const Articles: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <Package className="text-blue-600 h-8 w-8" />
+                            <Package className="text-slate-400 flex-shrink-0" size={26} />
                             Catalogue des Articles
                         </h1>
                         <p className="text-slate-500 text-sm font-medium">Gérez votre référentiel de matériaux et fournitures.</p>

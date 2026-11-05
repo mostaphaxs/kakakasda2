@@ -34,6 +34,7 @@ use App\Http\Controllers\ChequeController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\MessageTemplateController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -93,6 +94,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tasks', [TaskController::class, 'store']);
     Route::put('/tasks/{task}', [TaskController::class, 'update']);
     Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+
+    // WhatsApp message templates
+    Route::get('/message-templates', [MessageTemplateController::class, 'index']);
+    Route::post('/message-templates', [MessageTemplateController::class, 'store']);
+    Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
+    Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
 
     // Stats
     Route::get('/stats', [StatsController::class, 'index']);

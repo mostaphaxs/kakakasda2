@@ -384,7 +384,7 @@ const Intervenants = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <Briefcase className="text-blue-600" />
+                            <Briefcase className="text-slate-400 flex-shrink-0" size={26} />
                             Répertoire des Intervenants
                         </h2>
                         <p className="text-slate-500 text-sm">Gérez vos prestataires, bureaux d'études et notaires.</p>

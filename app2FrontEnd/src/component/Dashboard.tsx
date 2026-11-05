@@ -1,21 +1,11 @@
 // src/component/Dashboard.tsx
 import { useState, useEffect, useMemo } from 'react';
-import {
-  TrendingUp, Users, Wallet, Loader2, WalletCards, Home, MapPin,
-  UserPlus, Eye, EyeOff, Lock, ShoppingBag, Paintbrush,
-  HelpCircle,
-  ArrowUpRight, Percent, Activity, Briefcase, Zap, AlertTriangle
-} from 'lucide-react';
-import {
-  ResponsiveContainer,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, AreaChart, Area, RadialBarChart, RadialBar, Treemap,
-} from 'recharts';
+import { TrendingUp, Loader2, WalletCards, Home, MapPin, UserPlus, Eye, EyeOff, BarChart3 } from 'lucide-react';
+import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, AreaChart, Area } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
-import MarkdownText from './common/MarkdownText';
 
 interface Stats {
   investissement: number;
@@ -74,24 +64,11 @@ interface Stats {
 
 
 // Custom Tooltip Component (Premium, No Dependencies)
-const TooltipInfo = ({ text, title }: { text: string; title?: string }) => (
-  <div className="group relative inline-block ml-2 cursor-help z-50">
-    <div className="p-1 rounded-full bg-slate-50 text-slate-400 hover:bg-amber-100 hover:text-amber-600 transition shadow-sm border border-slate-100">
-      <HelpCircle size={14} />
-    </div>
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 hidden group-hover:block w-64 p-4 bg-slate-900/95 text-white rounded-xl shadow-lg z-[999] duration-200 border border-white/10 ring-1 ring-black/5">
-      {title && <p className="text-xs font-semibold text-amber-500 mb-1.5">{title}</p>}
-      <p className="text-xs leading-relaxed font-medium text-slate-200">{text}</p>
-      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900/95" />
-    </div>
-  </div>
-);
 
 const Dashboard = () => {
   const [apiStats, setApiStats] = useState<Stats | null>(null);
   const [selectedTerrainId, setSelectedTerrainId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState('Utilisateur');
   const [showStats, setShowStats] = useState(false);
   const navigate = useNavigate();
 
@@ -163,13 +140,6 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        setUserName(u.name || 'Utilisateur');
-      } catch (e) { }
-    }
     const savedVisibility = localStorage.getItem('dashboard_stats_visible');
     if (savedVisibility === 'true') {
       setShowStats(true);
@@ -191,636 +161,354 @@ const Dashboard = () => {
   if (loading || !stats || !normalizedStats) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 space-y-4">
-        <Loader2 className="animate-spin text-blue-600" size={48} />
+        <Loader2 className="animate-spin text-slate-400" size={32} />
         <p className="text-base font-semibold text-slate-500">Initialisation...</p>
       </div>
     );
   }
 
-  // Helper for masking financial data
-  const renderAmount = (amount: number, sizeClass = "text-2xl", colorClass = "text-slate-900") => {
-    if (!showStats) {
-      return (
-        <div className={`flex items-center gap-2 ${sizeClass} text-slate-300 font-semibold`}>
-          <Lock size={20} className="mb-1" />
-          <span>••••••••</span>
-        </div>
-      );
-    }
-    return (
-      <div className="flex items-baseline gap-1">
-        <span className={`${sizeClass} font-semibold ${colorClass}`}>
-          {formatNumber(amount)}
-        </span>
-        <span className="text-sm font-medium text-slate-500">MAD</span>
-      </div>
-    );
-  };
+
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8 space-y-8 max-w-7xl mx-auto font-sans">
+    <div className="space-y-5 pb-10">
 
-      {/* ── 1. En-tête (Header) ── */}
-      <div className="sticky top-4 z-30 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm mx-1">
+      {/* ── 1. Header: title, project scope, show/hide amounts ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
-            Bonjour, <span className="text-blue-600">{userName}</span>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+            <BarChart3 className="text-slate-400 flex-shrink-0" size={26} /> Tableau de bord
           </h1>
-          <p className="text-slate-500 font-medium text-base mt-2">
-            Résumé détaillé de l'activité de <span className="text-slate-800 font-semibold">Société les cinq elements</span>.
-          </p>
+          <p className="text-slate-500 text-sm mt-1">Analyse financière détaillée de Société Les Cinq Éléments.</p>
         </div>
-
-        <button
-          onClick={toggleStats}
-          className={`flex items-center gap-2 px-8 py-3.5 rounded-lg font-semibold text-xs transition shadow-sm focus:ring-4 focus:ring-blue-100 ${showStats
-            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            : 'bg-slate-900 text-white hover:bg-black active:scale-[0.98]'
-            }`}
-        >
-          {showStats ? (
-            <><EyeOff size={18} /> Masquer</>
-          ) : (
-            <><Eye size={18} /> Afficher les montants</>
-          )}
-        </button>
-      </div>
-
-      {/* ── 1.2 Executive Highlights ── */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 duration-700 delay-100">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition group overflow-hidden relative">
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <div className="hidden">
-                <Percent size={18} />
-              </div>
-              <span className={`text-xs font-semibold ${stats.margin_percentage > 20 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                {stats.margin_percentage > 20 ? 'Forte Marge' : 'Marge Stable'}
-              </span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-1">Profit sur Vente (%)</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-slate-800">{showStats ? `${stats.margin_percentage.toFixed(1)}%` : '•••%'}</p>
-                <ArrowUpRight size={16} className="text-emerald-500 mb-1" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition group overflow-hidden relative">
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <div className="hidden">
-                <Zap size={18} />
-              </div>
-              <span className="text-xs font-semibold text-amber-500">Rentabilité</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-1">Rentabilité Projets</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-slate-800">{showStats ? `${stats.roi.toFixed(1)}%` : '•••%'}</p>
-                <Activity size={16} className="text-amber-500 mb-1" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-[#0f172a] p-6 rounded-xl shadow-sm hover:shadow-md transition group overflow-hidden relative text-white">
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <div className="hidden">
-                <Briefcase size={18} />
-              </div>
-              <span className="text-xs font-semibold text-blue-400">Trésorerie</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400 mb-1">Dépenses Moy. (Mensuel)</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold text-white">{showStats ? `${formatNumber(Math.round(stats.burn_rate))} ` : '••••••'}</p>
-                <span className="text-xs font-medium text-slate-400">MAD</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={`p-6 rounded-xl border transition group overflow-hidden relative ${stats.benefice_estime < 0 ? 'bg-rose-50 !border-rose-100 text-rose-900' : 'bg-emerald-50 border-emerald-100 text-emerald-900'}`}>
-          <div className="relative z-10 flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`hidden`}>
-                {stats.benefice_estime < 0 ? <AlertTriangle size={18} /> : <TrendingUp size={18} />}
-              </div>
-              <span className={`text-xs font-semibold ${stats.benefice_estime < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                {stats.benefice_estime < 0 ? 'Perte Alerte' : 'Résultat Net'}
-              </span>
-            </div>
-            <div>
-              <p className={`text-xs font-semibold mb-1 ${stats.benefice_estime < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>Profit Net Final (Total)</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-2xl font-bold">{showStats ? formatNumber(stats.benefice_estime) : '••••••'}</p>
-                <span className="text-xs font-medium opacity-60">MAD</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 1.5. Scope Selector ── */}
-      {
-        stats.terrains_stats && stats.terrains_stats.length > 0 && (
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <MapPin className="text-blue-500" size={20} />
-              <label htmlFor="terrain-select" className="text-sm font-semibold text-slate-700">Filtrer par Projet :</label>
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {stats.terrains_stats && stats.terrains_stats.length > 0 && (
             <select
               id="terrain-select"
               value={selectedTerrainId ?? ''}
               onChange={(e) => setSelectedTerrainId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full sm:w-auto min-w-[300px] pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
+              className="min-w-[220px] px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             >
-              <option value="">Global (Tous les projets)</option>
+              <option value="">Tous les projets</option>
               {stats.terrains_stats.map((t) => (
                 <option key={t.id} value={t.id}>{t.nom_terrain}</option>
               ))}
             </select>
-          </div>
-        )
-      }
-
-      {/* ── 1.6. Smart Insights Pass ── */}
-      <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-6 duration-1000 delay-300">
-        <div className="hidden">
-          <Activity size={32} />
+          )}
+          <button
+            onClick={toggleStats}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-colors ${showStats
+              ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              : 'bg-slate-900 text-white hover:bg-slate-800'}`}
+          >
+            {showStats ? <><EyeOff size={15} /> Masquer les montants</> : <><Eye size={15} /> Afficher les montants</>}
+          </button>
         </div>
-        <div className="flex-grow">
-          <h4 className="text-xs font-semibold text-slate-400 mb-2">Résumé en Direct</h4>
-          <div className="flex flex-wrap gap-x-8 gap-y-2">
-            {stats.margin_percentage > 20 ? (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm" />
-                <p className="text-sm font-semibold text-slate-700">La profitabilité est excellente sur ce périmètre.</p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shadow-sm" />
-                <p className="text-sm font-semibold text-slate-700">Marge stable, mais optimisable sur les charges directes.</p>
-              </div>
-            )}
+      </div>
 
-            {(stats.encaissements / (stats.chiffre_affaires || 1)) < 0.5 && (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm" />
-                <p className="text-sm font-semibold text-slate-700">Recouvrement lent : priorisez les relances clients.</p>
-              </div>
-            )}
-
-            {stats.burn_rate > (stats.encaissements / 12) && (
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500 shadow-sm" />
-                <p className="text-sm font-semibold text-slate-700">Les dépenses mensuelles sont supérieures à la moyenne des encaissements.</p>
-              </div>
-            )}
+      {/* ── 1.2 Key figures ── */}
+      <section className="bg-white rounded-xl border border-slate-200 grid grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: 'Marge sur ventes', value: showStats ? `${stats.margin_percentage.toFixed(1)} %` : '•••', hint: stats.margin_percentage > 20 ? 'Forte marge' : 'Marge à surveiller', tone: stats.margin_percentage > 20 ? 'text-emerald-700' : 'text-amber-700' },
+          { label: 'Rentabilité des projets', value: showStats ? `${stats.roi.toFixed(1)} %` : '•••', hint: 'Bénéfice / coûts', tone: 'text-slate-500' },
+          { label: 'Dépenses moyennes / mois', value: showStats ? `${formatNumber(Math.round(stats.burn_rate))} DH` : '••••••', hint: 'Moyenne des 3 derniers mois', tone: 'text-slate-500' },
+          { label: 'Résultat net estimé', value: showStats ? `${formatNumber(stats.benefice_estime)} DH` : '••••••', hint: stats.benefice_estime < 0 ? 'Perte : à surveiller' : 'Bénéfice', tone: stats.benefice_estime < 0 ? 'text-red-700' : 'text-emerald-700', danger: stats.benefice_estime < 0 },
+        ].map((k, i) => (
+          <div key={k.label} className={`p-5 ${i % 2 === 1 ? 'border-l border-slate-200' : ''} ${i >= 2 ? 'border-t lg:border-t-0 border-slate-200' : ''} ${i === 2 ? 'lg:border-l' : ''}`}>
+            <p className="text-sm text-slate-500">{k.label}</p>
+            <p className={`mt-1.5 text-2xl font-semibold tracking-tight tabular-nums ${k.danger ? 'text-red-600' : 'text-slate-900'}`}>{k.value}</p>
+            <p className={`mt-2 text-xs ${k.tone}`}>{k.hint}</p>
           </div>
-        </div>
+        ))}
       </section>
 
-      {/* ── 2. Résumé Financier Global ── */}
-      <section>
-        <div className="flex items-center gap-2 mb-4 px-2">
-          <Wallet className="text-slate-400" size={24} />
-          <h2 className="text-xl font-semibold text-slate-800">Vue d'ensemble Financière</h2>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Row 1: CA, Encaissements, Reste */}
-          <div className="bg-[#1a0f0a] p-8 rounded-xl shadow-sm transition-transform duration-300 relative">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <div className="flex items-center">
-                  <p className="text-xs font-semibold text-slate-400">Chiffre d'Affaires</p>
-                  <TooltipInfo
-                    title="Chiffre d'Affaires (Objectif)"
-                    text="Valeur totale cumulée de tous les biens sous contrat (Vendus + Réservés). C'est votre objectif de revenu brut."
-                  />
-                </div>
-                <p className="text-xs text-slate-500 font-medium mt-1">Ventes & Réservations</p>
-              </div>
-              <div className="hidden">
-                <TrendingUp size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.chiffre_affaires, "text-4xl", "text-white")}
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between transition-transform duration-300 relative">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <div className="flex items-center">
-                  <p className="text-xs font-semibold text-slate-400">Total Recouvré</p>
-                  <TooltipInfo
-                    title="Liquidités Encaissées"
-                    text="Argent réel déjà déposé en banque. Ce montant provient des avances et des paiements de solde des clients."
-                  />
-                </div>
-                <p className="text-xs text-emerald-500 font-medium mt-1">Paiements Reçus</p>
-              </div>
-              <div className="hidden">
-                <Wallet size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.encaissements, "text-4xl", "text-slate-800")}
-
-            <div className="mt-8 pt-6 border-t border-slate-50">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-slate-400">Taux de Recouvrement</span>
-                <span className={`text-xs font-semibold ${showStats ? 'text-emerald-500' : 'text-slate-200'}`}>
-                  {showStats && stats.chiffre_affaires > 0 ? `${((stats.encaissements / stats.chiffre_affaires) * 100).toFixed(1)}%` : '••%'}
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className={`h-full bg-emerald-500 rounded-full shadow-sm`}
-                  style={{ width: `${showStats && stats.chiffre_affaires > 0 ? (stats.encaissements / stats.chiffre_affaires) * 100 : 0}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-transform duration-300 relative">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <div className="flex items-center">
-                  <p className="text-xs font-semibold text-slate-400">Reste à Recouvrer</p>
-                  <TooltipInfo
-                    title="Engagement Client Restant"
-                    text="Différence entre le CA signé et l'argent déjà reçu. C'est ce que les clients doivent encore verser."
-                  />
-                </div>
-                <p className="text-xs text-rose-500 font-medium mt-1">Créances Clients</p>
-              </div>
-              <div className="hidden">
-                <Users size={24} />
-              </div>
-            </div>
-            {renderAmount(stats.reste_a_recouvrer, "text-4xl", "text-slate-800")}
-          </div>
-        </div>
+      {/* ── 1.6 Live insights ── */}
+      <section className="bg-white px-5 py-4 rounded-xl border border-slate-200">
+        <h4 className="text-xs font-medium text-slate-500 mb-2">À retenir</h4>
+        <ul className="space-y-1.5">
+          <li className="flex items-center gap-2.5 text-sm text-slate-700">
+            <span className={`w-1.5 h-1.5 rounded-full ${stats.margin_percentage > 20 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+            {stats.margin_percentage > 20 ? 'La profitabilité est excellente sur ce périmètre.' : 'Marge stable, mais optimisable sur les charges directes.'}
+          </li>
+          {(stats.encaissements / (stats.chiffre_affaires || 1)) < 0.5 && (
+            <li className="flex items-center gap-2.5 text-sm text-slate-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              Recouvrement lent : priorisez les relances clients (voir l'Échéancier).
+            </li>
+          )}
+          {stats.burn_rate > (stats.encaissements / 12) && (
+            <li className="flex items-center gap-2.5 text-sm text-slate-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+              Les dépenses mensuelles dépassent la moyenne des encaissements.
+            </li>
+          )}
+        </ul>
       </section>
 
-      {/* ── 2. Analytics Visualizations ── */}
-      <section className="grid grid-cols-1 xl:grid-cols-5 gap-8 mb-8 h-auto">
-        {/* Graphique 1: Répartition des Dépenses (Treemap) */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[450px] xl:col-span-2">
-          <div className="mb-6 flex justify-between items-center">
-            <div className="flex justify-between items-center w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Où va l'argent ?</h3>
-                <p className="text-xs text-slate-400 font-medium">Répartition des dépenses par catégorie</p>
-              </div>
-              <TooltipInfo
-                title="Décomposition des Charges"
-                text="Visualisation proportionnelle de vos dépenses. Ce graphique vous aide à identifier les poches de dépenses les plus lourdes."
-              />
-            </div>
-            <div className="hidden">
-              <ShoppingBag size={24} />
-            </div>
-          </div>
-          <div className="flex-grow">
-            <ResponsiveContainer width="100%" height="100%">
-              <Treemap
-                data={[
-                  { name: 'Matériaux', value: stats.charges_details.achats, fill: '#6366f1' },
-                  { name: 'M.O Chantiers', value: stats.charges_details.contractors, fill: '#4f46e5' },
-                  { name: 'Intervenants', value: stats.charges_details.intervenants, fill: '#4338ca' },
-                  { name: 'Bureau', value: stats.charges_details.bureau, fill: '#3730a3' },
-                  { name: 'Général', value: stats.charges_details.general_works, fill: '#312e81' },
-                ]}
-                dataKey="value"
-                aspectRatio={4 / 3}
-                stroke="#fff"
-                fill="#4f46e5"
-              >
-                <RechartsTooltip
-                  formatter={(value: any) => [`${formatNumber(value)} DH`, '']}
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
-                />
-              </Treemap>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Graphique 2: Performance & Tendances */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[450px] xl:col-span-3">
-          <div className="mb-6 flex justify-between items-center">
-            <div className="flex justify-between items-center w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Flux sur 12 Mois</h3>
-                <p className="text-xs text-slate-400 font-medium">Evolution de l'argent reçu vs dépensé</p>
-              </div>
-              <TooltipInfo
-                title="Performance Mensuelle"
-                text="Suivi mensuel des revenus vs dépenses. L'écart entre les deux courbes représente votre profitabilité mensuelle réelle."
-              />
-            </div>
-            <div className="hidden">
-              <TrendingUp size={24} />
-            </div>
-          </div>
-          <div className="flex-grow">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={stats.monthly_perf} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
-                <YAxis hide />
-                <RechartsTooltip
-                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '11px', fontWeight: 'bold' }}
-                  formatter={(value: any) => [`${formatNumber(value)} DH`, '']}
-                />
-                <Area type="monotone" dataKey="income" name="Revenus" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" />
-                <Area type="monotone" dataKey="expenses" name="Dépenses" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Graphique 3: Analyse de Rentabilité */}
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[450px] xl:col-span-12 mt-8">
-          <div className="mb-6 flex justify-between items-center">
-            <div className="flex justify-between items-center w-full">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Indicateurs de Succès</h3>
-                <p className="text-xs text-slate-400 font-medium">Capture des objectifs financiers</p>
-              </div>
-              <TooltipInfo
-                title="Objectifs de Rentabilité"
-                text="• Recouvrement : Progrès de l'encaissement vs CA total. • Marge : Pourcentage de profit final estimé. • ROI : Retour sur investissement global."
-              />
-            </div>
-            <div className="hidden">
-              <Zap size={24} />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-grow items-center">
-            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-xl group">
-              <p className="text-xs font-semibold text-slate-400 mb-4">Argent Encaissé (%)</p>
-              <div className="h-48 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={10} data={[{ name: 'Progress', value: (stats.encaissements / (stats.chiffre_affaires || 1)) * 100, fill: '#10b981' }]}>
-                    <RadialBar background dataKey="value" cornerRadius={10} />
-                  </RadialBarChart>
-                </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                  <p className="text-2xl font-bold text-slate-800">{((stats.encaissements / (stats.chiffre_affaires || 1)) * 100).toFixed(0)}%</p>
-                  <p className="text-xs font-medium text-slate-400">Collecté</p>
+      {/* ── 2. Financial overview ── */}
+      <section className="bg-white rounded-xl border border-slate-200 grid grid-cols-2 lg:grid-cols-4">
+        {(() => {
+          const recouvrement = stats.chiffre_affaires > 0 ? Math.min(100, Math.round((stats.encaissements / stats.chiffre_affaires) * 100)) : 0;
+          const items: { label: string; v: number; hint?: string; bar?: number; warn?: boolean }[] = [
+            { label: "Chiffre d'affaires", v: stats.chiffre_affaires, hint: `${stats.reservations} réservation(s)` },
+            { label: 'Encaissé', v: stats.encaissements, bar: recouvrement },
+            { label: 'Reste à recouvrer', v: stats.reste_a_recouvrer, hint: 'Créances clients', warn: stats.reste_a_recouvrer > 0 },
+            { label: 'Coût global', v: stats.cout_global, hint: 'Terrain + toutes les charges' },
+          ];
+          return items.map((k, i) => (
+            <div key={k.label} className={`p-5 ${i % 2 === 1 ? 'border-l border-slate-200' : ''} ${i >= 2 ? 'border-t lg:border-t-0 border-slate-200' : ''} ${i === 2 ? 'lg:border-l' : ''}`}>
+              <p className="text-sm text-slate-500">{k.label}</p>
+              <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                {showStats ? <>{formatNumber(k.v)}<span className="ml-1 text-sm font-medium text-slate-400">DH</span></> : <span className="text-slate-300">••••••</span>}
+              </p>
+              {k.bar !== undefined ? (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="h-1.5 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-slate-900" style={{ width: `${showStats ? k.bar : 0}%` }} /></div>
+                  <span className="text-xs text-slate-500 tabular-nums whitespace-nowrap">{showStats ? `${k.bar}% recouvré` : '••• recouvré'}</span>
                 </div>
-              </div>
+              ) : <p className={`mt-3 text-xs ${k.warn ? 'text-amber-700' : 'text-slate-500'}`}>{k.hint}</p>}
             </div>
-
-            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-xl group">
-              <p className="text-xs font-semibold text-slate-400 mb-4">Rentabilité Réelle (%)</p>
-              <div className="h-48 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart cx="50%" cy="50%" innerRadius="70%" outerRadius="100%" barSize={10} data={[{ name: 'Margin', value: Math.max(0, stats.margin_percentage), fill: '#3b82f6' }]}>
-                    <RadialBar background dataKey="value" cornerRadius={10} />
-                  </RadialBarChart>
-                </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                  <p className="text-2xl font-bold text-slate-800">{stats.margin_percentage.toFixed(0)}%</p>
-                  <p className="text-xs font-medium text-slate-400">Objectif %</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center justify-center p-6 bg-slate-50/50 rounded-xl group">
-              <p className="text-xs font-semibold text-slate-400 mb-4">Argent à Recevoir (MAD)</p>
-              <div className="h-48 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[{ name: 'Potentiel', value: stats.reste_a_recouvrer }]}>
-                    <Bar dataKey="value" fill="#94a3b8" radius={[10, 10, 10, 10]} barSize={40} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pt-8">
-                  <p className="text-xs font-semibold text-slate-600 line-clamp-1">{formatNumber(stats.reste_a_recouvrer)}</p>
-                  <p className="text-xs font-medium text-slate-400">A Venir</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          ));
+        })()}
       </section>
 
-      {/* ── 3. Détails & Commercial ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Détail des charges */}
-        <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="bg-slate-50/50 border-b border-slate-100 p-6 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Répartition des Charges</h3>
-              <p className="text-xs text-slate-500 font-medium">Analytique des dépenses par catégorie</p>
-            </div>
-            <TooltipInfo text="Détail des sorties d'argent par type : Gros oeuvre, matériaux (Achat), intervenants techniques, et frais de bureau." />
-          </div>
-          <div className="p-6 space-y-3 flex-grow">
-            {[
-              { label: 'Construction & Gros Œuvre', value: stats.charges_details.contractors, icon: Home, color: 'text-amber-600', bg: 'bg-amber-50' },
-              { label: 'Matériaux & Second Œuvre', value: stats.charges_details.achats, icon: ShoppingBag, color: 'text-slate-600', bg: 'bg-slate-50' },
-              { label: 'Aménagements & Finitions', value: stats.charges_details.general_works, icon: Paintbrush, color: 'text-rose-600', bg: 'bg-rose-50' },
-              { label: 'Frais Techniques & Honoraires', value: stats.charges_details.intervenants, icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { label: 'Gestion & Administration', value: stats.charges_details.bureau, icon: Users, color: 'text-slate-400', bg: 'bg-slate-50' },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-xl border border-slate-50 hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className={`p-2 rounded-xl ${item.bg} ${item.color}`}>
-                    <item.icon size={20} />
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700">{item.label}</span>
+      {/* ── 3. Where the money goes + cumulative cash ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+        <section className="xl:col-span-2 bg-white rounded-xl border border-slate-200 p-5">
+          {(() => {
+            const cats = [
+              { label: 'Construction (BTP)', v: Number(stats.charges_details.contractors) || 0, color: '#eb6834' },
+              { label: 'Achats matériaux', v: Number(stats.charges_details.achats) || 0, color: '#eda100' },
+              { label: 'Travaux généraux', v: Number(stats.charges_details.general_works) || 0, color: '#e87ba4' },
+              { label: 'Intervenants', v: Number(stats.charges_details.intervenants) || 0, color: '#1baf7a' },
+              { label: 'Charges bureau', v: Number(stats.charges_details.bureau) || 0, color: '#6250d6' },
+            ].sort((x, y) => y.v - x.v);
+            const total = cats.reduce((acc, c) => acc + c.v, 0);
+            return (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Où va l'argent ?</h3>
+                  <span className="text-sm text-slate-500 tabular-nums">{showStats ? `${formatNumber(total)} DH` : '••••'}</span>
                 </div>
-                <div>
-                  {renderAmount(item.value, "text-base", "text-slate-900")}
-                </div>
-              </div>
-            ))}
-          </div>
+                <p className="text-xs text-slate-500">Dépenses par catégorie (hors terrain)</p>
+                {total === 0 ? (
+                  <p className="mt-10 text-center text-sm text-slate-400">Aucune dépense enregistrée</p>
+                ) : (
+                  <ul className="mt-5 space-y-4">
+                    {cats.map(c => {
+                      const pct = total > 0 ? Math.round((c.v / total) * 100) : 0;
+                      return (
+                        <li key={c.label}>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: c.color }} />
+                            <span className="text-slate-700">{c.label}</span>
+                            <span className="ml-auto font-medium text-slate-900 tabular-nums">{showStats ? formatNumber(c.v) : '••••'}</span>
+                            <span className="w-10 text-right text-xs text-slate-400 tabular-nums">{pct}%</span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: c.color }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            );
+          })()}
         </section>
 
-        {/* Commercial & Actions Rapides */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-6">
-            <div className="hidden">
-              <Users size={32} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-400">Dossiers Clients</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <p className="text-2xl font-bold text-slate-800">{stats.reservations}</p>
-                <span className="text-xs text-slate-400 font-medium">Actifs</span>
-              </div>
-            </div>
-          </div>
+        <section className="xl:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
+          {(() => {
+            let run = 0;
+            const data = (stats.monthly_perf ?? []).map(m => {
+              const net = (Number(m.income) || 0) - (Number(m.expenses) || 0);
+              run += net;
+              return { label: m.label, cumul: run, net };
+            });
+            const last = data[data.length - 1]?.cumul ?? 0;
+            const negative = last < 0;
+            const color = negative ? '#e11d48' : '#2a78d6';
+            const compact = (v: number) => Math.abs(v) >= 1e6 ? `${(v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M` : Math.abs(v) >= 1e3 ? `${Math.round(v / 1e3)} k` : String(v);
+            return (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Trésorerie cumulée · 12 mois</h3>
+                  <span className={`text-sm font-medium tabular-nums ${negative ? 'text-red-600' : 'text-slate-900'}`}>{showStats ? `${formatNumber(last)} DH` : '••••'}</span>
+                </div>
+                <p className="text-xs text-slate-500">Encaissements moins dépenses, cumulés mois après mois</p>
+                <div className="mt-4 h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data} margin={{ top: 6, right: 6, left: showStats ? -6 : -40, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="cumulFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={color} stopOpacity={0.18} />
+                          <stop offset="100%" stopColor={color} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: '#e2e8f0' }} tick={{ fontSize: 11, fill: '#64748b' }} interval="preserveStartEnd" />
+                      <YAxis tickLine={false} axisLine={false} tick={showStats ? { fontSize: 11, fill: '#94a3b8' } : false} tickFormatter={compact} width={50} />
+                      {showStats && (
+                        <RechartsTooltip
+                          cursor={{ stroke: '#cbd5e1' }}
+                          content={({ active, payload, label }: any) => active && payload?.length ? (
+                            <div className="rounded-lg bg-white px-3 py-2 shadow-lg ring-1 ring-slate-900/10 text-xs">
+                              <p className="font-medium text-slate-900 capitalize mb-1">{label}</p>
+                              <p className="text-slate-600">Solde du mois <span className="ml-3 font-medium text-slate-900 tabular-nums">{formatNumber(payload[0].payload.net)} DH</span></p>
+                              <p className="text-slate-600">Cumul <span className="ml-3 font-medium text-slate-900 tabular-nums">{formatNumber(payload[0].payload.cumul)} DH</span></p>
+                            </div>
+                          ) : null}
+                        />
+                      )}
+                      <Area type="monotone" dataKey="cumul" stroke={color} strokeWidth={2} fill="url(#cumulFill)" isAnimationActive={false} dot={false} activeDot={{ r: 4 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            );
+          })()}
+        </section>
+      </div>
 
-          <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex-grow">
-            <h3 className="text-lg font-semibold text-slate-800 tracking-tight mb-6">Actions Rapides</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { title: 'Ajouter Unité', desc: 'Bloc / Local', path: '/add-property', icon: Home, color: 'text-amber-600', bg: 'bg-amber-50/50' },
-                { title: 'Nouveau Client', desc: 'Réservation directe', path: '/add-client', icon: UserPlus, color: 'text-slate-800', bg: 'bg-slate-50' },
-                { title: 'Nouveau Projet', desc: 'Gestion foncière', path: '/add-terrain', icon: MapPin, color: 'text-slate-800', bg: 'bg-slate-50' },
-                { title: 'Charges', desc: 'Saisie comptable', path: '/charges', icon: WalletCards, color: 'text-rose-600', bg: 'bg-rose-50/50' },
-              ].map((action, i) => (
-                <button
-                  key={i}
-                  onClick={() => navigate(action.path)}
-                  className="flex items-start gap-4 p-4 rounded-lg border border-slate-100 text-left hover:border-amber-200 hover:bg-amber-50/30 transition group"
-                >
-                  <div className={`p-2.5 rounded-xl ${action.bg} ${action.color} shrink-0`}>
-                    <action.icon size={22} />
+      {/* ── 4. Indicators + stock ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <section className="bg-white rounded-xl border border-slate-200 p-5">
+          <h3 className="text-sm font-semibold text-slate-900">Indicateurs clés</h3>
+          {(() => {
+            const units = Object.values(normalizedStats.biens_status).reduce((a, b) => a + (Number(b) || 0), 0);
+            const sold = (normalizedStats.biens_status['Vendu'] || 0) + (normalizedStats.biens_status['Réservé'] || 0);
+            const rows = [
+              { label: 'Taux de recouvrement', v: stats.chiffre_affaires > 0 ? (stats.encaissements / stats.chiffre_affaires) * 100 : 0, hint: 'Encaissé / chiffre d’affaires', masked: !showStats },
+              { label: 'Marge sur ventes', v: stats.margin_percentage, hint: 'Bénéfice / chiffre d’affaires', masked: !showStats },
+              { label: 'Taux de commercialisation', v: units > 0 ? (sold / units) * 100 : 0, hint: `${sold} vendu(s) ou réservé(s) sur ${units}`, masked: false },
+            ];
+            return (
+              <ul className="mt-4 space-y-5">
+                {rows.map(r => {
+                  const pct = Math.max(0, Math.min(100, r.v));
+                  return (
+                    <li key={r.label}>
+                      <div className="flex items-baseline justify-between text-sm">
+                        <span className="text-slate-700">{r.label}</span>
+                        <span className="font-semibold text-slate-900 tabular-nums">{r.masked ? '•••' : `${Math.round(r.v)} %`}</span>
+                      </div>
+                      <div className="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-slate-900 transition-[width] duration-700" style={{ width: r.masked ? '0%' : `${pct}%` }} />
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">{r.hint}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            );
+          })()}
+        </section>
+
+        <section className="bg-white rounded-xl border border-slate-200 p-5">
+          {(() => {
+            const st = normalizedStats.biens_status as Record<string, number>;
+            const rows = [
+              { label: 'Vendus', v: st['Vendu'] || 0, c: 'bg-slate-900' },
+              { label: 'Réservés', v: st['Réservé'] || 0, c: 'bg-slate-500' },
+              { label: 'Libres', v: st['Libre'] || 0, c: 'bg-slate-300' },
+            ];
+            const total = rows.reduce((a, r) => a + r.v, 0);
+            return (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <h3 className="text-sm font-semibold text-slate-900">État du parc immobilier</h3>
+                  <button onClick={() => navigate('/disponibilites')} className="text-xs font-medium text-slate-500 hover:text-slate-900">Voir la grille →</button>
+                </div>
+                <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">{total}<span className="ml-1.5 text-sm font-medium text-slate-400">unités · {stats.terrains_stats?.length || 0} projet(s)</span></p>
+                <div className="mt-4 flex h-2 gap-0.5 rounded-full overflow-hidden bg-slate-100">
+                  {total > 0 && rows.filter(r => r.v > 0).map(r => <div key={r.label} className={r.c} style={{ width: `${(r.v / total) * 100}%` }} />)}
+                </div>
+                <ul className="mt-4 grid grid-cols-3 gap-3">
+                  {rows.map(r => (
+                    <li key={r.label}>
+                      <span className="flex items-center gap-1.5 text-xs text-slate-500"><span className={`w-2 h-2 rounded-sm ${r.c}`} />{r.label}</span>
+                      <span className="block mt-0.5 text-lg font-semibold text-slate-900 tabular-nums">{r.v}</span>
+                    </li>
+                  ))}
+                </ul>
+                {Object.keys(stats.biens_types || {}).length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-1.5">
+                    {Object.entries(stats.biens_types).map(([type, count]) => (
+                      <span key={type} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200">
+                        {type} <span className="font-semibold text-slate-900">{count as number}</span>
+                      </span>
+                    ))}
                   </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-slate-800 group-hover:text-amber-700 transition-colors tracking-tight">{action.title}</h4>
-                    <p className="text-xs text-slate-400 mt-1 font-medium">{action.desc}</p>
-                  </div>
-                </button>
+                )}
+              </>
+            );
+          })()}
+        </section>
+      </div>
+
+      {/* ── 5. Recent activity + quick actions ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {[
+          {
+            title: 'Derniers encaissements', empty: 'Aucun encaissement récent', link: '/transactions',
+            rows: displayPayments.slice(0, 5).map((p: any, i: number) => ({
+              key: `p${i}`, title: `${p.client?.prenom ?? ''} ${p.client?.nom ?? ''}`, sub: `${p.method ?? 'Paiement'} · ${parseDate(p.payment_date).toLocaleDateString('fr-FR')}`,
+              right: showStats ? `+${formatNumber(p.amount)}` : '••••',
+            })),
+          },
+          {
+            title: 'Dernières réservations', empty: 'Aucune réservation récente', link: '/clients',
+            rows: displayClients.slice(0, 5).map((c: any, i: number) => ({
+              key: `c${i}`, title: `${c.prenom} ${c.nom}`, sub: c.cin ? String(c.cin).toUpperCase() : '—',
+              right: c.biens?.[0] ? `${c.biens[0].type_bien ?? ''} ${c.biens[0].num_appartement ?? ''}`.trim() : 'Sans bien',
+            })),
+          },
+        ].map(block => (
+          <section key={block.title} className="bg-white rounded-xl border border-slate-200">
+            <header className="flex items-center justify-between px-5 pt-4 pb-3">
+              <h3 className="text-sm font-semibold text-slate-900">{block.title}</h3>
+              <button onClick={() => navigate(block.link)} className="text-xs font-medium text-slate-500 hover:text-slate-900">Tout voir →</button>
+            </header>
+            <ul className="divide-y divide-slate-100 border-t border-slate-200">
+              {block.rows.length === 0 && <li className="px-5 py-8 text-center text-sm text-slate-400">{block.empty}</li>}
+              {block.rows.map(r => (
+                <li key={r.key} className="flex items-center gap-3 px-5 py-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-slate-900 truncate capitalize">{r.title}</span>
+                    <span className="block text-xs text-slate-500 truncate">{r.sub}</span>
+                  </span>
+                  <span className="text-sm font-medium text-slate-900 tabular-nums whitespace-nowrap">{r.right}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
-        </div>
-      </div>
+        ))}
 
-      {/* ── 4. État du Parc ── */}
-      <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-800 tracking-tight">État du Parc Immobilier</h3>
-            <p className="text-xs text-slate-400 font-medium">Disponibilité brute et typologie</p>
-          </div>
-          <div className="flex gap-2">
-            <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
-              <p className="text-xs font-semibold text-slate-400">Projets</p>
-              <p className="text-lg font-semibold text-slate-800">{stats.terrains_stats?.length || 0}</p>
-            </div>
-            <div className="px-4 py-2 bg-slate-50 rounded-xl text-center border border-slate-100 min-w-[100px]">
-              <p className="text-xs font-semibold text-slate-400">Unités</p>
-              <p className="text-lg font-semibold text-slate-800">{Object.values(stats.biens_status).reduce((a, b) => a + b, 0)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-            <div className="p-6 bg-emerald-50/50 border border-emerald-100 rounded-xl text-center relative group">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <p className="text-xs font-semibold text-emerald-800">Libres</p>
-                <TooltipInfo text="Unités sans client associé et disponibles immédiatement à la vente." />
-              </div>
-              <p className="text-2xl font-bold text-emerald-600">{normalizedStats.biens_status['Libre'] || 0}</p>
-            </div>
-            <div className="p-6 bg-amber-50/50 border border-amber-100 rounded-xl text-center relative group">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <p className="text-xs font-semibold text-amber-800">Réservés</p>
-                <TooltipInfo text="Unités avec un client attaché mais dont le dossier ou le paiement n'est pas encore finalisé." />
-              </div>
-              <p className="text-2xl font-bold text-amber-600">{normalizedStats.biens_status['Réservé'] || 0}</p>
-            </div>
-            <div className="p-6 bg-slate-50 border border-slate-100 rounded-xl text-center relative group">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <p className="text-xs font-semibold text-slate-600">Vendus</p>
-                <TooltipInfo text="Dossiers bouclés et unités contractuellement cédées aux clients." />
-              </div>
-              <p className="text-2xl font-bold text-slate-800">{normalizedStats.biens_status['Vendu'] || 0}</p>
-            </div>
-          </div>
-
-          <h4 className="text-xs font-semibold text-slate-400 mb-4">Stock par Typologie</h4>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-500">
-            {Object.entries(stats.biens_types).map(([type, count], i) => (
-              <div key={type} className="flex items-center gap-2">
-                {i > 0 && <span className="w-1 h-1 rounded-full bg-slate-200" />}
-                <span>{type}:</span>
-                <span className="text-amber-600 font-semibold">{count as number}</span>
-              </div>
+        <section className="bg-white rounded-xl border border-slate-200">
+          <header className="px-5 pt-4 pb-3"><h3 className="text-sm font-semibold text-slate-900">Actions rapides</h3></header>
+          <ul className="divide-y divide-slate-100 border-t border-slate-200">
+            {[
+              { title: 'Nouveau client', desc: 'Réservation directe', path: '/add-client', icon: UserPlus },
+              { title: 'Ajouter une unité', desc: 'Bloc, appartement, local', path: '/add-property', icon: Home },
+              { title: 'Nouveau projet', desc: 'Acquisition foncière', path: '/add-terrain', icon: MapPin },
+              { title: 'Saisir une charge', desc: 'Frais de fonctionnement', path: '/charges', icon: WalletCards },
+              { title: 'Rentabilité par projet', desc: 'Coûts, marge, bénéfice', path: '/rentabilite', icon: TrendingUp },
+            ].map(a => (
+              <li key={a.path}>
+                <button onClick={() => navigate(a.path)} className="group w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-slate-50 transition-colors">
+                  <a.icon size={16} className="text-slate-400 group-hover:text-slate-900 transition-colors flex-shrink-0" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium text-slate-900">{a.title}</span>
+                    <span className="block text-xs text-slate-500">{a.desc}</span>
+                  </span>
+                  <span className="text-slate-300 group-hover:text-slate-700 transition-colors">→</span>
+                </button>
+              </li>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. Activités Récentes ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Paiements */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <TrendingUp size={18} className="text-emerald-500" /> Flux Entrants
-            </h4>
-          </div>
-          <div className="p-6 space-y-3">
-            {displayPayments.length > 0 ? displayPayments.map((p, idx) => (
-              <div key={idx} className="flex justify-between items-center p-4 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition-colors group">
-                <div className="flex items-center gap-4">
-                  <div className="hidden">
-                    <Wallet size={16} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800 tracking-tight">{p.client?.prenom} {p.client?.nom}</p>
-                    <p className="text-xs text-slate-400 font-medium">{parseDate(p.payment_date).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                {renderAmount(p.amount, "text-base", "text-emerald-600")}
-              </div>
-            )) : <p className="text-center py-10 text-slate-400 text-xs font-medium">Aucun flux récent</p>}
-          </div>
-        </div>
-
-        {/* Clients */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-slate-50 bg-slate-50/30">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-              <UserPlus size={18} className="text-amber-500" /> Réservations
-            </h4>
-          </div>
-          <div className="p-6 space-y-3">
-            {displayClients.length > 0 ? displayClients.map((c, idx) => (
-              <div key={idx} className="flex flex-col p-4 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-4">
-                    <div className="hidden">
-                      <Users size={16} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 tracking-tight">{c.prenom} {c.nom}</p>
-                      <p className="text-xs text-slate-400 font-medium"><MarkdownText text={c.cin} /></p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs font-semibold text-amber-600 tracking-tight">
-                      {c.biens?.[0]?.type_bien || 'N/A'}
-                    </p>
-                    <p className="text-xs text-slate-400 font-medium">
-                      {c.biens?.[0]?.num_appartement ? <>Bloc <MarkdownText text={c.biens[0].num_appartement} /></> : 'Sans unité'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )) : <p className="text-center py-10 text-slate-400 text-xs font-medium">Aucune réservation récente</p>}
-          </div>
-        </div>
-
+          </ul>
+        </section>
       </div>
-
-    </div >
+    </div>
   );
 };
 

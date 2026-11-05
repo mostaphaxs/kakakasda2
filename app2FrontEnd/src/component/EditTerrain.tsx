@@ -129,7 +129,7 @@ const EditTerrain: React.FC = () => {
                         <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <MapPin className="text-blue-600" size={26} />
+                        <MapPin className="text-slate-400" size={26} />
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800">Modifier le Projet #{id}</h1>
                             <p className="text-xs text-slate-400">Mettre à jour les informations foncières</p>
@@ -224,7 +224,7 @@ const EditTerrain: React.FC = () => {
                                     <button
                                         type="submit"
                                         disabled={isSubmitting}
-                                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium disabled:bg-indigo-300 transition shadow-sm hover:shadow-md bg-slate-900 hover:bg-slate-800"
+                                        className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-medium disabled:opacity-60 transition shadow-sm hover:shadow-md bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmitting ? (
                                             <><Loader2 size={16} className="animate-spin" /> Mise à jour…</>

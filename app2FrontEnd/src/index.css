@@ -122,7 +122,8 @@ body {
 }
 
 .chat-bubble-trigger {
-    background: #3b82f6;
+    background: #0f172a;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35), 0 8px 20px -6px rgba(15, 23, 42, 0.5) !important;
     color: white;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-radius: 9999px;
@@ -133,8 +134,7 @@ body {
 }
 
 .chat-bubble-trigger:hover {
-    transform: scale(1.05);
-    background: #2563eb;
+    background: #1e293b;
 }
 
 /* Scrollbar Clean */

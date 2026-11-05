@@ -392,7 +392,7 @@ const Contractors = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <Building className="text-blue-600" />
+                            <Building className="text-slate-400 flex-shrink-0" size={26} />
                             Entreprises de Construction
                         </h2>
                         <p className="text-slate-500 text-sm">Gérez vos prestataires et le suivi de leurs paiements.</p>

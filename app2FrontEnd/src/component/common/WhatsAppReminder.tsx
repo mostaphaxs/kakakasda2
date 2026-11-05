@@ -15,8 +15,9 @@ import toast from 'react-hot-toast';
 import { X, MessageCircle, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { openExternal } from '../../lib/tauri';
 import { improveWhatsAppMessage } from '../../lib/gemini';
+import { fillTemplate, useMessageContext } from '../../lib/messageTemplates';
 
-export interface ReminderClient { nom?: string; prenom?: string; tel?: string | null; tel_2?: string | null }
+export interface ReminderClient { id?: number; nom?: string; prenom?: string; tel?: string | null; tel_2?: string | null }
 export interface ReminderRequest {
     client: ReminderClient;
     /** Pre-written message per language. */
@@ -65,8 +66,17 @@ function Flow({ req }: { req: ReminderRequest }) {
     const [phone, setPhone] = useState<string>((client.tel || client.tel_2) as string);
     const [message, setMessage] = useState('');
     const [aiLoading, setAiLoading] = useState(false);
+    const [lang, setLang] = useState<'fr' | 'ar'>('fr');
+    const ctx = useMessageContext();
 
-    const pickLang = (lang: 'fr' | 'ar') => { setMessage(req.messages[lang]); setStep('edit'); };
+    const pickLang = (l: 'fr' | 'ar') => { setLang(l); setMessage(req.messages[l]); setStep('edit'); };
+    const applyTemplate = (id: string) => {
+        if (id === '') { setMessage(req.messages[lang]); return; }
+        const t = ctx.templates.find(x => String(x.id) === id);
+        if (!t) return;
+        const body = (lang === 'ar' ? t.body_ar : t.body_fr) || t.body_fr;
+        setMessage(fillTemplate(body, ctx.varsFor(client.id, client)));
+    };
 
     // Échap closes only this window (not the one underneath)
     useEffect(() => {
@@ -140,6 +150,14 @@ function Flow({ req }: { req: ReminderRequest }) {
                 <div className={`${panel} max-w-lg max-h-[90vh] flex flex-col`}>
                     <Header title="Modifier le message" back="lang" />
                     <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5">Modèle</label>
+                            <select defaultValue="" onChange={e => applyTemplate(e.target.value)}
+                                className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20">
+                                <option value="">Message proposé</option>
+                                {ctx.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </select>
+                        </div>
                         <div>
                             <div className="flex items-center justify-between mb-1.5">
                                 <label className="text-xs font-medium text-slate-600">Message (*texte* pour le gras)</label>

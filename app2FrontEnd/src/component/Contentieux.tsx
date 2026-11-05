@@ -218,13 +218,13 @@ const Contentieux = () => {
     return (
         <div className="space-y-6 duration-500">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                        <Scale className="text-amber-500" size={32} />
-                        Affaires Juridiques (Les Cinq Élements)
+                        <Scale className="text-slate-400 flex-shrink-0" size={26} />
+                        Affaires Juridiques
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">Gestion juridique et suivi des affaires en cours pour la société Les Cinq Élements.</p>
+                    <p className="text-slate-500 text-sm mt-1">Dossiers contentieux, audiences et frais juridiques.</p>
                 </div>
 
                 <button
@@ -243,22 +243,21 @@ const Contentieux = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
                     <p className="text-xs font-semibold text-slate-400 mb-1">Total Dossiers</p>
-                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                        <FileText className="text-blue-500" size={24} />
+                    <h2 className="text-2xl font-bold text-slate-800">
                         {stats.totalCases}
                     </h2>
                 </div>
-                <div className="bg-amber-50 p-5 rounded-xl border border-amber-100 shadow-sm">
-                    <p className="text-xs font-semibold text-amber-600 mb-1">Honoraires Avocats</p>
-                    <h2 className="text-2xl font-bold text-amber-700">{formatCurrency(stats.totalLawyerFees)}</h2>
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-400 mb-1">Honoraires avocats</p>
+                    <h2 className="text-2xl font-bold text-slate-800">{formatCurrency(stats.totalLawyerFees)}</h2>
                 </div>
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="text-xs font-semibold text-slate-500 mb-1">Frais Judiciaires & Commissaires</p>
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="text-xs font-semibold text-slate-400 mb-1">Frais judiciaires & commissaires</p>
                     <h2 className="text-2xl font-bold text-slate-800 flex flex-col">
                         <span>{formatCurrency(stats.totalJudicialFees + stats.totalCommissaireFees)}</span>
                         <div className="flex gap-4 mt-1">
-                            <span className="text-xs font-medium text-emerald-600">Tribunal: {formatCurrency(stats.totalJudicialFees)}</span>
-                            <span className="text-xs font-medium text-blue-600">Commissaire: {formatCurrency(stats.totalCommissaireFees)}</span>
+                            <span className="text-xs font-medium text-slate-500">Tribunal : {formatCurrency(stats.totalJudicialFees)}</span>
+                            <span className="text-xs font-medium text-slate-500">Commissaire : {formatCurrency(stats.totalCommissaireFees)}</span>
                         </div>
                     </h2>
                 </div>

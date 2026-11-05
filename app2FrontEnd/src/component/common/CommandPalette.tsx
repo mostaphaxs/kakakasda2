@@ -13,7 +13,7 @@ import toast from 'react-hot-toast';
 import {
     Search, UserPlus, Wallet, Plus, Building2, MapPin, FileText, Truck, Users, CalendarClock,
     Home, BarChart3, History, Scale, HardHat, UserCheck, Wrench, Package, ShoppingCart, Layers,
-    WalletCards, Building, Settings2, Keyboard, CornerDownLeft, FileDown, LayoutGrid, Banknote, TrendingUp, FileBarChart, FileSignature, ListTodo,
+    WalletCards, Building, Settings2, Keyboard, CornerDownLeft, FileDown, LayoutGrid, Banknote, TrendingUp, FileBarChart, FileSignature, ListTodo, MessagesSquare,
 } from 'lucide-react';
 import { generateMonthlyReport } from './MonthlyReportButton';
 import { openClientDocuments } from './ClientDocuments';
@@ -60,6 +60,7 @@ const PAGES: { label: string; path: string; icon: ComponentType<{ size?: number 
     { label: 'Historique / Livre de caisse', path: '/transactions', icon: History },
     { label: 'Échéancier', path: '/echeancier', icon: CalendarClock },
     { label: 'Chèques clients', path: '/cheques', icon: Banknote },
+    { label: 'Messages WhatsApp (envoi groupé, modèles)', path: '/messages', icon: MessagesSquare },
     { label: 'Rentabilité par projet', path: '/rentabilite', icon: TrendingUp },
     { label: 'Disponibilités (grille des biens)', path: '/disponibilites', icon: LayoutGrid },
     { label: 'Projets', path: '/terrains', icon: MapPin },
@@ -146,9 +147,10 @@ function Palette({ initialMode }: { initialMode: Mode }) {
             { id: 'a-ech', group: '', title: 'Échéancier et retards de paiement', icon: CalendarClock, run: () => go('/echeancier') },
             { id: 'a-report', group: '', title: 'Rapport mensuel (PDF, mois en cours)', icon: FileBarChart, run: () => { closePalette(); generateMonthlyReport(); } },
             { id: 'a-dispo', group: '', title: 'Disponibilités des biens', icon: LayoutGrid, run: () => go('/disponibilites') },
+            { id: 'a-bulk', group: '', title: 'Envoi groupé WhatsApp', icon: MessagesSquare, run: () => go('/messages') },
             { id: 'a-keys', group: '', title: 'Raccourcis clavier', subtitle: '?', icon: Keyboard, run: () => { setView('shortcuts'); } },
         ];
-        push('Actions', query ? actions.filter(a => matches(norm(a.title), query)) : actions, query ? 4 : 10);
+        push('Actions', query ? actions.filter(a => matches(norm(a.title), query)) : actions, query ? 4 : 11);
         if (!query) return out;
 
         push('Clients', (clients.data ?? [])

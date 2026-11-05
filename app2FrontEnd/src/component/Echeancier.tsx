@@ -85,7 +85,7 @@ function whatsappReminder(r: Row, all: Row[]) {
         'شركة الخمسة عناصر',
     ].join('\n');
 
-    openWhatsAppReminder({ client: r.client ?? {}, messages: { fr, ar } });
+    openWhatsAppReminder({ client: { ...(r.client ?? {}), id: r.client_id }, messages: { fr, ar } });
 }
 
 export default function Echeancier() {

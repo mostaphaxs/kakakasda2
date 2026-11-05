@@ -13,6 +13,7 @@ import Cheques from './component/Cheques';
 import Rentabilite from './component/Rentabilite';
 import Disponibilites from './component/Disponibilites';
 import Taches from './component/Taches';
+import Messages from './component/Messages';
 import { TaskEditorHost } from './component/common/TaskEditor';
 import { ClientDocumentsHost } from './component/common/ClientDocuments';
 import { ProgressPhotosHost } from './component/common/ProgressPhotos';
@@ -80,6 +81,8 @@ const AppContent: React.FC = () => {
   }, [location]);
 
   const isPortal = location.pathname.startsWith('/portal');
+  // Login screens take the full window (no page padding / width limit)
+  const isAuthScreen = location.pathname === '/login' || location.pathname === '/portal/login';
   const isAdmin = !!token && !isPortal && location.pathname !== '/login';
   useGlobalShortcuts(isAdmin);
 
@@ -126,8 +129,8 @@ const AppContent: React.FC = () => {
 
         {token && !isPortal && <AIAssistant />}
 
-        <main className="flex-grow px-4 py-6">
-          <div key={location.pathname} className="max-w-7xl mx-auto animate-page-in">
+        <main className={isAuthScreen ? 'flex-grow' : 'flex-grow px-4 py-6'}>
+          <div key={location.pathname} className={isAuthScreen ? 'animate-page-in' : 'max-w-7xl mx-auto animate-page-in'}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
@@ -170,6 +173,7 @@ const AppContent: React.FC = () => {
               <Route path="/rentabilite" element={<PrivateRoute><Rentabilite /></PrivateRoute>} />
               <Route path="/disponibilites" element={<PrivateRoute><Disponibilites /></PrivateRoute>} />
               <Route path="/taches" element={<PrivateRoute><Taches /></PrivateRoute>} />
+              <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<ClientLogin />} />

@@ -342,50 +342,37 @@ const Salaries: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8 duration-700">
-            {/* Header section with Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-1 flex flex-col justify-center space-y-1">
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-3">
-                        Salariés
-                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-600 text-white">{salaries.length}</span>
+        <div className="space-y-5 pb-10">
+            {/* Header */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <UserCheck className="text-slate-400 flex-shrink-0" size={26} /> Salariés
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 tabular-nums">{salaries.length}</span>
                     </h1>
-                    <p className="text-slate-400 font-medium text-xs ml-1">Gestion des Ressources Humaines</p>
+                    <p className="text-slate-500 text-sm mt-1">Gestion des ressources humaines et des bulletins.</p>
                 </div>
-
-                <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-5 shadow-sm group hover:border-blue-100 transition">
-                        <div className="hidden">
-                            <UserCheck size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-semibold text-slate-400 mb-1">Masse Salariale</p>
-                            <p className="text-xl font-semibold text-slate-900 tabular-nums">
-                                {salaries.reduce((acc, s) => acc + Number(s.monthly_salary || 0), 0).toLocaleString('fr-MA')} <span className="text-[8px]">DH/mois</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center gap-5 shadow-sm group hover:border-emerald-100 transition">
-                        <div className="hidden">
-                            <GraduationCap size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs font-semibold text-slate-400 mb-1">Niveau Moyen</p>
-                            <p className="text-xl font-semibold text-slate-900">Cadre / Technicien</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-end">
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="h-11 px-4 text-white rounded-lg font-medium text-sm transition shadow-sm flex items-center gap-2 bg-slate-900 hover:bg-slate-800"
-                    >
-                        <Plus size={18} />
-                        Nouveau Salarié
-                    </button>
-                </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="px-4 py-2 text-white rounded-lg font-medium text-sm transition flex items-center gap-2 bg-slate-900 hover:bg-slate-800"
+                >
+                    <Plus size={16} /> Nouveau Salarié
+                </button>
             </div>
+
+            {/* Key figures */}
+            <section className="bg-white rounded-xl border border-slate-200 grid grid-cols-2">
+                <div className="p-5">
+                    <p className="text-sm text-slate-500">Masse salariale</p>
+                    <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                        {salaries.reduce((acc, s) => acc + Number(s.monthly_salary || 0), 0).toLocaleString('fr-MA')}<span className="ml-1 text-sm font-medium text-slate-400">DH / mois</span>
+                    </p>
+                </div>
+                <div className="p-5 border-l border-slate-200">
+                    <p className="text-sm text-slate-500">Effectif</p>
+                    <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{salaries.length}<span className="ml-1 text-sm font-medium text-slate-400">salarié(s)</span></p>
+                </div>
+            </section>
 
             {/* Filters and Search */}
             <div
@@ -393,7 +380,7 @@ const Salaries: React.FC = () => {
                 className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between mx-1"
             >
                 <div className="relative w-full md:w-96 group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600 transition-colors" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher par nom, spécialité, cin..."

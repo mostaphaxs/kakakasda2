@@ -346,7 +346,7 @@ const ServiceSocietes = () => {
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
-                            <Building2 className="text-blue-600" />
+                            <Building2 className="text-slate-400 flex-shrink-0" size={26} />
                             Sociétés de Services
                         </h2>
                         <p className="text-slate-500 text-sm">Gestion des abonnements (Telecom, Eau) et frais administratifs.</p>
@@ -355,7 +355,7 @@ const ServiceSocietes = () => {
                         <button onClick={() => handleExport} className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition font-medium text-sm">
                             <Download size={18} /> Export Excel
                         </button>
-                        <button onClick={() => setIsGlobalScanOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-5 py-2.5 rounded-lg hover:opacity-90 transition font-medium shadow-sm text-xs">
+                        <button onClick={() => setIsGlobalScanOpen(true)} className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition font-medium shadow-sm text-xs">
                             <Sparkles size={18} /> Scan Rapide
                         </button>
                         <button onClick={() => handleOpenProviderModal()} className="flex items-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium shadow-sm text-sm bg-slate-900 hover:bg-slate-800">
@@ -713,13 +713,13 @@ const ServiceSocietes = () => {
             {isGlobalScanOpen && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 duration-300 bg-slate-950/50 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden duration-300 border-white/50 ring-1 ring-slate-900/5 animate-dialog-in">
-                        <div className="px-10 py-10 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-purple-50 to-blue-50">
+                        <div className="px-10 py-10 border-b border-slate-100 flex items-center justify-between bg-white">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-purple-600 shadow-sm border border-slate-200">
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-brand-600 border border-slate-200">
                                     <Sparkles size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-blue-900 text-lg tracking-tight">Scan Rapide Intelligent</h3>
+                                    <h3 className="font-semibold text-slate-900 text-lg tracking-tight">Scan Rapide Intelligent</h3>
                                     <p className="text-xs text-blue-500 font-semibold mt-1">Déposez n'importe quelle facture, l'IA s'occupe du reste.</p>
                                 </div>
                             </div>
@@ -737,7 +737,7 @@ const ServiceSocietes = () => {
                                     htmlFor="global-scan-up"
                                     className={`w-full aspect-video flex flex-col items-center justify-center gap-4 border-4 border-dashed rounded-xl cursor-pointer transition duration-500 ${globalScanFile
                                         ? 'bg-emerald-50 border-emerald-400 text-emerald-700'
-                                        : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-purple-400 hover:bg-purple-50/50'
+                                        : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-slate-400 hover:bg-slate-100'
                                         }`}
                                 >
                                     <div className={`p-6 rounded-full transition duration-500 ${globalScanFile ? 'bg-emerald-100 scale-110' : 'bg-white shadow-sm'}`}>

@@ -68,7 +68,7 @@ const FacturesList: React.FC = () => {
         <div className="max-w-7xl mx-auto p-4 space-y-6">
             <div className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mx-1">
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                    <FileText className="text-blue-600" /> Historique des Factures
+                    <FileText className="text-slate-400 flex-shrink-0" size={26} /> Historique des Factures
                 </h1>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
                     <button

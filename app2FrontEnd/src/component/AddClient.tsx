@@ -230,7 +230,7 @@ const AddClient: React.FC = () => {
                         <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <UserPlus className="text-amber-600" size={26} />
+                        <UserPlus className="text-slate-400" size={26} />
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800">Nouveau Client</h1>
                             <p className="text-xs text-slate-400">Enregistrer un nouveau client</p>
@@ -424,7 +424,7 @@ const AddClient: React.FC = () => {
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" {...register('avec_finition')} className="sr-only peer" />
-                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                         </label>
                                     </div>
 

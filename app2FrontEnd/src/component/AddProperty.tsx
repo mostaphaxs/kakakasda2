@@ -234,7 +234,7 @@ const AddProperty: React.FC = () => {
                         <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <Building2 className="text-blue-600" size={22} />
+                        <Building2 className="text-slate-400" size={22} />
                         <div>
                             <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Modifier' : 'Nouveau Bien'}</h1>
                             <p className="text-xs text-slate-400 font-medium">{isEdit ? `Bloc ${watch('num_appartement')}` : 'Enregistrer une propriété'}</p>

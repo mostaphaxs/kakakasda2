@@ -95,7 +95,7 @@ const AddTerrain: React.FC = () => {
                         <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <MapPin className="text-blue-600" size={26} />
+                        <MapPin className="text-slate-400" size={26} />
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800">Nouveau Projet</h1>
                             <p className="text-xs text-slate-400">Enregistrer un nouveau projet</p>

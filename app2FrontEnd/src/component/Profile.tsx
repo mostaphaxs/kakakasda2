@@ -149,14 +149,14 @@ const Profile: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8 duration-500">
+        <div className="space-y-5 pb-10">
             {/* Header */}
-            <div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200">
                 <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                    <User className="text-blue-600" size={32} />
+                    <User className="text-slate-400 flex-shrink-0" size={26} />
                     Mon Profil
                 </h2>
-                <p className="text-slate-500 mt-1 font-medium">Gérez vos informations personnelles et la sécurité de votre compte.</p>
+                <p className="text-slate-500 text-sm mt-1">Vos informations, la sécurité du compte et la base de données.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -291,17 +291,17 @@ const Profile: React.FC = () => {
                 </div>
 
                 <div className="p-8">
-                    <div className="bg-purple-50/50 rounded-xl p-6 border border-purple-100 mb-6">
-                        <h4 className="text-purple-800 font-semibold text-xs mb-2">Importation de données</h4>
-                        <p className="text-purple-600 text-sm font-medium leading-relaxed mb-4">
+                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-200 mb-6">
+                        <h4 className="text-slate-900 font-semibold text-xs mb-2">Importation de données</h4>
+                        <p className="text-slate-600 text-sm font-medium leading-relaxed mb-4">
                             Vous pouvez importer une base de données existante (fichier .sqlite).
-                            <span className="block mt-2 font-semibold text-purple-700">⚠️ Attention : Cette opération remplacera toutes vos données actuelles.</span>
+                            <span className="block mt-2 font-semibold text-amber-700">⚠️ Attention : Cette opération remplacera toutes vos données actuelles.</span>
                         </p>
 
-                        <div className="pt-4 border-t border-purple-100">
-                            <h4 className="text-purple-800 font-semibold text-xs mb-2 opacity-70">Emplacement de la base de données actuelle :</h4>
-                            <div className="bg-white p-3 rounded-xl border border-purple-200 break-all">
-                                <code className="text-xs font-mono font-medium text-purple-900 leading-tight">
+                        <div className="pt-4 border-t border-slate-200">
+                            <h4 className="text-slate-900 font-semibold text-xs mb-2 opacity-70">Emplacement de la base de données actuelle :</h4>
+                            <div className="bg-white p-3 rounded-xl border border-slate-300 break-all">
+                                <code className="text-xs font-mono font-medium text-slate-800 leading-tight">
                                     {dbPath || 'Chargement du chemin...'}
                                 </code>
                             </div>
@@ -320,7 +320,7 @@ const Profile: React.FC = () => {
                         <button
                             onClick={handleExportDatabase}
                             disabled={isImporting || isExporting}
-                            className="flex items-center justify-center gap-3 bg-white text-purple-600 border-2 border-purple-100 px-4 py-2 rounded-lg hover:bg-purple-50 transition font-medium text-sm shadow-sm disabled:opacity-50"
+                            className="flex items-center justify-center gap-3 bg-white text-slate-600 border-2 border-slate-200 px-4 py-2 rounded-lg hover:bg-slate-900 transition font-medium text-sm shadow-sm disabled:opacity-50"
                         >
                             {isExporting ? <Loader2 size={18} className="animate-spin" /> : <><Download size={18} /> Sauvegarder (.sqlite)</>}
                         </button>

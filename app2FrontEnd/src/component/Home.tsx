@@ -10,6 +10,7 @@ import MonthlyReportButton from './common/MonthlyReportButton';
 import type { Task } from './common/TaskEditor';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
+import { useCountUp } from '../lib/useCountUp';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface MonthPerf { month: string; label: string; income: number; expenses: number }
@@ -49,6 +50,12 @@ const pct = (part: number, whole: number) => (whole > 0 ? Math.min(100, Math.rou
 const greeting = () => (new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir');
 // The owner, greeted on the home page
 const OWNER = 'M. Aziz';
+
+/** Amount that counts up from 0 on first display. */
+const CountUp = ({ value }: { value: number }) => {
+    const v = useCountUp(value);
+    return <>{formatNumber(Math.round(v))}</>;
+};
 
 const Skel = ({ className = '' }: { className?: string }) => (
     <div className={`rounded bg-slate-100 animate-pulse ${className}`} />
@@ -234,7 +241,7 @@ const Home = () => {
                         <p className="text-sm text-slate-500">{k.label}</p>
                         {isLoading ? <Skel className="mt-2 h-7 w-28" /> : (
                             <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
-                                {formatNumber(k.value)}<span className="ml-1 text-sm font-medium text-slate-400">DH</span>
+                                <CountUp value={k.value} /><span className="ml-1 text-sm font-medium text-slate-400">DH</span>
                             </p>
                         )}
                         {k.progress !== undefined ? (

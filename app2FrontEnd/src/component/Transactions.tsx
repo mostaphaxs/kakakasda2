@@ -251,13 +251,13 @@ const Transactions: React.FC = () => {
     return (
         <div className="space-y-6 duration-500">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                        <History className="text-amber-500" size={32} />
+                        <History className="text-slate-400 flex-shrink-0" size={26} />
                         Livre de Caisse 360°
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">Gérez vos flux de trésorerie avec précision</p>
+                    <p className="text-slate-500 text-sm mt-1">Toutes les entrées et sorties d’argent, en un seul journal.</p>
                 </div>
                 <div className="flex items-center gap-2 relative">
                     <div className="relative">
@@ -265,7 +265,7 @@ const Transactions: React.FC = () => {
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-[0.98]"
                         >
-                            <Download size={18} className="text-amber-500" />
+                            <Download size={16} />
                             Exporter
                             <ChevronDown size={14} className={`transition-transform duration-300 ${showExportMenu ? 'rotate-180' : ''}`} />
                         </button>
@@ -320,17 +320,17 @@ const Transactions: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-amber-50 p-5 rounded-xl border border-amber-100 shadow-sm relative overflow-hidden group">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="relative">
-                        <p className="text-xs font-semibold text-amber-600 mb-1">Engagements (Non Payés)</p>
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Engagements (non payés)</p>
                         <h2 className="text-xl font-semibold text-amber-700">{formatCurrency(stats.commitments)}</h2>
                     </div>
                 </div>
 
-                <div className="bg-slate-900 p-5 rounded-xl shadow-sm relative overflow-hidden group border border-slate-800">
-                    <div className="relative text-white">
-                        <p className="text-xs font-semibold text-white/40 mb-1">Situation Net (Cash)</p>
-                        <h2 className="text-xl font-semibold">{formatCurrency(stats.balance)}</h2>
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div className="relative">
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Situation nette (cash)</p>
+                        <h2 className={`text-xl font-semibold ${stats.balance < 0 ? 'text-red-600' : 'text-slate-900'}`}>{formatCurrency(stats.balance)}</h2>
                     </div>
                 </div>
             </div>

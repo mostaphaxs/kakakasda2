@@ -762,7 +762,7 @@ const Clients = () => {
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
-                            <Users className="text-blue-600" size={32} />
+                            <Users className="text-slate-400 flex-shrink-0" size={26} />
                             Clients & Réservations
                         </h1>
                         <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-semibold">Société les cinq elements</span>.</p>
@@ -1558,7 +1558,7 @@ const Clients = () => {
                                                     checked={editFormData.avec_finition || false}
                                                     onChange={e => setEditFormData({ ...editFormData, avec_finition: e.target.checked })}
                                                 />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                             </label>
                                         </div>
                                         <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex flex-col gap-2">
@@ -2250,7 +2250,7 @@ const Clients = () => {
                                                 onChange={e => setAssocAvecFinition(e.target.checked)}
                                                 className="sr-only peer"
                                             />
-                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                         </label>
                                     </div>
                                 )}
