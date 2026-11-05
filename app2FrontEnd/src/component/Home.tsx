@@ -11,6 +11,7 @@ import type { Task } from './common/TaskEditor';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
 import { useCountUp } from '../lib/useCountUp';
+import { getAppSettings, useAppSettings } from '../lib/appSettings';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface MonthPerf { month: string; label: string; income: number; expenses: number }
@@ -49,7 +50,7 @@ const compact = (v: number) => {
 const pct = (part: number, whole: number) => (whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0);
 const greeting = () => (new Date().getHours() < 18 ? 'Bonjour' : 'Bonsoir');
 // The owner, greeted on the home page
-const OWNER = 'M. Aziz';
+const ownerName = () => getAppSettings().preferences.owner_name || '';
 
 /** Amount that counts up from 0 on first display. */
 const CountUp = ({ value }: { value: number }) => {
@@ -102,6 +103,7 @@ const ChartTip = ({ active, payload, label }: any) => {
 // ── Page ──────────────────────────────────────────────────────────────────────
 const Home = () => {
     const navigate = useNavigate();
+    useAppSettings(); // re-render when Paramètres change (owner name)
     const [chartView, setChartView] = useState<'chart' | 'table'>('chart');
 
     const { data: s, isLoading } = useQuery({
@@ -176,7 +178,7 @@ const Home = () => {
                 <div>
                     <p className="text-sm text-slate-500 first-letter:uppercase">{today}</p>
                     <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                        {greeting()}, {OWNER}
+                        {greeting()}{ownerName() ? `, ${ownerName()}` : ''}
                     </h1>
                 </div>
                 <div className="flex flex-wrap gap-2">

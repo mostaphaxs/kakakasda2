@@ -4,6 +4,7 @@ import type { SubmitHandler } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 import { Mail, Lock, ArrowRight, Loader2, AlertCircle, Eye, EyeOff, Check } from 'lucide-react';
+import { getAppSettings } from '../lib/appSettings';
 
 type LoginFormInputs = {
   email: string;
@@ -89,7 +90,7 @@ export default function Login() {
             <p className="text-sm font-semibold text-slate-900">Cinq Éléments</p>
           </div>
 
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{lastEmail ? 'Bon retour, M. Aziz' : 'Connexion'}</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{lastEmail ? `Bon retour${getAppSettings().preferences.owner_name ? `, ${getAppSettings().preferences.owner_name}` : ''}` : 'Connexion'}</h2>
           <p className="mt-1.5 text-sm text-slate-500">Connectez-vous pour accéder à votre espace de gestion.</p>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">

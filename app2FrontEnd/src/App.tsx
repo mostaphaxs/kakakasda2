@@ -17,6 +17,8 @@ import Messages from './component/Messages';
 import { TaskEditorHost } from './component/common/TaskEditor';
 import { ClientDocumentsHost } from './component/common/ClientDocuments';
 import { ProgressPhotosHost } from './component/common/ProgressPhotos';
+import { useAppSettings } from './lib/appSettings';
+import Parametres from './component/Parametres';
 
 import Login from './component/Login'
 import Sidebar from './component/Sidebar';
@@ -85,6 +87,7 @@ const AppContent: React.FC = () => {
   const isAuthScreen = location.pathname === '/login' || location.pathname === '/portal/login';
   const isAdmin = !!token && !isPortal && location.pathname !== '/login';
   useGlobalShortcuts(isAdmin);
+  useAppSettings(isAdmin); // company identity, preferences, AI key
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -174,6 +177,7 @@ const AppContent: React.FC = () => {
               <Route path="/disponibilites" element={<PrivateRoute><Disponibilites /></PrivateRoute>} />
               <Route path="/taches" element={<PrivateRoute><Taches /></PrivateRoute>} />
               <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+              <Route path="/parametres" element={<PrivateRoute><Parametres /></PrivateRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<ClientLogin />} />

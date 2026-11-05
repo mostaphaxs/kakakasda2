@@ -17,6 +17,7 @@ import { openQuickPayment, useClientsLite } from './common/QuickPayment';
 import { openWhatsAppReminder } from './common/WhatsAppReminder';
 import { openClientDocuments } from './common/ClientDocuments';
 import { openTaskEditor } from './common/TaskEditor';
+import { getAppSettings } from '../lib/appSettings';
 
 type Status = 'en_retard' | 'a_venir' | 'partielle' | 'payee';
 interface Allocation {
@@ -70,7 +71,7 @@ function whatsappReminder(r: Row, all: Row[]) {
         ...(late.length > 1 ? ['', `Montant total en retard : *${formatNumber(lateTotal)} DH* (${late.length} échéances).`] : []),
         '',
         'Merci de nous contacter pour toute question.',
-        'Société Les Cinq Éléments',
+        getAppSettings().company.name || 'Société Les Cinq Éléments',
     ].join('\n');
 
     const ar = [

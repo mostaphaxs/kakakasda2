@@ -79,7 +79,9 @@ const PAGES: { label: string; path: string; icon: ComponentType<{ size?: number 
     { label: 'Charges', path: '/charges', icon: WalletCards },
     { label: 'Sociétés de services', path: '/services-tiers', icon: Building },
     { label: 'Factures', path: '/factures-list', icon: FileText },
-    { label: 'Configuration des prix', path: '/property-pricing', icon: Settings2 },
+    { label: 'Paramètres (société, logo, préférences, IA)', path: '/parametres', icon: Settings2 },
+    { label: 'Configuration des prix', path: '/parametres?tab=prix', icon: Settings2 },
+    { label: 'Sauvegarde / restauration des données', path: '/parametres?tab=donnees', icon: Settings2 },
 ];
 
 // ── helpers ───────────────────────────────────────────────────────────────────

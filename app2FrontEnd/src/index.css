@@ -3,20 +3,20 @@
 @theme {
     --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
 
-    /* Type scale at 88% of Tailwind defaults (line-heights are ratios, so they follow) */
-    --text-xs: 0.66rem;
-    --text-sm: 0.77rem;
-    --text-base: 0.88rem;
-    --text-lg: 0.99rem;
-    --text-xl: 1.1rem;
-    --text-2xl: 1.32rem;
-    --text-3xl: 1.65rem;
-    --text-4xl: 1.98rem;
-    --text-5xl: 2.64rem;
-    --text-6xl: 3.3rem;
-    --text-7xl: 3.96rem;
-    --text-8xl: 5.28rem;
-    --text-9xl: 7.04rem;
+    /* Type scale = Tailwind defaults × --text-scale (Paramètres → Préférences; 0.88 by default) */
+    --text-xs: calc(0.75rem * var(--text-scale, 0.88));
+    --text-sm: calc(0.875rem * var(--text-scale, 0.88));
+    --text-base: calc(1rem * var(--text-scale, 0.88));
+    --text-lg: calc(1.125rem * var(--text-scale, 0.88));
+    --text-xl: calc(1.25rem * var(--text-scale, 0.88));
+    --text-2xl: calc(1.5rem * var(--text-scale, 0.88));
+    --text-3xl: calc(1.875rem * var(--text-scale, 0.88));
+    --text-4xl: calc(2.25rem * var(--text-scale, 0.88));
+    --text-5xl: calc(3rem * var(--text-scale, 0.88));
+    --text-6xl: calc(3.75rem * var(--text-scale, 0.88));
+    --text-7xl: calc(4.5rem * var(--text-scale, 0.88));
+    --text-8xl: calc(6rem * var(--text-scale, 0.88));
+    --text-9xl: calc(8rem * var(--text-scale, 0.88));
 
     /* Brand palette (amber) — use as bg-brand-600, text-brand-500, etc. */
     --color-brand-50: #fffbeb;
@@ -51,6 +51,9 @@
     to { opacity: 1; }
 }
 
+/* Text size chosen in Paramètres (petit 0.8 · normal 0.88 · grand 1) */
+:root { --text-scale: 0.88; }
+
 html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -61,7 +64,7 @@ body {
     background-color: #f1f5f9;
     color: #0f172a;
     font-family: var(--font-sans);
-    font-size: 0.88rem;
+    font-size: calc(1rem * var(--text-scale, 0.88));
     font-feature-settings: "cv11", "ss01";
 }
 

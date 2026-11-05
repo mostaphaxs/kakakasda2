@@ -9,7 +9,7 @@ import { formatNumber, parseNumber, stripMarkdown, parseDate } from '../lib/util
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
 import { Sparkles, Mail, FileSignature } from 'lucide-react';
-import { generateContract } from '../lib/ContractGenerator';
+import { downloadSaleDocument } from '../lib/documents';
 import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
@@ -823,14 +823,10 @@ const Clients = () => {
 
                                 <button
                                     onClick={() => {
-                                        const bien = contractTargetClient.biens?.[0];
-                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
-                                        generateContract('RESERVATION',
-                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
-                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
-                                        );
+                                        if (!contractTargetClient.biens?.[0]) { toast.error("Le client n'a pas de bien assigné."); return; }
                                         setIsContractModalOpen(false);
-                                        toast.success("Contrat de réservation généré !");
+                                        // same generator as everywhere else: uses Paramètres (société, cachet, clauses)
+                                        toast.promise(downloadSaleDocument('reservation', contractTargetClient.id), { loading: 'Génération…', success: 'Contrat de réservation téléchargé', error: (e: Error) => e.message });
                                     }}
                                     className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 transition group"
                                 >
@@ -843,14 +839,10 @@ const Clients = () => {
 
                                 <button
                                     onClick={() => {
-                                        const bien = contractTargetClient.biens?.[0];
-                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
-                                        generateContract('COMPROMIS',
-                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
-                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
-                                        );
+                                        if (!contractTargetClient.biens?.[0]) { toast.error("Le client n'a pas de bien assigné."); return; }
                                         setIsContractModalOpen(false);
-                                        toast.success("Compromis de vente généré !");
+                                        // same generator as everywhere else: uses Paramètres (société, cachet, clauses)
+                                        toast.promise(downloadSaleDocument('compromis', contractTargetClient.id), { loading: 'Génération…', success: 'Compromis de vente téléchargé', error: (e: Error) => e.message });
                                     }}
                                     className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition group"
                                 >

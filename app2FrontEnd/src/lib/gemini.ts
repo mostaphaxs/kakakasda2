@@ -1,7 +1,29 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(API_KEY);
+import { getAppSettings } from './appSettings';
+
+// Key & models come from Paramètres → Intelligence artificielle, falling back
+// to the build-time .env key and the original models when nothing is set.
+const ENV_KEY = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
+const currentKey = () => {
+    const k = getAppSettings().ai.gemini_key;
+    return (k && k !== '•' ? k : '') || ENV_KEY || '';
+};
+const textModel = (fallback: string) => getAppSettings().ai.model_text || fallback;
+const visionModel = (fallback: string) => getAppSettings().ai.model_vision || fallback;
+const genAI = {
+    getGenerativeModel: (opts: Parameters<GoogleGenerativeAI['getGenerativeModel']>[0]) =>
+        new GoogleGenerativeAI(currentKey()).getGenerativeModel(opts),
+};
+const API_KEY_MISSING = () => !currentKey();
+
+/** Quick check used by the "Tester" button in Paramètres. */
+export async function testAiConnection(): Promise<string> {
+    if (API_KEY_MISSING()) throw new Error('Aucune clé configurée.');
+    const model = genAI.getGenerativeModel({ model: textModel('gemini-3-flash-preview') });
+    const r = await model.generateContent('Réponds uniquement par le mot : OK');
+    return r.response.text().trim();
+}
 
 /**
  * Converts a File object to a format compatible with Gemini API
@@ -31,11 +53,11 @@ async function fileToGenerativePart(file: File): Promise<{ inlineData: { data: s
  */
 export async function analyzeDocument(file: File, prompt: string) {
     try {
-        if (!API_KEY) {
-            throw new Error("VITE_GEMINI_API_KEY is missing in .env");
+        if (API_KEY_MISSING()) {
+            throw new Error("IA non configurée : ajoutez une clé dans Paramètres → Intelligence artificielle.");
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview", });
+        const model = genAI.getGenerativeModel({ model: visionModel("gemini-3-flash-preview"), });
         const imagePart = await fileToGenerativePart(file);
 
         const result = await model.generateContent([prompt, imagePart]);
@@ -73,7 +95,7 @@ export async function generateClientEmail(data: { name: string; total: number; p
         Utilise un ton chaleureux mais formel.
         Réponds uniquement avec le contenu de l'email.`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: textModel("gemini-3-flash-preview") });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();
@@ -93,7 +115,7 @@ export async function improveWhatsAppMessage(message: string) {
         Réponds uniquement avec le message amélioré.`;
 
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: textModel("gemini-3-flash-preview") });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();
@@ -111,7 +133,7 @@ export async function professionalizeDescription(description: string) {
         const prompt = `Agis comme un expert en facturation. Reformule cette désignation d'article de facture pour la rendre plus professionnelle et précise : "${description}".
         Réponds uniquement avec la désignation améliorée.`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: textModel("gemini-3-flash-preview") });
         const result = await model.generateContent(prompt);
         const response = await result.response;
         return response.text();
@@ -128,7 +150,7 @@ export async function getChatResponse(message: string, history: any[], context: 
     try {
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-3-flash-preview",
+            model: textModel("gemini-3-flash-preview"),
             systemInstruction: `Tu es l'assistant IA de la "Société les cinq éléments", un système de gestion immobilière et de construction.
             Ton but est d'aider l'utilisateur avec ses données financières, ses projets et ses clients.
             Voici le contexte actuel de l'entreprise :
@@ -173,7 +195,7 @@ export async function extractAchatFromImage(file: File) {
         Réponds uniquement avec le JSON.`;
 
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: visionModel("gemini-3-flash-preview") });
         const imagePart = await fileToGenerativePart(file);
         const result = await model.generateContent([prompt, imagePart]);
         const response = await result.response;
@@ -214,7 +236,7 @@ export async function analyzeInvoicePremium(file: File, existingSocietes: string
             "confidence_score": number (0-100)
         }`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: visionModel("gemini-3-flash-preview") });
         const imagePart = await fileToGenerativePart(file);
         const result = await model.generateContent([prompt, imagePart]);
         const response = await result.response;
@@ -276,7 +298,7 @@ export async function executeAICommand(message: string, file: File | null, conte
         Note: "choices" n'est utilisé que lorsque type === "CLARIFY".`;
 
 
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const model = genAI.getGenerativeModel({ model: visionModel("gemini-3-flash-preview") });
 
         let result;
         if (file) {
@@ -323,7 +345,7 @@ Types possibles: "journalier" (1 jour), "periode" (multi-jours), "m2" (mètre ca
 Réponds UNIQUEMENT avec ce JSON (null si inconnu) :
 {"ouvrier_id":"id ou null","terrain_id":"id ou null","type":"journalier|periode|m2|ml|forfait ou null","quantity":"nombre ou null","unit_price":"prix DH ou null","description":"travail effectué","start_date":"YYYY-MM-DD ou null"}`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: visionModel("gemini-2.0-flash") });
         const result = await model.generateContent(prompt);
         const text = result.response.text();
         const jsonMatch = text.match(/\{[\s\S]*\}/);

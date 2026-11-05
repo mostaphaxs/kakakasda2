@@ -35,6 +35,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\MessageTemplateController;
+use App\Http\Controllers\AppSettingController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -154,6 +155,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::get('/settings/pricing', [SettingController::class, 'getPricing']);
     Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
+
+    // Paramètres (company, preferences, AI)
+    Route::get('/settings/app', [AppSettingController::class, 'show']);
+    Route::put('/settings/app', [AppSettingController::class, 'update']);
+    Route::post('/settings/image/{kind}', [AppSettingController::class, 'uploadImage']);
+    Route::delete('/settings/image/{kind}', [AppSettingController::class, 'deleteImage']);
+    Route::get('/settings/about', [AppSettingController::class, 'about']);
     
     // Factures
     Route::apiResource('factures', FactureController::class);

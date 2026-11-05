@@ -399,7 +399,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
 
                 {/* Bottom Section: Settings & Profile */}
                 <div className={`mt-auto border-t border-white/[0.06] space-y-0.5 flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-3'}`}>
-                    <NavButton item={{ icon: Settings2, label: 'Configuration', path: '/property-pricing' }} active={location.pathname === '/property-pricing'} />
+                    <NavButton item={{ icon: Settings2, label: 'Paramètres', path: '/parametres' }} active={location.pathname === '/parametres' || location.pathname === '/property-pricing'} />
 
                     <div className={`flex items-center gap-2 mt-2 rounded-lg ${location.pathname === '/profile' ? 'bg-white/[0.07]' : ''} ${isCollapsed ? 'flex-col' : ''}`}>
                         <button

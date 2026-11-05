@@ -12,6 +12,7 @@ import { apiFetch, STORAGE_BASE } from '../../lib/api';
 import { openExternal } from '../../lib/tauri';
 import { confirmDialog } from './ConfirmDialog';
 import { openWhatsAppReminder } from './WhatsAppReminder';
+import { getAppSettings } from '../../lib/appSettings';
 
 export interface ProgressBien {
     id: number; type_bien?: string; num_appartement?: string | null; nom?: string | null;
@@ -110,7 +111,7 @@ function Photos({ bien }: { bien: ProgressBien }) {
             ...(m ? ['', `Photo : ${m.caption || 'chantier'}${when ? ` (${when})` : ''}.`] : []),
             '',
             'Nous restons à votre disposition pour toute question.',
-            'Société Les Cinq Éléments',
+            getAppSettings().company.name || 'Société Les Cinq Éléments',
         ].join('\n');
         const ar = [
             `مرحباً ${owner.prenom} ${owner.nom}،`,

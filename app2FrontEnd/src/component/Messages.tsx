@@ -12,6 +12,7 @@ import { usePersistedState } from '../lib/usePersistedState';
 import { CATEGORIES, VARIABLES, fillTemplate, useMessageContext, type MessageTemplate } from '../lib/messageTemplates';
 import { toWhatsAppNumber } from './common/WhatsAppReminder';
 import { confirmDialog } from './common/ConfirmDialog';
+import { getAppSettings } from '../lib/appSettings';
 
 const inputCls = 'w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20';
 const labelCls = 'block text-xs font-medium text-slate-600 mb-1.5';
@@ -75,7 +76,7 @@ function BulkSend() {
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [useSecond, setUseSecond] = useState<Set<number>>(new Set());
     const [tplId, setTplId] = useState<string>('');
-    const [lang, setLang] = useState<'fr' | 'ar'>('fr');
+    const [lang, setLang] = useState<'fr' | 'ar'>(getAppSettings().preferences.whatsapp_lang ?? 'fr');
     const [body, setBody] = useState('');
     const [sending, setSending] = useState<number[] | null>(null);
     const textRef = useRef<HTMLTextAreaElement>(null);

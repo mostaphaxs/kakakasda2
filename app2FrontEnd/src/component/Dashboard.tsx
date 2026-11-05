@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
+import { getAppSettings } from '../lib/appSettings';
 
 interface Stats {
   investissement: number;
@@ -141,7 +142,8 @@ const Dashboard = () => {
 
   useEffect(() => {
     const savedVisibility = localStorage.getItem('dashboard_stats_visible');
-    if (savedVisibility === 'true') {
+    // personal choice wins; otherwise Paramètres → Préférences decides
+    if (savedVisibility === 'true' || (savedVisibility === null && !getAppSettings().preferences.hide_amounts_default)) {
       setShowStats(true);
     }
     fetchData();

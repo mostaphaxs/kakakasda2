@@ -4,12 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from './api';
 import { formatNumber } from './utils';
 import { useClientsLite } from '../component/common/QuickPayment';
+import { getAppSettings } from './appSettings';
 
 export interface MessageTemplate {
     id: number; name: string; category: string; body_fr: string; body_ar?: string | null;
 }
 
-export const COMPANY_NAME = 'Société Les Cinq Éléments';
+/** Company name from Paramètres → Société. */
+export const companyName = () => getAppSettings().company.name || 'Société Les Cinq Éléments';
 
 export const CATEGORIES: Record<string, string> = {
     bienvenue: 'Bienvenue', paiement: 'Paiement', chantier: 'Chantier',
@@ -44,7 +46,7 @@ type ClientLike = {
 };
 
 export function buildVars(c: ClientLike | undefined, terrains: Terrain[] = [], echeances: Ech[] = []): Record<string, string> {
-    const v: Record<string, string> = { societe: COMPANY_NAME };
+    const v: Record<string, string> = { societe: companyName() };
     if (!c) return v;
     const cap = (s?: string) => (s || '').trim().replace(/(^|[\s-])\p{L}/gu, m => m.toUpperCase());
     v.prenom = cap(c.prenom);

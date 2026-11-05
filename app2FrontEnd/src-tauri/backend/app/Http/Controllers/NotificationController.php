@@ -22,9 +22,12 @@ class NotificationController extends Controller
     {
         $today = Carbon::today();
         $items = [];
+        // which alerts and how far ahead: Paramètres → Notifications
+        $n = AppSettingController::current()['notifications'];
+        $on = fn ($k) => (bool) ($n[$k] ?? true);
 
         // 1. Instalments overdue / due within 7 days (grouped per client)
-        $rows = EcheanceAllocator::enrich(Echeance::with('client:id,nom,prenom,tel')->get());
+        $rows = $on('echeances') ? EcheanceAllocator::enrich(Echeance::with('client:id,nom,prenom,tel')->get()) : collect();
         foreach ($rows->where('status', 'en_retard')->groupBy('client_id') as $clientId => $group) {
             $c = $group->first()['client'] ?? null;
             $items[] = [
@@ -37,7 +40,7 @@ class NotificationController extends Controller
                 'link' => "/echeancier?client={$clientId}",
             ];
         }
-        $in7 = $today->copy()->addDays(7);
+        $in7 = $today->copy()->addDays((int) ($n['upcoming_days'] ?? 7));
         foreach ($rows->filter(fn ($r) => in_array($r['status'], ['a_venir', 'partielle'])
             && Carbon::parse($r['due_date'])->between($today, $in7)) as $r) {
             $c = $r['client'] ?? null;
@@ -53,7 +56,8 @@ class NotificationController extends Controller
         }
 
         // 2. Client cheques: to deposit (date reached or within 7 days), deposited but not cashed after 7 days
-        $cheques = payments::with('client:id,nom,prenom')
+        $chequeLimit = $today->copy()->addDays((int) ($n['cheque_days'] ?? 7));
+        $cheques = !$on('cheques') ? collect() : payments::with('client:id,nom,prenom')
             ->where('method', 'Chèque')
             ->where(fn ($q) => $q->whereNull('cheque_status')->orWhereIn('cheque_status', ['recu', 'depose']))
             ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Cancelled'))
@@ -63,7 +67,7 @@ class NotificationController extends Controller
             $status = $p->cheque_status ?: 'recu';
             $ref = $p->reference_no ? " n° {$p->reference_no}" : '';
             $who = self::name($p->client) . ' · ' . number_format((float) $p->amount, 0, ',', '.') . ' DH';
-            if ($status === 'recu' && $d->lte($in7)) {
+            if ($status === 'recu' && $d->lte($chequeLimit)) {
                 $overdue = $d->lt($today);
                 $items[] = [
                     'id' => "cheque-{$p->id}-recu",
@@ -89,7 +93,7 @@ class NotificationController extends Controller
         }
 
         // 3. Clients with a property but no signed contract
-        $unsigned = Client::whereHas('biens')
+        $unsigned = !$on('contrats') ? collect() : Client::whereHas('biens')
             ->where(fn ($q) => $q->whereNull('statut')->orWhere('statut', '!=', 'Annulé'))
             ->where(fn ($q) => $q->whereNull('statut_choix')->orWhere('statut_choix', '!=', 'CONTRAT_SIGNE'))
             ->get(['id', 'nom', 'prenom', 'cin']);
@@ -106,7 +110,8 @@ class NotificationController extends Controller
         }
 
         // 4. Low stock (same rule as /stock/low)
-        foreach (StockTracking::with('article')->where('remaining_stock', '<', 10)->get() as $s) {
+        $stock = $on('stock') ? StockTracking::with('article')->where('remaining_stock', '<', (float) ($n['stock_threshold'] ?? 10))->get() : collect();
+        foreach ($stock as $s) {
             $items[] = [
                 'id' => "stock-{$s->id}-" . (int) $s->remaining_stock,
                 'type' => 'stock',
@@ -119,8 +124,8 @@ class NotificationController extends Controller
         }
 
         // 5. Court hearings within 14 days
-        $hearings = Contentieux::whereNotNull('next_hearing_date')
-            ->whereBetween('next_hearing_date', [$today->toDateString(), $today->copy()->addDays(14)->toDateString()])
+        $hearings = !$on('audiences') ? collect() : Contentieux::whereNotNull('next_hearing_date')
+            ->whereBetween('next_hearing_date', [$today->toDateString(), $today->copy()->addDays((int) ($n['hearing_days'] ?? 14))->toDateString()])
             ->orderBy('next_hearing_date')->get();
         foreach ($hearings as $h) {
             $d = Carbon::parse($h->next_hearing_date);
@@ -136,7 +141,7 @@ class NotificationController extends Controller
         }
 
         // 6. Tasks due today or overdue (not done)
-        $tasks = \App\Models\Task::with('client:id,nom,prenom')->whereNull('done_at')
+        $tasks = !$on('taches') ? collect() : \App\Models\Task::with('client:id,nom,prenom')->whereNull('done_at')
             ->whereNotNull('due_date')->where('due_date', '<=', $today->toDateString())->get();
         foreach ($tasks as $t) {
             $d = Carbon::parse($t->getRawOriginal('due_date'));

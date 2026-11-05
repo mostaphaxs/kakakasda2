@@ -22,7 +22,7 @@ interface PricingSettings {
 
 const PROPERTY_TYPES = ['Appartement', 'Villa', 'Lot Villa', 'Local Commercial', 'Bureau', 'Autre'];
 
-const ConfigPrixBiens: React.FC = () => {
+const ConfigPrixBiens: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     const queryClient = useQueryClient();
 
     // Per-project state: { [terrainId]: { [type_bien]: { fin, gros } } }
@@ -118,13 +118,13 @@ const ConfigPrixBiens: React.FC = () => {
 
     return (
         <div className="space-y-5 pb-10">
-            {/* Header */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200">
+            {/* Header (hidden when shown inside Paramètres) */}
+            {!embedded && <div className="bg-white p-6 rounded-xl border border-slate-200">
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                     <Settings2 size={26} className="text-slate-400 flex-shrink-0" /> Configuration des prix
                 </h1>
                 <p className="text-slate-500 text-sm mt-1">Prix unitaires (DH/m²) par projet et par type de bien, avec ou sans finition.</p>
-            </div>
+            </div>}
 
             <div className="space-y-4">
                 {terrains.map((terrain) => {

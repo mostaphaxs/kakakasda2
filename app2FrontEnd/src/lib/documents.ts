@@ -7,9 +7,31 @@
 import jsPDF from 'jspdf';
 import { apiFetch } from './api';
 import { formatNumber, numberToFrenchWords, parseDate } from './utils';
+import { getAppSettings, getLogoForPdf, getStampForPdf } from './appSettings';
 
-const COMPANY = 'SOCIÉTÉ LES CINQ ÉLÉMENTS';
-const TAGLINE = 'Promotion Immobilière & Travaux Divers';
+// Company identity comes from Paramètres → Société
+const co = () => getAppSettings().company;
+const companyName = () => (co().name || 'Société Les Cinq Éléments').toUpperCase();
+let brandLogo: { dataUrl: string; w: number; h: number } | null = null;
+/** Call at the start of every document so the logo is ready for header(). */
+let brandStamp: { dataUrl: string; w: number; h: number } | null = null;
+const docs = () => getAppSettings().documents;
+async function prepareBrand() {
+    brandLogo = await getLogoForPdf();
+    brandStamp = docs().show_stamp ? await getStampForPdf() : null;
+}
+/** Company stamp/signature inside a signature box (if configured). */
+function drawStamp(doc: jsPDF, x: number, y: number, w: number, h: number) {
+    if (!brandStamp) return;
+    const ratio = brandStamp.w / brandStamp.h;
+    let sh = h - 4, sw = sh * ratio;
+    if (sw > w - 4) { sw = w - 4; sh = sw / ratio; }
+    try { doc.addImage(brandStamp.dataUrl, 'PNG', x + (w - sw) / 2, y + (h - sh) / 2, sw, sh); } catch { /* ignore */ }
+}
+const representative = () => {
+    const c = co();
+    return c.manager_name ? `M./Mme ${c.manager_name}, en sa qualité de ${(c.manager_title || 'gérant').toLowerCase()}` : 'son gérant';
+};
 
 const INK: [number, number, number] = [15, 23, 42];       // slate-900
 const MUTED: [number, number, number] = [100, 116, 139];  // slate-500
@@ -52,14 +74,26 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const ECH_STATUS: Record<string, string> = { payee: 'Payée', partielle: 'Partielle', en_retard: 'En retard', a_venir: 'À venir' };
 
 function header(doc: jsPDF, title: string, sub: string[]) {
+    let x = M;
+    if (brandLogo) {
+        const h = 16;
+        const w = Math.min(40, (brandLogo.w / brandLogo.h) * h);
+        try { doc.addImage(brandLogo.dataUrl, 'PNG', M, 12, w, h); x = M + w + 4; } catch { /* ignore bad image */ }
+    }
+    const c = co();
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(...INK);
-    doc.text(COMPANY, M, 22);
+    doc.text(companyName(), x, 19);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...MUTED);
-    doc.text(TAGLINE, M, 27);
+    doc.text(c.tagline || '', x, 24);
+    doc.setFontSize(8);
+    const line1 = [c.address, c.city].filter(Boolean).join(', ');
+    const line2 = [c.phone, c.email].filter(Boolean).join('  ·  ');
+    if (line1) doc.text(doc.splitTextToSize(line1, 105)[0] ?? '', x, 28.5);
+    if (line2) doc.text(doc.splitTextToSize(line2, 105)[0] ?? '', x, line1 ? 32 : 28.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
@@ -81,7 +115,10 @@ function footer(doc: jsPDF) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(...MUTED);
-        doc.text(`${COMPANY} - document généré le ${new Date().toLocaleDateString('fr-FR')}`, M, 287);
+        const c = co();
+        const legal = [c.legal_form && `${c.name} ${c.legal_form}`, c.ice && `ICE ${c.ice}`, c.rc && `RC ${c.rc}`, c.if && `IF ${c.if}`, c.patente && `Patente ${c.patente}`, c.cnss && `CNSS ${c.cnss}`, c.capital && `Capital ${c.capital}`].filter(Boolean).join('  ·  ');
+        doc.text(legal || `${companyName()} - document généré le ${new Date().toLocaleDateString('fr-FR')}`, M, 287);
+        if (legal) doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, M, 291);
         doc.text(`Page ${i} / ${pages}`, 210 - M, 287, { align: 'right' });
     }
 }
@@ -152,11 +189,12 @@ export async function fetchStatement(clientId: number) {
 
 /** Payment receipt. Pass the payment id; client totals are fetched so the receipt shows the balance. */
 export async function downloadReceipt(clientId: number, paymentId: number) {
+    await prepareBrand();
     const st = await fetchStatement(clientId);
     const p = st.payments.find(x => x.id === paymentId);
     if (!p) throw new Error('Paiement introuvable');
     const amount = Number(p.amount) || 0;
-    const no = `R-${String(p.id).padStart(5, '0')}`;
+    const no = `${docs().receipt_prefix || 'R-'}${String(p.id).padStart(5, '0')}`;
 
     const doc = new jsPDF();
     let y = header(doc, 'REÇU DE PAIEMENT', [`N° ${no}`, `Date : ${fmtDate(p.payment_date)}`]);
@@ -207,7 +245,16 @@ export async function downloadReceipt(clientId: number, paymentId: number) {
         label(doc, k, x, y);
         value(doc, money(v), x, y + 6, i === 2, 11);
     });
-    y += 30;
+    y += 22;
+
+    // Optional note (Paramètres → Documents)
+    if (docs().receipt_note) {
+        doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+        const lines = doc.splitTextToSize(docs().receipt_note, W) as string[];
+        doc.text(lines.slice(0, 3), M, y);
+        y += lines.slice(0, 3).length * 4.2 + 4;
+    }
+    y += 4;
 
     // Signatures
     label(doc, 'Signature du client', M, y);
@@ -215,6 +262,7 @@ export async function downloadReceipt(clientId: number, paymentId: number) {
     doc.setDrawColor(...LINE);
     doc.rect(M, y + 3, W / 2 - 6, 26);
     doc.rect(M + W / 2, y + 3, W / 2, 26);
+    drawStamp(doc, M + W / 2, y + 3, W / 2, 26);
 
     footer(doc);
     doc.save(`Recu_${no}_${(st.client.nom || '').replace(/\s+/g, '_')}.pdf`);
@@ -222,6 +270,7 @@ export async function downloadReceipt(clientId: number, paymentId: number) {
 
 /** Full client statement: totals, all payments, payment schedule. */
 export async function downloadStatement(clientId: number) {
+    await prepareBrand();
     const st = await fetchStatement(clientId);
     const doc = new jsPDF();
     let y = header(doc, 'RELEVÉ DE COMPTE', [`Client n° ${st.client.id}`, `Au ${new Date().toLocaleDateString('fr-FR')}`]);
@@ -244,7 +293,16 @@ export async function downloadStatement(clientId: number) {
         label(doc, k, x + 4, y + 6.5);
         value(doc, money(v), x + 4, y + 13.5, true, 12);
     });
-    y += 30;
+    y += 26;
+
+    const cb = co();
+    if (docs().show_bank_on_statement && cb.rib) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+        doc.text(`Règlement par virement : ${[cb.bank_name, cb.bank_agency && `agence ${cb.bank_agency}`].filter(Boolean).join(', ')}  ·  RIB ${cb.rib}`, M, y);
+        y += 8;
+    } else {
+        y += 4;
+    }
 
     value(doc, 'Paiements', M, y, true, 11);
     y += 7;
@@ -303,9 +361,10 @@ const trend = (now: number, prev: number) => {
 };
 
 export async function downloadMonthlyReport(month: string) {
+    await prepareBrand();
     const r = await apiFetch<MonthlyReport>(`/reports/monthly?month=${month}`);
     const doc = new jsPDF();
-    let y = header(doc, 'RAPPORT MENSUEL', [r.label, 'Préparé pour M. Aziz']);
+    let y = header(doc, 'RAPPORT MENSUEL', [r.label, `Préparé pour ${getAppSettings().preferences.owner_name || 'la direction'}`]);
 
     // Key figures
     const result = r.collected - r.expenses_total;
@@ -399,7 +458,7 @@ function signatures(doc: jsPDF, y: number, left: string, right: string) {
     if (y > 235) { doc.addPage(); y = 30; }
     y += 6;
     doc.setFontSize(10); doc.setTextColor(...INK); doc.setFont('helvetica', 'normal');
-    doc.text(`Fait à Casablanca, le ${new Date().toLocaleDateString('fr-FR')}, en deux exemplaires.`, M, y);
+    doc.text(`Fait à ${getAppSettings().preferences.signing_city || co().city || 'Casablanca'}, le ${new Date().toLocaleDateString('fr-FR')}, en deux exemplaires.`, M, y);
     y += 12;
     doc.setFont('helvetica', 'bold');
     doc.text(left, M, y);
@@ -410,17 +469,20 @@ function signatures(doc: jsPDF, y: number, left: string, right: string) {
     doc.setDrawColor(...LINE);
     doc.rect(M, y + 8, W / 2 - 6, 28);
     doc.rect(M + W / 2, y + 8, W / 2, 28);
+    drawStamp(doc, M + W / 2, y + 8, W / 2, 28);
 }
 
 export async function downloadSaleDocument(kind: SaleDocKind, clientId: number) {
+    await prepareBrand();
     const st = await fetchStatement(clientId);
     const c = st.client;
     const b = c.biens?.[0];
     if (!b && kind !== 'attestation') throw new Error("Ce client n'a pas de bien réservé.");
 
     const name = fullName(c);
-    const cin = c.cin ? c.cin.toUpperCase() : '……………';
-    const projet = b?.terrain?.nom_projet || b?.terrain?.nom_terrain || '……………';
+    const cin = c.cin ? c.cin.toUpperCase() : '(non renseignée)';
+    const projet = b?.terrain?.nom_projet || b?.terrain?.nom_terrain || '';
+    const inProjet = projet ? `, dépendant du projet « ${projet} »` : '';
     const tf = b?.terrain?.numero_TF;
     const prix = st.totals.prix;
     const paid = st.totals.paid;
@@ -443,7 +505,7 @@ export async function downloadSaleDocument(kind: SaleDocKind, clientId: number) 
     if (kind === 'attestation') {
         let y = header(doc, 'ATTESTATION DE PAIEMENT', [`Client n° ${c.id}`, `Le ${today}`]);
         y = paragraphs(doc, y + 4, [
-            `Nous soussignés, ${COMPANY}, attestons par la présente que M./Mme ${name}, titulaire de la CIN n° ${cin}, a versé à ce jour la somme totale de ${money(paid)} (${words(paid)})${b ? ` au titre de l'acquisition du bien suivant : ${designation}, situé dans le projet « ${projet} »${tf ? ` (titre foncier n° ${tf})` : ''}.` : '.'}`,
+            `Nous soussignés, ${companyName()}, attestons par la présente que M./Mme ${name}, titulaire de la CIN n° ${cin}, a versé à ce jour la somme totale de ${money(paid)} (${words(paid)})${b ? ` au titre de l'acquisition du bien suivant : ${designation}, situé${projet ? ` dans le projet « ${projet} »` : ''}${tf ? ` (titre foncier n° ${tf})` : ''}.` : '.'}`,
             ...(prix > 0 ? [`Le prix total convenu est de ${money(prix)} (${finition ? 'avec finition' : 'gros œuvre'}). Le montant restant à payer s'élève à ${money(reste)}.`] : []),
             'La présente attestation est délivrée à l\'intéressé(e) sur sa demande pour servir et valoir ce que de droit.',
         ]);
@@ -453,7 +515,7 @@ export async function downloadSaleDocument(kind: SaleDocKind, clientId: number) 
             y = table(doc, y, [{ title: 'DATE', w: 30 }, { title: 'TYPE', w: 30 }, { title: 'MODE', w: 34 }, { title: 'RÉFÉRENCE', w: 46 }, { title: 'MONTANT', w: W - 140, align: 'right' }],
                 st.payments.filter(p => p.status !== 'Cancelled').map(p => [fmtDate(p.payment_date), p.type || '-', p.method || '-', p.reference_no || '-', money(p.amount)]));
         }
-        signatures(doc, y + 4, '', 'Pour la société');
+        signatures(doc, y + 4, '', co().manager_name ? `Pour la société, ${co().manager_name}` : 'Pour la société');
         footer(doc);
         doc.save(`Attestation_paiement_${(c.nom || 'client').replace(/\s+/g, '_')}.pdf`);
         return;
@@ -463,12 +525,12 @@ export async function downloadSaleDocument(kind: SaleDocKind, clientId: number) 
     let y = header(doc, isCompromis ? 'COMPROMIS DE VENTE' : 'CONTRAT DE RÉSERVATION', [`Client n° ${c.id}`, `Le ${today}`]);
     const blocks: (string | { h: string })[] = [
         { h: 'Entre les soussignés' },
-        `${COMPANY}, promoteur immobilier, représentée par son gérant, ci-après dénommée « ${isCompromis ? 'le Vendeur' : 'le Promoteur'} »,`,
+        `${companyName()}${co().legal_form ? ` ${co().legal_form}` : ''}${co().ice ? ` (ICE ${co().ice})` : ''}, promoteur immobilier${co().address ? `, dont le siège est situé ${co().address}${co().city ? `, ${co().city}` : ''}` : ''}, représentée par ${representative()}, ci-après dénommée « ${isCompromis ? 'le Vendeur' : 'le Promoteur'} »,`,
         `Et M./Mme ${name}, titulaire de la CIN n° ${cin}${c.adresse ? `, demeurant ${c.adresse.replace(/\s+/g, ' ')}` : ''}${c.tel ? `, téléphone ${c.tel}` : ''}, ci-après dénommé(e) « ${isCompromis ? "l'Acquéreur" : 'le Réservataire'} ».`,
         { h: isCompromis ? 'Article 1 - Objet et désignation' : 'Article 1 - Objet' },
         isCompromis
-            ? `Le Vendeur s'engage à vendre à l'Acquéreur, qui s'engage à acquérir, le bien suivant : ${designation}, dépendant du projet « ${projet} »${tf ? `, objet du titre foncier n° ${tf}` : ''}, vendu ${finition ? 'avec finition' : 'en gros œuvre'}.`
-            : `Le Promoteur réserve au profit du Réservataire, qui accepte, le bien suivant : ${designation}, dépendant du projet « ${projet} »${tf ? ` (titre foncier n° ${tf})` : ''}, ${finition ? 'livré avec finition' : 'livré en gros œuvre'}.`,
+            ? `Le Vendeur s'engage à vendre à l'Acquéreur, qui s'engage à acquérir, le bien suivant : ${designation}${inProjet}${tf ? `, objet du titre foncier n° ${tf}` : ''}, vendu ${finition ? 'avec finition' : 'en gros œuvre'}.`
+            : `Le Promoteur réserve au profit du Réservataire, qui accepte, le bien suivant : ${designation}${inProjet}${tf ? ` (titre foncier n° ${tf})` : ''}, ${finition ? 'livré avec finition' : 'livré en gros œuvre'}.`,
         { h: 'Article 2 - Prix' },
         `Le prix est fixé à ${money(prix)} (${words(prix)}), toutes taxes comprises.`,
         { h: 'Article 3 - Versements et modalités de paiement' },
@@ -481,19 +543,26 @@ export async function downloadSaleDocument(kind: SaleDocKind, clientId: number) 
         y = table(doc, y, [{ title: 'ÉCHÉANCE', w: 60 }, { title: 'DATE', w: 50 }, { title: 'MONTANT', w: W - 110, align: 'right' }],
             pending.map(e => [e.label || '-', fmtDate(e.due_date), money(e.remaining)])) + 4;
     }
-    const tail: (string | { h: string })[] = isCompromis ? [
-        { h: 'Article 4 - Transfert de propriété' },
-        "L'acte de vente définitif sera établi devant notaire après paiement intégral du prix. Le transfert de propriété et la remise des clés interviendront à la signature de l'acte définitif.",
-        { h: 'Article 5 - Frais' },
-        "Les frais d'enregistrement, de conservation foncière et d'honoraires du notaire afférents à l'acte définitif sont à la charge de l'Acquéreur, sauf accord contraire.",
-        { h: 'Article 6 - Défaut de paiement' },
-        "En cas de non-respect de l'échéancier, et après mise en demeure restée sans effet pendant quinze (15) jours, le Vendeur pourra résilier le présent compromis dans les conditions prévues par la loi.",
+    // Articles 4+ — numbers and texts follow Paramètres → Documents
+    const d = docs();
+    const penalty = Number(d.penalty_percent) || 0;
+    const noticeDays = Number(d.notice_days) || 15;
+    const months = Number(d.delivery_months) || 0;
+    const articles: [string, string][] = isCompromis ? [
+        ['Transfert de propriété', "L'acte de vente définitif sera établi devant notaire après paiement intégral du prix. Le transfert de propriété et la remise des clés interviendront à la signature de l'acte définitif."],
+        ...(months > 0 ? [['Délai de livraison', `Le bien sera livré dans un délai prévisionnel de ${months} mois à compter de la signature des présentes, sauf cas de force majeure ou retard dû aux administrations.`] as [string, string]] : []),
+        ['Frais', "Les frais d'enregistrement, de conservation foncière et d'honoraires du notaire afférents à l'acte définitif sont à la charge de l'Acquéreur, sauf accord contraire."],
+        ['Défaut de paiement', `En cas de non-respect de l'échéancier, et après mise en demeure restée sans effet pendant ${noticeDays} jours, le Vendeur pourra résilier le présent compromis dans les conditions prévues par la loi${penalty > 0 ? `, une indemnité de ${penalty} % des sommes versées restant acquise au Vendeur` : ''}.`],
     ] : [
-        { h: 'Article 4 - Durée et suite de la réservation' },
-        "La présente réservation engage les parties jusqu'à la signature du compromis de vente. Le Promoteur s'interdit de proposer le bien réservé à un tiers pendant cette période.",
-        { h: 'Article 5 - Désistement' },
-        "En cas de désistement du Réservataire, les sommes versées lui seront restituées déduction faite des frais éventuels convenus entre les parties.",
+        ['Durée et suite de la réservation', "La présente réservation engage les parties jusqu'à la signature du compromis de vente. Le Promoteur s'interdit de proposer le bien réservé à un tiers pendant cette période."],
+        ...(months > 0 ? [['Délai de livraison', `La livraison du bien est prévue dans un délai de ${months} mois à compter de la signature du compromis de vente, sauf cas de force majeure.`] as [string, string]] : []),
+        ['Désistement', penalty > 0
+            ? `En cas de désistement du Réservataire, les sommes versées lui seront restituées déduction faite de frais de désistement de ${penalty} % de ces sommes.`
+            : 'En cas de désistement du Réservataire, les sommes versées lui seront restituées déduction faite des frais éventuels convenus entre les parties.'],
+        ['Défaut de paiement', `À défaut de paiement d'une échéance, et après mise en demeure restée sans effet pendant ${noticeDays} jours, la réservation pourra être annulée par le Promoteur.`],
     ];
+    if (d.extra_clause?.trim()) articles.push(['Conditions particulières', d.extra_clause.trim()]);
+    const tail: (string | { h: string })[] = articles.flatMap(([title, text], i) => [{ h: `Article ${4 + i} - ${title}` }, text]);
     y = paragraphs(doc, y, tail);
     signatures(doc, y, isCompromis ? "L'Acquéreur" : 'Le Réservataire', isCompromis ? 'Le Vendeur' : 'Le Promoteur');
     footer(doc);

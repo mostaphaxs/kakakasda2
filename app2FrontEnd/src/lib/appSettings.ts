@@ -1,0 +1,134 @@
+// appSettings.ts — Paramètres (company identity, preferences, AI), loaded once
+// and cached so non-React code (PDFs, AI, messages) can read them synchronously.
+
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch, STORAGE_BASE } from './api';
+
+export interface CompanySettings {
+    name: string; tagline: string; legal_form: string; address: string; city: string;
+    phone: string; email: string; website: string; ice: string; rc: string; if: string;
+    patente: string; cnss: string; capital: string; logo_path: string | null;
+    manager_name: string; manager_title: string; bank_name: string; bank_agency: string; rib: string; stamp_path: string | null;
+}
+export interface DocumentSettings {
+    receipt_prefix: string; receipt_note: string; show_stamp: boolean; show_bank_on_statement: boolean;
+    penalty_percent: number; notice_days: number; delivery_months: string | number; extra_clause: string;
+}
+export interface NotificationSettings {
+    echeances: boolean; cheques: boolean; contrats: boolean; stock: boolean; audiences: boolean; taches: boolean;
+    upcoming_days: number; cheque_days: number; hearing_days: number; stock_threshold: number;
+}
+export interface PreferenceSettings {
+    owner_name: string; signing_city: string; whatsapp_lang: 'fr' | 'ar';
+    text_scale: 'petit' | 'normal' | 'grand'; hide_amounts_default: boolean;
+}
+export interface AiSettings { gemini_key: string; model_text: string; model_vision: string }
+export interface AppSettings {
+    company: CompanySettings; preferences: PreferenceSettings; documents: DocumentSettings;
+    notifications: NotificationSettings; ai: AiSettings;
+}
+
+export const DEFAULT_SETTINGS: AppSettings = {
+    company: {
+        name: 'Société Les Cinq Éléments', tagline: 'Promotion Immobilière & Travaux Divers', legal_form: 'S.A.R.L',
+        address: '', city: 'Casablanca', phone: '', email: '', website: '', ice: '', rc: '', if: '',
+        patente: '', cnss: '', capital: '', logo_path: null,
+        manager_name: '', manager_title: 'Gérant', bank_name: '', bank_agency: '', rib: '', stamp_path: null,
+    },
+    documents: {
+        receipt_prefix: 'R-', receipt_note: '', show_stamp: true, show_bank_on_statement: true,
+        penalty_percent: 10, notice_days: 15, delivery_months: '', extra_clause: '',
+    },
+    notifications: {
+        echeances: true, cheques: true, contrats: true, stock: true, audiences: true, taches: true,
+        upcoming_days: 7, cheque_days: 7, hearing_days: 14, stock_threshold: 10,
+    },
+    preferences: { owner_name: 'M. Aziz', signing_city: 'Casablanca', whatsapp_lang: 'fr', text_scale: 'normal', hide_amounts_default: true },
+    ai: { gemini_key: '', model_text: '', model_vision: '' },
+};
+
+const CACHE_KEY = 'app-settings';
+
+function merge(s: Partial<AppSettings>): AppSettings {
+    return {
+        company: { ...DEFAULT_SETTINGS.company, ...s.company },
+        preferences: { ...DEFAULT_SETTINGS.preferences, ...s.preferences },
+        documents: { ...DEFAULT_SETTINGS.documents, ...s.documents },
+        notifications: { ...DEFAULT_SETTINGS.notifications, ...s.notifications },
+        ai: { ...DEFAULT_SETTINGS.ai, ...s.ai },
+    };
+}
+
+function readCache(): AppSettings {
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return DEFAULT_SETTINGS;
+        return merge(JSON.parse(raw));
+    } catch { return DEFAULT_SETTINGS; }
+}
+
+let current: AppSettings = readCache();
+
+/** Latest known settings (synchronous; safe anywhere). */
+export const getAppSettings = () => current;
+
+export function setAppSettings(s: AppSettings) {
+    current = merge(s);
+    // keep the AI key out of the plain cache used before login
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ...current, ai: { ...current.ai, gemini_key: current.ai.gemini_key ? '•' : '' } })); } catch { /* ignore */ }
+    applyTextScale(current.preferences.text_scale);
+    imageCache = {};
+}
+
+const SCALE: Record<PreferenceSettings['text_scale'], string> = { petit: '0.8', normal: '0.88', grand: '1' };
+export function applyTextScale(scale: PreferenceSettings['text_scale']) {
+    document.documentElement.style.setProperty('--text-scale', SCALE[scale] ?? '0.88');
+}
+applyTextScale(current.preferences.text_scale);
+
+export const logoUrl = (s = current) => (s.company.logo_path ? `${STORAGE_BASE}/${s.company.logo_path}` : null);
+export const stampUrl = (s = current) => (s.company.stamp_path ? `${STORAGE_BASE}/${s.company.stamp_path}` : null);
+
+/** Loads settings from the backend (once logged in) and keeps the cache fresh. */
+export function useAppSettings(enabled = true) {
+    const q = useQuery({
+        queryKey: ['app-settings'],
+        queryFn: () => apiFetch<AppSettings>('/settings/app'),
+        staleTime: 5 * 60_000,
+        enabled,
+    });
+    useEffect(() => { if (q.data) setAppSettings(q.data); }, [q.data]);
+    return { ...q, settings: q.data ?? current };
+}
+
+// ── images for PDFs (jsPDF needs PNG data URLs) ───────────────────────────────
+type PdfImage = { dataUrl: string; w: number; h: number };
+let imageCache: Partial<Record<'logo' | 'stamp', PdfImage | null>> = {};
+
+async function loadPdfImage(url: string | null): Promise<PdfImage | null> {
+    if (!url) return null;
+    try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = url;
+        await img.decode();
+        const canvas = document.createElement('canvas');
+        const scale = Math.min(1, 600 / Math.max(img.naturalWidth, img.naturalHeight));
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        return { dataUrl: canvas.toDataURL('image/png'), w: canvas.width, h: canvas.height };
+    } catch {
+        return null;
+    }
+}
+
+export async function getLogoForPdf(): Promise<PdfImage | null> {
+    if (imageCache.logo === undefined) imageCache.logo = await loadPdfImage(logoUrl());
+    return imageCache.logo;
+}
+export async function getStampForPdf(): Promise<PdfImage | null> {
+    if (imageCache.stamp === undefined) imageCache.stamp = await loadPdfImage(stampUrl());
+    return imageCache.stamp;
+}
