@@ -16,7 +16,9 @@ class ClientController extends Controller
      */
     public function index(): JsonResponse
     {
-        $clients = Client::with(['biens', 'payments'])->latest()->get();
+        $clients = Client::with(['biens.annexUnits', 'payments'])->latest()->get();
+        // one balance rule for every screen (see App\Support\PaymentMath)
+        $clients->each(fn ($c) => $c->setAttribute('balance', \App\Support\PaymentMath::balance($c)));
         return response()->json($clients);
     }
 
@@ -295,6 +297,8 @@ class ClientController extends Controller
                 'suggestions' => $suggestions
             ], 404);
         }
+        $client->loadMissing('biens.annexUnits');
+        $client->setAttribute('balance', \App\Support\PaymentMath::balance($client));
         return response()->json($client);
     }
 }

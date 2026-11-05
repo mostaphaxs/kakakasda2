@@ -5,6 +5,7 @@ import { apiFetch } from './api';
 import { formatNumber } from './utils';
 import { useClientsLite } from '../component/common/QuickPayment';
 import { getAppSettings } from './appSettings';
+import { clientBalance } from './clientBalance';
 
 export interface MessageTemplate {
     id: number; name: string; category: string; body_fr: string; body_ar?: string | null;
@@ -59,8 +60,7 @@ export function buildVars(c: ClientLike | undefined, terrains: Terrain[] = [], e
         v.gros_oeuvre = String(b.gros_oeuvre_pourcentage ?? 0);
         v.finition = String(b.finition_pourcentage ?? 0);
     }
-    const prix = (c.biens ?? []).reduce((a, x) => a + (Number(c.avec_finition ? x.prix_global_finition : x.prix_global_non_finition) || 0), 0);
-    const paid = (c.payments ?? []).filter(p => p.status !== 'Cancelled').reduce((a, p) => a + (Number(p.amount) || 0), 0);
+    const { prix, paid } = clientBalance(c as any); // same rule as the server
     v.prix = formatNumber(prix);
     v.paye = formatNumber(paid);
     v.reste = formatNumber(Math.max(0, prix - paid));

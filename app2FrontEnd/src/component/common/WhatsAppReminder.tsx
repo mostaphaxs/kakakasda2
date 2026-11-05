@@ -14,7 +14,6 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 import toast from 'react-hot-toast';
 import { X, MessageCircle, Sparkles, Loader2, ArrowLeft } from 'lucide-react';
 import { openExternal } from '../../lib/tauri';
-import { improveWhatsAppMessage } from '../../lib/gemini';
 import { fillTemplate, useMessageContext } from '../../lib/messageTemplates';
 
 export interface ReminderClient { id?: number; nom?: string; prenom?: string; tel?: string | null; tel_2?: string | null }
@@ -88,6 +87,7 @@ function Flow({ req }: { req: ReminderRequest }) {
     const improve = async () => {
         try {
             setAiLoading(true);
+            const { improveWhatsAppMessage } = await import('../../lib/gemini'); // loaded on demand
             setMessage(await improveWhatsAppMessage(message));
             toast.success("Message amélioré par l'IA");
         } catch (err: any) {

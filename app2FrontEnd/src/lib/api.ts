@@ -6,6 +6,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { invoke } from '@tauri-apps/api/core';
+import { notifyDataChanged } from './queryClient';
+
+/** Request logging only while developing. */
+const debug = (...a: unknown[]) => { if (import.meta.env.DEV) console.log(...a); };
 
 // Default values from .env as a safe fallback
 const GET_VITE_URL = () => {
@@ -29,7 +33,7 @@ export let STORAGE_BASE = API_BASE + '/sidecar-serve';
 export async function initializeApiConfig() {
     try {
         if (!(window as any).__TAURI_INTERNALS__) {
-            console.log("[api] Not running in Tauri, skipping dynamic config.");
+            debug("[api] Not running in Tauri, skipping dynamic config.");
             return;
         }
         // Attempt to get the dynamic URL from Rust
@@ -37,9 +41,9 @@ export async function initializeApiConfig() {
         if (tauriUrl && tauriUrl.startsWith('http')) {
             API_BASE = tauriUrl.replace(/\/+$/, '');
             STORAGE_BASE = API_BASE + '/sidecar-serve';
-            console.log(`[api] Dynamic configuration loaded:`);
-            console.log(`      API_BASE:     ${API_BASE}`);
-            console.log(`      STORAGE_BASE: ${STORAGE_BASE}`);
+            debug(`[api] Dynamic configuration loaded:`);
+            debug(`      API_BASE:     ${API_BASE}`);
+            debug(`      STORAGE_BASE: ${STORAGE_BASE}`);
         }
     } catch (error: any) {
         console.warn("[api] Failed to fetch dynamic config from Tauri, using .env fallback:", error?.message || error);
@@ -92,7 +96,7 @@ export async function apiFetch<T = unknown>(
 
     const isFormData = fetchOptions.body instanceof FormData;
 
-    console.log(`[api] Fetching: ${options.method || 'GET'} ${API_BASE}${path}`);
+    debug(`[api] Fetching: ${options.method || 'GET'} ${API_BASE}${path}`);
     let data: any = null;
     const response = await fetch(`${API_BASE}${path}`, {
         ...fetchOptions,
@@ -108,8 +112,8 @@ export async function apiFetch<T = unknown>(
 
     if (response.status !== 204) {
         const text = await response.text();
-        console.log(`[api] Response Status: ${response.status}`);
-        console.log(`[api] Content-Type: ${response.headers.get('Content-Type')}`);
+        debug(`[api] Response Status: ${response.status}`);
+        debug(`[api] Content-Type: ${response.headers.get('Content-Type')}`);
 
         try {
             data = JSON.parse(text);
@@ -129,6 +133,10 @@ export async function apiFetch<T = unknown>(
         }
         throw new Error(data?.message || `Erreur serveur (${response.status}).`);
     }
+
+    // any successful save refreshes the cached data shown elsewhere
+    const method = (fetchOptions.method || 'GET').toUpperCase();
+    if (method !== 'GET' && path !== '/login') notifyDataChanged();
 
     return data as T;
 }

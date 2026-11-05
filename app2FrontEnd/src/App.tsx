@@ -1,65 +1,65 @@
 import './index.css';
 import './App.css'
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react';
-import AppToaster from './component/common/AppToaster';
+const AppToaster = lazy(() => import('./component/common/AppToaster'));
 import { ConfirmHost } from './component/common/ConfirmDialog';
 import { QuickPaymentHost } from './component/common/QuickPayment';
 import { WhatsAppReminderHost } from './component/common/WhatsAppReminder';
 import { CommandPaletteHost, useGlobalShortcuts } from './component/common/CommandPalette';
-import Echeancier from './component/Echeancier';
-import Cheques from './component/Cheques';
-import Rentabilite from './component/Rentabilite';
-import Disponibilites from './component/Disponibilites';
-import Taches from './component/Taches';
-import Messages from './component/Messages';
+const Echeancier = lazy(() => import('./component/Echeancier'));
+const Cheques = lazy(() => import('./component/Cheques'));
+const Rentabilite = lazy(() => import('./component/Rentabilite'));
+const Disponibilites = lazy(() => import('./component/Disponibilites'));
+const Taches = lazy(() => import('./component/Taches'));
+const Messages = lazy(() => import('./component/Messages'));
 import { TaskEditorHost } from './component/common/TaskEditor';
 import { ClientDocumentsHost } from './component/common/ClientDocuments';
 import { ProgressPhotosHost } from './component/common/ProgressPhotos';
 import { useAppSettings } from './lib/appSettings';
-import Parametres from './component/Parametres';
+const Parametres = lazy(() => import('./component/Parametres'));
 
 import Login from './component/Login'
 import Sidebar from './component/Sidebar';
-import AddProperty from './component/AddProperty';
-import AddTerrain from './component/AddTerrain';
-import AddClient from './component/AddClient';
-import Dashboard from './component/Dashboard'
-import Home from './component/Home'
-import Terrains from './component/Terrains'
-import Properties from './component/Properties'
-import Contractors from './component/Contractors'
-import Intervenants from './component/Intervenants'
-import EditTerrain from './component/EditTerrain'
-import Charges from './component/Charges'
-import Clients from './component/Clients'
-import Profile from './component/Profile'
-import ConfigPrixBiens from './component/ConfigPrixBiens'
+const AddProperty = lazy(() => import('./component/AddProperty'));
+const AddTerrain = lazy(() => import('./component/AddTerrain'));
+const AddClient = lazy(() => import('./component/AddClient'));
+const Dashboard = lazy(() => import('./component/Dashboard'));
+const Home = lazy(() => import('./component/Home'));
+const Terrains = lazy(() => import('./component/Terrains'));
+const Properties = lazy(() => import('./component/Properties'));
+const Contractors = lazy(() => import('./component/Contractors'));
+const Intervenants = lazy(() => import('./component/Intervenants'));
+const EditTerrain = lazy(() => import('./component/EditTerrain'));
+const Charges = lazy(() => import('./component/Charges'));
+const Clients = lazy(() => import('./component/Clients'));
+const Profile = lazy(() => import('./component/Profile'));
+const ConfigPrixBiens = lazy(() => import('./component/ConfigPrixBiens'));
 import GlobalPreview from './component/GlobalPreview';
-import Workers from './component/Workers'
-import Salaries from './component/Salaries'
-import Transactions from './component/Transactions'
-import Contentieux from './component/Contentieux'
-import ServiceSocietes from './component/ServiceSocietes'
+const Workers = lazy(() => import('./component/Workers'));
+const Salaries = lazy(() => import('./component/Salaries'));
+const Transactions = lazy(() => import('./component/Transactions'));
+const Contentieux = lazy(() => import('./component/Contentieux'));
+const ServiceSocietes = lazy(() => import('./component/ServiceSocietes'));
 
 // Procurement Components
-import Articles from './component/procurement/Articles';
-import AddArticle from './component/procurement/AddArticle';
-import Suppliers from './component/procurement/Suppliers';
-import AddSupplier from './component/procurement/AddSupplier';
-import PurchaseInvoices from './component/procurement/PurchaseInvoices';
-import AddAchat from './component/procurement/AddAchat';
-import GeneralWorks from './component/procurement/GeneralWorks';
-import AddGeneralWork from './component/procurement/AddGeneralWork';
-import StockDashboard from './component/procurement/StockDashboard';
-import StockExitForm from './component/procurement/StockExitForm';
-import FactureBuilder from './component/FactureBuilder';
-import FacturesList from './component/FacturesList';
-import AIAssistant from './component/AIAssistant';
-import ClientLogin from './component/ClientLogin';
-import ClientDashboard from './component/ClientDashboard';
-import TerrainMap from './component/TerrainMap';
+const Articles = lazy(() => import('./component/procurement/Articles'));
+const AddArticle = lazy(() => import('./component/procurement/AddArticle'));
+const Suppliers = lazy(() => import('./component/procurement/Suppliers'));
+const AddSupplier = lazy(() => import('./component/procurement/AddSupplier'));
+const PurchaseInvoices = lazy(() => import('./component/procurement/PurchaseInvoices'));
+const AddAchat = lazy(() => import('./component/procurement/AddAchat'));
+const GeneralWorks = lazy(() => import('./component/procurement/GeneralWorks'));
+const AddGeneralWork = lazy(() => import('./component/procurement/AddGeneralWork'));
+const StockDashboard = lazy(() => import('./component/procurement/StockDashboard'));
+const StockExitForm = lazy(() => import('./component/procurement/StockExitForm'));
+const FactureBuilder = lazy(() => import('./component/FactureBuilder'));
+const FacturesList = lazy(() => import('./component/FacturesList'));
+const AIAssistant = lazy(() => import('./component/AIAssistant'));
+const ClientLogin = lazy(() => import('./component/ClientLogin'));
+const ClientDashboard = lazy(() => import('./component/ClientDashboard'));
+const TerrainMap = lazy(() => import('./component/TerrainMap'));
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
@@ -71,6 +71,14 @@ const PortalRoute: React.FC<{ children: React.ReactElement }> = ({ children }) =
   const clientUser = localStorage.getItem('clientUser');
   return clientUser ? children : <Navigate to="/portal/login" replace />;
 };
+
+/** Shown for a split second while a page's code loads. */
+const PageLoading = () => (
+  <div className="space-y-5 animate-fade-in" aria-busy="true">
+    <div className="h-24 rounded-xl bg-white border border-slate-200" />
+    <div className="h-64 rounded-xl bg-white border border-slate-200" />
+  </div>
+);
 
 // ── App Inner Content ──────────────────────────────────────────────────────────
 const AppContent: React.FC = () => {
@@ -130,10 +138,11 @@ const AppContent: React.FC = () => {
           </header>
         )}
 
-        {token && !isPortal && <AIAssistant />}
+        {token && !isPortal && <Suspense fallback={null}><AIAssistant /></Suspense>}
 
         <main className={isAuthScreen ? 'flex-grow' : 'flex-grow px-4 py-6'}>
           <div key={location.pathname} className={isAuthScreen ? 'animate-page-in' : 'max-w-7xl mx-auto animate-page-in'}>
+            <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
@@ -185,6 +194,7 @@ const AppContent: React.FC = () => {
 
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
+            </Suspense>
           </div>
         </main>
       </div>

@@ -50,13 +50,22 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 const CACHE_KEY = 'app-settings';
 
+/** Section with defaults; null values (Laravel stores empty text as null) fall back to the default. */
+function section<T extends object>(def: T, saved?: Partial<T> | null): T {
+    const out = { ...def } as Record<string, unknown>;
+    Object.entries(saved ?? {}).forEach(([k, v]) => {
+        if (v !== null && v !== undefined) out[k] = v;
+    });
+    return out as T;
+}
+
 function merge(s: Partial<AppSettings>): AppSettings {
     return {
-        company: { ...DEFAULT_SETTINGS.company, ...s.company },
-        preferences: { ...DEFAULT_SETTINGS.preferences, ...s.preferences },
-        documents: { ...DEFAULT_SETTINGS.documents, ...s.documents },
-        notifications: { ...DEFAULT_SETTINGS.notifications, ...s.notifications },
-        ai: { ...DEFAULT_SETTINGS.ai, ...s.ai },
+        company: section(DEFAULT_SETTINGS.company, s.company),
+        preferences: section(DEFAULT_SETTINGS.preferences, s.preferences),
+        documents: section(DEFAULT_SETTINGS.documents, s.documents),
+        notifications: section(DEFAULT_SETTINGS.notifications, s.notifications),
+        ai: section(DEFAULT_SETTINGS.ai, s.ai),
     };
 }
 
@@ -99,7 +108,7 @@ export function useAppSettings(enabled = true) {
         enabled,
     });
     useEffect(() => { if (q.data) setAppSettings(q.data); }, [q.data]);
-    return { ...q, settings: q.data ?? current };
+    return { ...q, settings: q.data ? merge(q.data) : current };
 }
 
 // ── images for PDFs (jsPDF needs PNG data URLs) ───────────────────────────────

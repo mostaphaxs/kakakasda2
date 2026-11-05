@@ -124,13 +124,12 @@ class EcheanceController extends Controller
     {
         $client->load('biens.terrain');
         $payments = $client->payments()->orderBy('payment_date')->get();
-        $valid = $payments->filter(fn ($p) => $p->status !== 'Cancelled');
-        // Same rule as StatsController: finition price or not, plus annexes
-        $prix = (float) $client->biens->sum(function ($b) use ($client) {
-            $base = $client->avec_finition ? $b->prix_global_finition : $b->prix_global_non_finition;
-            return (float) $base + (float) \App\Models\annex_units::where('bien_id', $b->id)->sum('prix');
-        });
-        $paid = (float) $valid->sum('amount');
+
+        $client->loadMissing('biens.annexUnits');
+        $client->setRelation('payments', $payments);
+        $balance = \App\Support\PaymentMath::balance($client);
+        $prix = $balance['prix'];
+        $paid = $balance['paid'];
 
         return response()->json([
             'client' => $client,

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PaymentMath;
+
 use App\Models\Bien;
 use App\Models\Charge;
 use App\Models\Client;
@@ -43,10 +45,10 @@ class ReportController extends Controller
         $prevEnd = $prevStart->copy()->endOfMonth();
 
         $collected = fn ($a, $b) => (float) (payments::whereBetween('payment_date', [$a->toDateString(), $b->toDateString()])
-            ->selectRaw('SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as t')->value('t') ?? 0);
+            ->selectRaw(PaymentMath::sqlSum() . ' as t')->value('t') ?? 0);
 
         $byMethod = payments::whereBetween('payment_date', [$start->toDateString(), $end->toDateString()])
-            ->selectRaw('method, COUNT(*) as n, SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as total')
+            ->selectRaw('method, COUNT(*) as n, ' . PaymentMath::sqlSum() . ' as total')
             ->groupBy('method')->get()
             ->map(fn ($r) => ['method' => $r->method ?: 'Autre', 'count' => (int) $r->n, 'total' => (float) $r->total])->values();
 

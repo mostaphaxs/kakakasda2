@@ -1,55 +1,71 @@
 import { useState, useRef, useEffect } from 'react';
 import {
     Send, X, Paperclip, CheckCircle2,
-    Sparkles, Maximize2, Minimize2, Trash2, FileText, Mic, MicOff, Volume2, VolumeX
+    Maximize2, Minimize2, Trash2, FileText, Mic, MicOff, Volume2, VolumeX
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
-import { executeAICommand } from '../lib/gemini';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
+import { NovaAgent, type UiTool, type WriteAction } from '../lib/novaAgent';
+import { openQuickPayment } from './common/QuickPayment';
+import { openClientDocuments } from './common/ClientDocuments';
+import { openWhatsAppReminder } from './common/WhatsAppReminder';
+import { openTaskEditor } from './common/TaskEditor';
+import { downloadMonthlyReport, downloadReceipt, downloadSaleDocument, downloadStatement } from '../lib/lazyDocs';
 import novaFace from '../assets/nova-face.png';
 
-interface Choice {
-    label: string;
-    action: string;
-    action_data: any;
-}
+interface ConfirmCard { action: WriteAction; state: 'pending' | 'yes' | 'all' | 'no' }
 
 interface Message {
+    id: number;
     role: 'user' | 'model';
     parts: string;
     isAction?: boolean;
-    choices?: Choice[];
+    choices?: string[];
+    confirm?: ConfirmCard;
 }
 
+let nextId = 1;
+const msg = (m: Omit<Message, 'id'>): Message => ({ id: nextId++, ...m });
+const WELCOME = "Bonjour ! Je suis **Nova**. Je peux consulter, créer, modifier ou encaisser n'importe quoi dans la gestion — dites-moi simplement ce qu'il faut faire.";
+const SUGGESTIONS = [
+    'Qui est en retard de paiement ?',
+    'Encaisser un paiement',
+    'Biens libres dans quel projet ?',
+    'Bilan du mois',
+];
+
 const AIAssistant = () => {
+    const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [isVoiceActive, setIsVoiceActive] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<Message[]>([
-        { role: 'model', parts: "Bonjour ! Je suis **Nova**. Comment puis-je vous aider aujourd'hui ?" }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([msg({ role: 'model', parts: WELCOME })]);
     const [isLoading, setIsLoading] = useState(false);
+    const [progress, setProgress] = useState('');
     const [chatFile, setChatFile] = useState<File | null>(null);
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const recognitionRef = useRef<any>(null);
+    const agentRef = useRef(new NovaAgent());
+    const resolvers = useRef(new Map<number, (v: 'yes' | 'all' | 'no') => void>());
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages, isLoading]);
+    }, [messages, isLoading, progress]);
 
     // Speech Synthesis
     const speak = (text: string) => {
         if (!isVoiceActive) return;
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
+        const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#`>|]/g, ''));
         utterance.lang = 'fr-FR';
         utterance.rate = 1.1;
         window.speechSynthesis.speak(utterance);
@@ -111,118 +127,85 @@ const AIAssistant = () => {
         }
     };
 
-    const handleSend = async () => {
-        if (!input.trim() && !chatFile) return;
+    // ── confirmation cards ────────────────────────────────────────────────────
+    const askConfirm = (action: WriteAction) => new Promise<'yes' | 'all' | 'no'>(resolve => {
+        const m = msg({ role: 'model', parts: '', confirm: { action, state: 'pending' } });
+        resolvers.current.set(m.id, resolve);
+        setMessages(prev => [...prev, m]);
+    });
+    const answerConfirm = (id: number, v: 'yes' | 'all' | 'no') => {
+        setMessages(prev => prev.map(m => (m.id === id && m.confirm ? { ...m, confirm: { ...m.confirm, state: v } } : m)));
+        resolvers.current.get(id)?.(v);
+        resolvers.current.delete(id);
+    };
 
-        const userMessage = input.trim();
+    // ── UI tools (pages, windows, PDFs) ───────────────────────────────────────
+    const runUi = async (t: UiTool): Promise<string> => {
+        const fetchClient = (id: number) => apiFetch<any>(`/clients/${id}`);
+        switch (t.tool) {
+            case 'navigate':
+                navigate(t.args.path.startsWith('/') ? t.args.path : '/' + t.args.path);
+                return 'Page ouverte.';
+            case 'open_quick_payment':
+                openQuickPayment({ clientId: t.args.client_id });
+                return "Fenêtre d'encaissement ouverte.";
+            case 'open_client_documents':
+                openClientDocuments(t.args.client_id);
+                return 'Fenêtre des documents ouverte.';
+            case 'download_document': {
+                const { kind, client_id, payment_id } = t.args;
+                if (kind === 'releve') await downloadStatement(client_id);
+                else if (kind === 'recu') {
+                    if (!payment_id) return 'ERREUR : payment_id requis pour un reçu.';
+                    await downloadReceipt(client_id, payment_id);
+                } else await downloadSaleDocument(kind, client_id);
+                return 'PDF téléchargé.';
+            }
+            case 'monthly_report':
+                await downloadMonthlyReport(t.args.month || new Date().toISOString().slice(0, 7));
+                return 'Rapport téléchargé.';
+            case 'whatsapp_reminder': {
+                const c = await fetchClient(t.args.client_id);
+                openWhatsAppReminder({ client: c, messages: { fr: t.args.message_fr, ar: t.args.message_ar || t.args.message_fr } });
+                return c.tel || c.tel_2 ? "Fenêtre WhatsApp ouverte (l'utilisateur choisit le numéro et envoie)." : "ERREUR : le client n'a pas de numéro.";
+            }
+            case 'open_task_editor':
+                openTaskEditor({ clientId: t.args.client_id, title: t.args.title });
+                return 'Formulaire de tâche ouvert.';
+            default:
+                return 'ERREUR : outil inconnu.';
+        }
+    };
+
+    const send = async (text: string) => {
+        if ((!text.trim() && !chatFile) || isLoading) return;
+        const userMessage = text.trim();
         const currentFile = chatFile;
-        setMessages(prev => [...prev, { role: 'user', parts: userMessage || "Document envoyé" }]);
+        setMessages(prev => [...prev, msg({ role: 'user', parts: userMessage || `📎 ${currentFile?.name}` })]);
         setInput('');
+        setChatFile(null);
         setIsLoading(true);
-
+        setProgress('');
         try {
-            const context = "Assistante Nova - Service Client Pro. Société les cinq éléments.";
-            const response = await executeAICommand(userMessage, currentFile, context);
-
-            if (response.type === 'ACTION' && response.action) {
-                let alertMsg = "Action réussie";
-                try {
-                    const d = response.action_data || {};
-                    if (response.action === 'CREATE_CHARGE') {
-                        const fd = new FormData();
-                        const catMapping: Record<string, string> = { 'loyer': 'loyer_bureau', 'gasoil': 'gasoil', 'fournitures': 'fournitures_bureau', 'employes': 'employes_bureau', 'impots': 'impots', 'essence': 'gasoil' };
-                        const cat = (d.category || 'gasoil').toLowerCase();
-                        const targetKey = catMapping[cat] || 'gasoil';
-                        const amount = String(d.amount || 0);
-                        ['loyer_bureau', 'gasoil', 'fournitures_bureau', 'employes_bureau', 'impots'].forEach(f => fd.append(f, f === targetKey ? amount : '0'));
-                        fd.append('periode', new Date().toLocaleDateString('fr-MA'));
-                        if (d.reference) fd.append(`${targetKey}_ref`, d.reference);
-                        if (currentFile) fd.append(`${targetKey}_scan`, currentFile);
-                        await apiFetch('/charges', { method: 'POST', body: fd });
-                    } else if (response.action === 'CREATE_PROVIDER_INVOICE') {
-                        const providerId = await resolveServiceProvider(d.provider_name || 'Inconnu');
-                        const fd = new FormData();
-                        fd.append('service_provider_id', String(providerId));
-                        fd.append('amount', String(d.montant || 0));
-                        fd.append('invoice_date', new Date().toISOString().split('T')[0]);
-                        if (d.reference) fd.append('reference', d.reference);
-                        if (currentFile) fd.append('scan_path', currentFile);
-                        await apiFetch('/provider-invoices', { method: 'POST', body: fd });
-                    } else if (response.action === 'CREATE_PROJECT') {
-                        await apiFetch('/terrains', { method: 'POST', body: JSON.stringify({ nom_projet: d.nom || 'Projet', nom_terrain: d.ville || '', cout_global: 0, total: 0, honoraires_notaire: 0, frais_enregistrement: 0, frais_immatriculation: 0 }) });
-                    } else if (response.action === 'CREATE_CLIENT') {
-                        await apiFetch('/clients', { method: 'POST', body: JSON.stringify({ nom: d.nom || '', prenom: d.prenom || '', cin: d.cin || 'INCONNU', tel: d.tel || '0000000000', date_reservation: new Date().toISOString().split('T')[0] }) });
-                    } else if (response.action === 'CREATE_SUPPLIER') {
-                        await apiFetch('/suppliers', { method: 'POST', body: JSON.stringify({ nom: d.nom || 'Fournisseur', telephone: d.tel || '0000000000', adresse: d.adresse || '' }) });
-                    } else if (response.action === 'CREATE_WORKER') {
-                        await apiFetch('/ouvriers', { method: 'POST', body: JSON.stringify({ nom: d.nom || '', prenom: d.prenom || '', cin: d.cin || '', metier: d.metier || '', telephone: d.telephone || '' }) });
-                    } else if (response.action === 'CREATE_SALARY') {
-                        await apiFetch('/salaries', { method: 'POST', body: JSON.stringify({ nom: d.nom || '', prenom: d.prenom || '', cin: d.cin || '', poste: d.poste || '', salaire_base: d.salaire_base || 0, date_embauche: new Date().toISOString().split('T')[0] }) });
-                    }
-
-                    setMessages(prev => [...prev, { role: 'model', parts: response.message, isAction: true }]);
-                    speak(response.message);
-                    toast.success(alertMsg);
-                    setChatFile(null);
-                } catch (actionErr: any) {
-                    setMessages(prev => [...prev, { role: 'model', parts: `Erreur : ${actionErr.message}` }]);
-                }
-            } else if (response.type === 'CLARIFY') {
-                setMessages(prev => [...prev, { role: 'model', parts: response.message, choices: response.choices || [] }]);
-                speak(response.message);
-            } else {
-                setMessages(prev => [...prev, { role: 'model', parts: response.message }]);
-                speak(response.message);
-            }
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'model', parts: "Désolé, je rencontre une difficulté technique." }]);
+            const r = await agentRef.current.send(userMessage, currentFile, { confirm: askConfirm, runUi, progress: setProgress });
+            setMessages(prev => [...prev, msg({ role: 'model', parts: r.message, isAction: r.actions > 0, choices: r.choices })]);
+            if (r.actions > 0) toast.success(r.actions > 1 ? `${r.actions} actions effectuées` : 'Action effectuée');
+            speak(r.message);
+        } catch (error: any) {
+            const m = String(error?.message || '');
+            setMessages(prev => [...prev, msg({ role: 'model', parts: m.includes('IA non configurée') ? m : `Désolé, je rencontre une difficulté technique.${m ? `\n\n_${m.slice(0, 200)}_` : ''}` })]);
         } finally {
             setIsLoading(false);
+            setProgress('');
         }
     };
+    const handleSend = () => send(input);
 
-    const resolveServiceProvider = async (providerName: string) => {
-        const providers: any[] = await apiFetch('/service-providers');
-        const match = providers.find(p => p.nom.toLowerCase() === providerName.toLowerCase());
-        if (match) return match.id;
-        const newP = await apiFetch('/service-providers', { method: 'POST', body: JSON.stringify({ nom: providerName, categorie: 'Autre' }) }) as any;
-        return newP.id;
-    };
-
-    const handleChoice = async (choice: Choice, msgIndex: number) => {
-        setMessages(prev => prev.map((m, i) => i === msgIndex ? { ...m, choices: [] } : m));
-        setMessages(prev => [...prev, { role: 'user', parts: `✅ ${choice.label}` }]);
-        setIsLoading(true);
-        try {
-            const d = choice.action_data || {};
-            let alertMsg = "Terminé";
-            const catMapping: Record<string, string> = { 'loyer': 'loyer_bureau', 'gasoil': 'gasoil', 'fournitures': 'fournitures_bureau', 'employes': 'employes_bureau', 'impots': 'impots', 'essence': 'gasoil' };
-            if (choice.action === 'CREATE_CHARGE') {
-                const fd = new FormData();
-                const cat = (d.category || 'gasoil').toLowerCase();
-                const targetKey = catMapping[cat] || 'gasoil';
-                ['loyer_bureau', 'gasoil', 'fournitures_bureau', 'employes_bureau', 'impots'].forEach(f => fd.append(f, f === targetKey ? String(d.amount || 0) : '0'));
-                fd.append('periode', new Date().toLocaleDateString('fr-MA'));
-                if (chatFile) { fd.append(`${targetKey}_scan`, chatFile); if (d.reference) fd.append(`${targetKey}_ref`, d.reference); }
-                await apiFetch('/charges', { method: 'POST', body: fd });
-            } else if (choice.action === 'CREATE_PROVIDER_INVOICE') {
-                const providerId = await resolveServiceProvider(d.provider_name || 'Inconnu');
-                const fd = new FormData();
-                fd.append('service_provider_id', String(providerId));
-                fd.append('amount', String(d.montant || 0));
-                fd.append('invoice_date', new Date().toISOString().split('T')[0]);
-                if (chatFile) fd.append('scan_path', chatFile);
-                await apiFetch('/provider-invoices', { method: 'POST', body: fd });
-            }
-            setMessages(prev => [...prev, { role: 'model', parts: "Action complétée.", isAction: true }]);
-            speak("L'action a été finalisée avec succès.");
-            setChatFile(null);
-            toast.success(alertMsg);
-        } catch (err: any) {
-            setMessages(prev => [...prev, { role: 'model', parts: `Erreur: ${err.message}` }]);
-        } finally {
-            setIsLoading(false);
-        }
+    const resetChat = () => {
+        resolvers.current.forEach(r => r('no'));
+        resolvers.current.clear();
+        agentRef.current.reset();
+        setMessages([msg({ role: 'model', parts: WELCOME })]);
     };
 
     return (
@@ -268,30 +251,28 @@ const AIAssistant = () => {
 
                     {/* Chat Area */}
                     <div ref={scrollRef} className="flex-grow overflow-y-auto px-6 py-6 space-y-6 scroll-pro bg-slate-50/30">
-                        {messages.map((msg, i) => (
-                            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] px-4 py-3 rounded-xl text-[12.3px] leading-relaxed shadow-sm ${msg.role === 'user'
+                        {messages.map((m) => m.confirm ? (
+                            <ConfirmBubble key={m.id} card={m.confirm} onAnswer={v => answerConfirm(m.id, v)} />
+                        ) : (
+                            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] px-4 py-3 rounded-xl text-[12.3px] leading-relaxed shadow-sm ${m.role === 'user'
                                     ? 'bg-slate-900 text-white rounded-tr-none'
                                     : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none markdown-pro'
                                     }`}>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.parts}</ReactMarkdown>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.parts}</ReactMarkdown>
 
-                                    {msg.isAction && (
+                                    {m.isAction && (
                                         <div className="mt-3 flex items-center gap-2 text-xs font-medium text-emerald-600">
                                             <CheckCircle2 size={14} /> Action effectuée
                                         </div>
                                     )}
 
-                                    {msg.choices && msg.choices.length > 0 && (
-                                        <div className="mt-4 flex flex-col gap-2">
-                                            {msg.choices.map((choice, ci) => (
-                                                <button
-                                                    key={ci}
-                                                    onClick={() => handleChoice(choice, i)}
-                                                    className="w-full text-left px-4 py-2 bg-white hover:bg-slate-100 border border-slate-200 hover:border-slate-300 rounded-lg text-[10.6px] font-medium text-slate-700 transition flex justify-between items-center group"
-                                                >
-                                                    {choice.label}
-                                                    <Sparkles size={14} className="text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {m.choices && m.choices.length > 0 && m.id === messages[messages.length - 1]?.id && !isLoading && (
+                                        <div className="mt-3 flex flex-wrap gap-1.5">
+                                            {m.choices.map((c, ci) => (
+                                                <button key={ci} onClick={() => send(c)}
+                                                    className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-full text-xs font-medium text-slate-700 transition-colors">
+                                                    {c}
                                                 </button>
                                             ))}
                                         </div>
@@ -299,12 +280,23 @@ const AIAssistant = () => {
                                 </div>
                             </div>
                         ))}
+                        {messages.length === 1 && !isLoading && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {SUGGESTIONS.map(sg => (
+                                    <button key={sg} onClick={() => send(sg)}
+                                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-full text-xs font-medium text-slate-600 transition-colors">
+                                        {sg}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         {isLoading && (
                             <div className="flex justify-start">
                                 <div className="px-4 py-2 bg-white border border-slate-200 rounded-full flex gap-1 items-center">
                                     <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce"></div>
                                     <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce [animation-delay:0.2s]"></div>
                                     <div className="w-1.5 h-1.5 bg-slate-900 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                                    {progress && <span className="ml-2 text-xs text-slate-500">{progress}</span>}
                                 </div>
                             </div>
                         )}
@@ -341,7 +333,7 @@ const AIAssistant = () => {
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                    onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSend()}
                                     placeholder="Message ou commande vocale..."
                                     className="flex-grow pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                 />
@@ -356,7 +348,7 @@ const AIAssistant = () => {
 
                             <button
                                 onClick={handleSend}
-                                disabled={!input.trim() && !chatFile}
+                                disabled={(!input.trim() && !chatFile) || isLoading}
                                 className="flex items-center justify-center w-12 h-10 text-white rounded-lg shadow-sm disabled:bg-slate-200 disabled:shadow-none transition active:scale-[0.98] disabled:text-slate-400 text-sm font-medium bg-slate-900 hover:bg-slate-800"
                             >
                                 <Send size={20} />
@@ -364,11 +356,11 @@ const AIAssistant = () => {
                         </div>
 
                         <div className="mt-3 flex items-center justify-between px-2">
-                            <button onClick={() => setMessages([{ role: 'model', parts: 'Nouvelle conversation initialisée.' }])} className="text-slate-300 hover:text-rose-400 transition-colors">
+                            <button onClick={resetChat} title="Nouvelle conversation" className="text-slate-300 hover:text-rose-400 transition-colors">
                                 <Trash2 size={12} />
                             </button>
                             <span className="text-xs text-slate-300 font-medium">
-                                Nova Pro Voice Ready
+                                Modifications sur confirmation
                             </span>
                         </div>
                     </div>
@@ -377,5 +369,68 @@ const AIAssistant = () => {
         </>
     );
 };
+
+// ── confirmation card ─────────────────────────────────────────────────────────
+const METHOD_LABEL: Record<WriteAction['method'], string> = { POST: 'Création', PUT: 'Modification', DELETE: 'Suppression' };
+const FIELD_HIDE = (k: string) => k === '_method' || k === 'id' || k.endsWith('_id') || k.endsWith('_type');
+const FIELD_LABEL: Record<string, string> = {
+    amount: 'Montant', payment_date: 'Date', type: 'Type', method: 'Méthode', reference_no: 'Référence', bank_name: 'Banque',
+    bank_commission: 'Commission', notes: 'Notes', nom: 'Nom', prenom: 'Prénom', cin: 'CIN', tel: 'Téléphone', tel_2: 'Téléphone 2',
+    email: 'Email', adresse: 'Adresse', title: 'Titre', due_date: 'Échéance', priority: 'Priorité', status: 'Statut', statut: 'Statut',
+    total: 'Total', count: "Nombre d'échéances", start_date: 'Début', interval_months: 'Intervalle (mois)', label: 'Libellé',
+    refund_amount: 'Remboursement', date_reservation: 'Date de réservation', avec_finition: 'Avec finition', reason: 'Motif',
+    nom_projet: 'Projet', type_bien: 'Type de bien', surface_m2: 'Surface (m²)', name: 'Nom', speciality: 'Spécialité', periode: 'Période',
+    contact_name: 'Contact', contact_phone: 'Tél. contact', done: 'Terminée', nom_societe: 'Société', invoice_date: 'Date facture',
+};
+
+function ConfirmBubble({ card, onAnswer }: { card: ConfirmCard; onAnswer: (v: 'yes' | 'all' | 'no') => void }) {
+    const { action, state } = card;
+    const danger = action.method === 'DELETE' || /cancel|annul/i.test(action.path);
+    const fields = Object.entries(action.body ?? {}).filter(([k, v]) => !FIELD_HIDE(k) && v !== null && v !== '' && v !== undefined);
+    const show = (v: unknown) => (typeof v === 'number' || (typeof v === 'string' && /^\d+(\.\d+)?$/.test(v) && v.length < 10) ? Number(v).toLocaleString('fr-FR') : typeof v === 'number' ? v.toLocaleString('fr-FR') : typeof v === 'boolean' ? (v ? 'Oui' : 'Non') : typeof v === 'object' ? JSON.stringify(v) : String(v));
+    return (
+        <div className="flex justify-start">
+            <div className={`w-[90%] rounded-xl border bg-white shadow-sm overflow-hidden ${danger ? 'border-rose-200' : 'border-slate-200'}`}>
+                <div className={`px-4 py-2 text-xs font-medium ${danger ? 'bg-rose-50 text-rose-700' : 'bg-slate-50 text-slate-600'}`}>
+                    {METHOD_LABEL[action.method] ?? action.method} · à confirmer
+                </div>
+                <div className="px-4 py-3">
+                    <p className="text-[12.3px] font-medium text-slate-900 leading-snug">{action.summary}</p>
+                    {fields.length > 0 && (
+                        <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                            {fields.slice(0, 12).map(([k, v]) => (
+                                <div key={k} className="contents">
+                                    <dt className="text-slate-400">{FIELD_LABEL[k] ?? k.replace(/_/g, ' ')}</dt>
+                                    <dd className="text-slate-700 truncate">{show(v)}</dd>
+                                </div>
+                            ))}
+                        </dl>
+                    )}
+                    {action.attach_file && <p className="mt-2 text-xs text-slate-500">📎 Le document joint sera enregistré.</p>}
+                </div>
+                <div className="px-4 pb-3">
+                    {state === 'pending' ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button onClick={() => onAnswer('yes')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium text-white ${danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-900 hover:bg-slate-800'}`}>
+                                Confirmer
+                            </button>
+                            <button onClick={() => onAnswer('no')} className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">Annuler</button>
+                            {!danger && (
+                                <button onClick={() => onAnswer('all')} className="ml-auto text-xs text-slate-400 hover:text-slate-700" title="Confirme aussi les étapes suivantes de cette demande">
+                                    Tout confirmer
+                                </button>
+                            )}
+                        </div>
+                    ) : state === 'no' ? (
+                        <span className="text-xs text-slate-400">Annulé</span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600"><CheckCircle2 size={13} /> Confirmé</span>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 export default AIAssistant;

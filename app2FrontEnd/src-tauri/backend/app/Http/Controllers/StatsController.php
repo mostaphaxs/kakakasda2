@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\PaymentMath;
+
 use App\Models\Terrain;
 use App\Models\payments;
 use App\Models\Client;
@@ -24,7 +26,7 @@ class StatsController extends Controller
         $totalInvested = Terrain::sum('total');
 
         // 2. Total Encaissements (Sum of payments minus refunds)
-        $totalEncaissements = payments::selectRaw('SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as net_total')
+        $totalEncaissements = payments::selectRaw(PaymentMath::sqlSum() . ' as net_total')
             ->value('net_total') ?? 0;
 
         // 3. Total Réservations (Count of clients)
@@ -86,7 +88,7 @@ class StatsController extends Controller
         $allBiens = Bien::with('clients')->get()->groupBy('terrain_id');
         
         $allPaymentsByTerrain = payments::join('biens', 'payments.bien_id', '=', 'biens.id')
-            ->selectRaw('biens.terrain_id, SUM(CAST(payments.amount AS DECIMAL(15,2)) - CAST(COALESCE(payments.refund_amount, 0) AS DECIMAL(15,2))) as net_total')
+            ->selectRaw('biens.terrain_id, ' . PaymentMath::sqlSum('payments.') . ' as net_total')
             ->groupBy('biens.terrain_id')
             ->pluck('net_total', 'terrain_id');
 
@@ -125,6 +127,9 @@ class StatsController extends Controller
             ->groupBy('terrain_id')
             ->pluck('total', 'terrain_id');
 
+        // annex prices per unit, loaded once (was one query per unit)
+        $annexByBien = \App\Models\annex_units::selectRaw('bien_id, SUM(prix) as total')->groupBy('bien_id')->pluck('total', 'bien_id');
+
         foreach ($terrains as $terrain) {
             $tInvested = $terrain->total ?? 0;
             $tId = $terrain->id;
@@ -148,10 +153,10 @@ class StatsController extends Controller
 
             // Chiffre d'Affaires calculation (Property + Annexes)
             $tChiffreAffaires = $tBiens->filter(fn($b) => $b->clients->isNotEmpty())
-                ->sum(function($b) {
+                ->sum(function($b) use ($annexByBien) {
                     $client = $b->clients->first();
                     $basePrice = $client->avec_finition ? $b->prix_global_finition : $b->prix_global_non_finition;
-                    $annexPrice = \App\Models\annex_units::where('bien_id', $b->id)->sum('prix');
+                    $annexPrice = (float) ($annexByBien[$b->id] ?? 0);
                     return $basePrice + $annexPrice;
                 });
 
@@ -205,7 +210,7 @@ class StatsController extends Controller
             // Income this month
             $income = payments::whereYear('payment_date', $month->year)
                 ->whereMonth('payment_date', $month->month)
-                ->selectRaw('SUM(CAST(amount AS DECIMAL(15,2)) - CAST(COALESCE(refund_amount, 0) AS DECIMAL(15,2))) as total')
+                ->selectRaw(PaymentMath::sqlSum() . ' as total')
                 ->value('total') ?? 0;
 
             // Expenses this month (Purchase Invoices + Local Charges + Contractor Payments)

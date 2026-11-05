@@ -19,7 +19,7 @@ import { generateMonthlyReport } from './MonthlyReportButton';
 import { openClientDocuments } from './ClientDocuments';
 import { openTaskEditor } from './TaskEditor';
 import { apiFetch } from '../../lib/api';
-import { downloadStatement } from '../../lib/documents';
+import { downloadStatement } from '../../lib/lazyDocs';
 import { openQuickPayment, useClientsLite } from './QuickPayment';
 
 // ── store ─────────────────────────────────────────────────────────────────────

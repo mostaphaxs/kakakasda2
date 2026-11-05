@@ -8,6 +8,7 @@ import {
 import { formatNumber, parseDate } from '../lib/utils';
 import { STORAGE_BASE } from '../lib/api';
 import { openExternal } from '../lib/tauri';
+import { clientPaid, clientPrice } from '../lib/clientBalance';
 
 const ClientDashboard = () => {
     const navigate = useNavigate();
@@ -30,10 +31,11 @@ const ClientDashboard = () => {
     };
 
     const mainBien = client.biens?.[0]; // Usually clients have one main bien
-    const totalPrix = client.biens?.reduce((acc: number, b: any) => acc + (client.avec_finition ? b.prix_global_finition : b.prix_global_non_finition), 0) || 0;
-    const totalPaid = client.payments?.reduce((acc: number, p: any) => acc + (parseFloat(p.amount) - parseFloat(p.refund_amount || 0)), 0) || 0;
+    // same rule as the admin side and the server
+    const totalPrix = clientPrice(client);
+    const totalPaid = clientPaid(client);
     const balance = Math.max(0, totalPrix - totalPaid);
-    const progressPercent = Math.min(100, Math.round((totalPaid / totalPrix) * 100));
+    const progressPercent = totalPrix > 0 ? Math.min(100, Math.round((totalPaid / totalPrix) * 100)) : 0;
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">

@@ -18,6 +18,7 @@ import { openWhatsAppReminder } from './common/WhatsAppReminder';
 import { openClientDocuments } from './common/ClientDocuments';
 import { openTaskEditor } from './common/TaskEditor';
 import { getAppSettings } from '../lib/appSettings';
+import { clientBalance } from '../lib/clientBalance';
 
 type Status = 'en_retard' | 'a_venir' | 'partielle' | 'payee';
 interface Allocation {
@@ -268,12 +269,7 @@ function PlanModal({ defaultClientId, onClose }: { defaultClientId?: number; onC
     const [saving, setSaving] = useState(false);
 
     const client = clients.find(c => c.id === clientId);
-    const reste = useMemo(() => {
-        if (!client) return 0;
-        const prix = (client.biens ?? []).reduce((a, b) => a + (Number(client.avec_finition ? b.prix_global_finition : b.prix_global_non_finition) || 0), 0);
-        const paid = (client.payments ?? []).filter(p => p.status !== 'Cancelled').reduce((a, p) => a + (Number(p.amount) || 0), 0);
-        return Math.max(0, prix - paid);
-    }, [client]);
+    const reste = useMemo(() => clientBalance(client as any).reste, [client]);
 
     const totalNum = parseNumber(total) || reste;
     const preview = useMemo(() => {

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Echeance;
 use App\Models\payments;
+use App\Support\PaymentMath;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -18,11 +19,8 @@ class EcheanceAllocator
 {
     public static function paidTotal(int $clientId): float
     {
-        return (float) payments::where('client_id', $clientId)
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'Cancelled');
-            })
-            ->sum('amount');
+        // same rule as every other screen (see PaymentMath)
+        return (float) (payments::where('client_id', $clientId)->selectRaw(PaymentMath::sqlSum() . ' as t')->value('t') ?? 0);
     }
 
     /**
@@ -40,20 +38,26 @@ class EcheanceAllocator
             $baseline = (float) ($all->min('paid_before') ?? 0);
 
             $payments = payments::where('client_id', $clientId)
-                ->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 'Cancelled'))
                 ->orderBy('payment_date')->orderBy('id')
                 ->get();
+            // Net money actually counted for the plan (refunds, commissions and
+            // "Reprise" included); positive payments fill instalments oldest-first
+            // until this pool is used up.
+            $pool = max(0, array_sum($payments->map(fn ($p) => PaymentMath::net($p))->all()) - $baseline);
 
             // Walk payments oldest first: skip what was paid before the plan, then fill instalments in order.
             $covered = array_fill_keys($all->pluck('id')->all(), 0.0);
             $allocations = array_fill_keys($all->pluck('id')->all(), []);
             $idx = 0;
             $list = $all->values();
+            $skipBefore = $baseline;
             foreach ($payments as $p) {
-                $left = (float) $p->amount;
-                $skip = min($baseline, $left);
-                $baseline -= $skip;
-                $left -= $skip;
+                $left = PaymentMath::net($p);
+                if ($left <= 0) continue;
+                $skip = min($skipBefore, $left);
+                $skipBefore -= $skip;
+                $left = min($left - $skip, $pool);
+                $pool -= $left;
                 while ($left > 0.009 && $idx < $list->count()) {
                     $e = $list[$idx];
                     $need = (float) $e->amount - $covered[$e->id];
@@ -64,7 +68,7 @@ class EcheanceAllocator
                         $allocations[$e->id][] = [
                             'payment_id' => $p->id,
                             'applied' => round($apply, 2),
-                            'payment_amount' => (float) $p->amount,
+                            'payment_amount' => PaymentMath::net($p),
                             'payment_date' => Carbon::parse($p->getRawOriginal('payment_date'))->toDateString(),
                             'type' => $p->type,
                             'method' => $p->method,

@@ -35,7 +35,7 @@ export async function openExternal(url: string): Promise<void> {
 
     // 2. If it's a document and the handler is ready, show internal preview
     if (isDoc && previewHandler) {
-        console.log('[tauri] INTERCEPTED for internal preview:', url);
+        if (import.meta.env.DEV) console.log('[tauri] INTERCEPTED for internal preview:', url);
         previewHandler(url);
         return;
     }
@@ -46,7 +46,7 @@ export async function openExternal(url: string): Promise<void> {
     }
 
     // 3. Fallback: Open in system browser
-    console.log('[tauri] Opening external URL:', url);
+    if (import.meta.env.DEV) console.log('[tauri] Opening external URL:', url);
     try {
         await invoke('open_url', { url });
     } catch (err) {

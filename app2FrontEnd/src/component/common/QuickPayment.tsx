@@ -14,7 +14,8 @@ import toast from 'react-hot-toast';
 import { Check, Download, Loader2, Search, X, FileText, Upload } from 'lucide-react';
 import { apiFetch } from '../../lib/api';
 import { formatNumber, parseNumber, localISODate } from '../../lib/utils';
-import { downloadReceipt, downloadStatement } from '../../lib/documents';
+import { downloadReceipt, downloadStatement } from '../../lib/lazyDocs';
+import { clientBalance } from '../../lib/clientBalance';
 
 // ── tiny global store ─────────────────────────────────────────────────────────
 type Opts = { clientId?: number };
@@ -46,10 +47,7 @@ export function useClientsLite(enabled = true) {
 }
 
 function balance(c?: ClientLite) {
-    if (!c) return { prix: 0, paid: 0, reste: 0 };
-    const prix = (c.biens ?? []).reduce((a, b) => a + (Number(c.avec_finition ? b.prix_global_finition : b.prix_global_non_finition) || 0), 0);
-    const paid = (c.payments ?? []).filter(p => p.status !== 'Cancelled').reduce((a, p) => a + (Number(p.amount) || 0), 0);
-    return { prix, paid, reste: Math.max(0, prix - paid) };
+    return clientBalance(c as any); // same rule as the server
 }
 
 export function QuickPaymentHost() {

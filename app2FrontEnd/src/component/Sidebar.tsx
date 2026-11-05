@@ -8,9 +8,9 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
-import { exportToExcel, exportMultiSheetToExcel } from '../lib/excel';
 import { toast } from 'react-hot-toast';
 import NotificationBell from './common/NotificationBell';
+import { clientPaid, clientPrice } from '../lib/clientBalance';
 import { openPalette } from './common/CommandPalette';
 import { parseDate } from '../lib/utils';
 
@@ -171,16 +171,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 }));
             case '/clients':
                 return data.map(c => {
-                    const prixGlobal = parseFloat(String(c.bien?.prix_global || 0));
-                    const totalVerse = c.payments?.reduce((acc: number, p: any) => acc + parseFloat(String(p.amount)), 0) || 0;
+                    // same rule as every other screen (server balance when available)
+                    const prixGlobal = clientPrice(c);
+                    const totalVerse = clientPaid(c);
                     return {
                         'ID': c.id, 'CLIENT NOM': c.nom?.toUpperCase(), 'CLIENT PRÉNOM': c.prenom?.toUpperCase(),
                         'TEL': c.tel, 'CIN': c.cin?.toUpperCase(),
                         'DATE SIGNATURE': c.date_reservation ? parseDate(c.date_reservation).toLocaleDateString('fr-MA') : 'N/A',
-                        'BIEN ASSIGNÉ': c.bien?.type_bien || 'N/A', 'BLOC': c.bien?.num_appartement || 'N/A',
+                        'BIEN ASSIGNÉ': c.biens?.[0]?.type_bien || 'N/A', 'BLOC': c.biens?.[0]?.num_appartement || 'N/A',
                         'PRIX VENTE (DH)': prixGlobal, 'TOTAL VERSÉ (DH)': totalVerse,
                         'SOLDE RESTANT (DH)': Math.max(0, prixGlobal - totalVerse),
-                        'NB PAIEMENTS': c.payments?.length || 0, 'STATUT DOSSIER': c.bien?.statut || 'EN ATTENTE'
+                        'NB PAIEMENTS': c.payments?.length || 0, 'STATUT DOSSIER': c.biens?.[0]?.statut || 'EN ATTENTE'
                     };
                 });
             case '/intervenants':
@@ -223,6 +224,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const handleGlobalExport = async (item: typeof exportItems[0]) => {
         const toastId = 'export-status';
         try {
+            const { exportToExcel, exportMultiSheetToExcel } = await import('../lib/excel'); // loaded on demand
             toast.loading(`Préparation de l'export ${item.label}...`, { id: toastId });
             if (item.endpoint === 'all') {
                 const endpoints = exportItems.filter(i => i.endpoint !== 'all');

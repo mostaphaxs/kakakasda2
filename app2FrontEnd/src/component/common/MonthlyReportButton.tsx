@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FileBarChart, Loader2 } from 'lucide-react';
-import { downloadMonthlyReport } from '../../lib/documents';
+import { downloadMonthlyReport } from '../../lib/lazyDocs';
 
 const thisMonth = () => {
     const d = new Date();

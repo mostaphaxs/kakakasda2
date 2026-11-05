@@ -6,7 +6,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { X, FileSignature, FileText, BadgeCheck, ScrollText, Download, Loader2 } from 'lucide-react';
-import { downloadSaleDocument, downloadStatement, fetchStatement, type SaleDocKind } from '../../lib/documents';
+import { downloadSaleDocument, downloadStatement, fetchStatement, type SaleDocKind } from '../../lib/lazyDocs';
 import { formatNumber } from '../../lib/utils';
 
 let current: number | null = null;
