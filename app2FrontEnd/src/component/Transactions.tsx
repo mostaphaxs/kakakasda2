@@ -11,6 +11,7 @@ import { exportToExcel } from '../lib/excel';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 
 interface Transaction {
     id: string;
@@ -35,7 +36,7 @@ const Transactions: React.FC = () => {
     useUrlSearch(setSearchTerm);
     const [filterType, setFilterType] = usePersistedState<'ALL' | 'IN' | 'OUT'>('Transactions.filterType', 'ALL');
     const [filterMode, setFilterMode] = usePersistedState<'ALL' | 'CASH' | 'ENGAGEMENT'>('Transactions.filterMode', 'ALL');
-    const [filterProject, setFilterProject] = usePersistedState('Transactions.filterProject', 'ALL');
+    const [filterProject, setFilterProject] = useProjectFilter<string>('Transactions.filterProject', 'ALL', p => p.name);
     const [filterCategory, setFilterCategory] = usePersistedState('Transactions.filterCategory', 'ALL');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);

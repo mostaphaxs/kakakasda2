@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import { LayoutGrid, X, Search, UserPlus, Loader2, Wallet, FileSignature, ExternalLink, Camera } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { formatNumber } from '../lib/utils';
-import { usePersistedState } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 import { openQuickPayment, useClientsLite } from './common/QuickPayment';
 import { openClientDocuments } from './common/ClientDocuments';
 import { openProgressPhotos } from './common/ProgressPhotos';
@@ -34,7 +34,7 @@ const unitLabel = (b: Bien) => b.num_appartement || b.nom || `#${b.id}`;
 const natural = (a: string, b: string) => a.localeCompare(b, 'fr', { numeric: true });
 
 export default function Disponibilites() {
-    const [terrainId, setTerrainId] = usePersistedState<number | null>('Disponibilites.terrain', null);
+    const [terrainId, setTerrainId] = useProjectFilter<number | null>('Disponibilites.terrain', null, p => p.id);
     const [selectedId, setSelectedId] = useState<number | null>(null);
 
     const biensQ = useQuery({ queryKey: ['palette-biens'], queryFn: () => apiFetch<Bien[]>('/biens'), staleTime: 15_000 });

@@ -10,6 +10,7 @@ import MarkdownText from './common/MarkdownText';
 import MediaManager from './media/MediaManager';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 import { openProgressPhotos } from './common/ProgressPhotos';
 
 
@@ -53,7 +54,7 @@ const Properties = () => {
     const [searchTerm, setSearchTerm] = usePersistedState('Properties.searchTerm', '');
     useUrlSearch(setSearchTerm);
     const [filterStatut, setFilterStatut] = usePersistedState<string>('Properties.filterStatut', 'all');
-    const [filterTerrain, setFilterTerrain] = usePersistedState<string>('Properties.filterTerrain', 'all');
+    const [filterTerrain, setFilterTerrain] = useProjectFilter<string>('Properties.filterTerrain', 'all', p => String(p.id));
     const [filterEtage, setFilterEtage] = usePersistedState<string>('Properties.filterEtage', 'all');
     const [filterImmeuble, setFilterImmeuble] = usePersistedState<string>('Properties.filterImmeuble', 'all');
     const headerRef = useRef<HTMLDivElement>(null);

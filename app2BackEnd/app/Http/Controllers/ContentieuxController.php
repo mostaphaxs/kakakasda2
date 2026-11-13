@@ -127,6 +127,12 @@ class ContentieuxController extends Controller
         if ($contentieux->commissaire_scan_path && Storage::disk('public')->exists($contentieux->commissaire_scan_path)) {
             Storage::disk('public')->delete($contentieux->commissaire_scan_path);
         }
+        // documents attached to the case (Documents du dossier)
+        $docs = \Illuminate\Support\Facades\DB::table('media')->where('model_type', Contentieux::class)->where('model_id', $contentieux->id);
+        foreach ((clone $docs)->pluck('file_path') as $path) {
+            Storage::disk('public')->delete($path);
+        }
+        $docs->delete();
         $contentieux->delete();
         return response()->json(['message' => 'Deleted successfully']);
     }

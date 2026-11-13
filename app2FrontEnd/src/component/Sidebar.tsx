@@ -14,6 +14,8 @@ import { clientPaid, clientPrice } from '../lib/clientBalance';
 import { openPalette } from './common/CommandPalette';
 import { parseDate } from '../lib/utils';
 import { useAppSettings, isPathEnabled, isModuleEnabled } from '../lib/appSettings';
+import { useQuery } from '@tanstack/react-query';
+import { useActiveProject, setActiveProject } from '../lib/activeProject';
 
 interface NavItem {
     icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -43,6 +45,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
     const token = localStorage.getItem('token');
     const { settings } = useAppSettings(!!token);
     const showBell = isModuleEnabled('notifications', settings);
+
+    // Projet actif — every page with a project filter follows this choice
+    const activeProject = useActiveProject();
+    const projectsQ = useQuery({
+        queryKey: ['palette-terrains'],
+        queryFn: () => apiFetch<{ id: number; nom_projet?: string; nom_terrain?: string }[]>('/terrains'),
+        staleTime: 60_000, enabled: !!token,
+    });
+    const projects = projectsQ.data ?? [];
+    const projectName = (t: { id: number; nom_projet?: string; nom_terrain?: string }) => t.nom_projet || t.nom_terrain || `Projet #${t.id}`;
+    useEffect(() => {
+        if (!activeProject || !projectsQ.data) return;
+        const t = projectsQ.data.find(x => x.id === activeProject.id);
+        setActiveProject(t ? { id: t.id, name: projectName(t) } : null); // renamed or deleted project
+    }, [projectsQ.data, activeProject]);
 
     const exportDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -346,6 +363,31 @@ const Sidebar: React.FC<SidebarProps> = ({ isMobileOpen, setIsMobileOpen }) => {
                 {/* Navigation */}
                 <div className={`flex-grow flex flex-col py-4 overflow-y-auto overflow-x-hidden custom-scrollbar-white ${isCollapsed ? 'px-2' : 'px-3'}`}>
                     {/* Search / command palette */}
+                    {isCollapsed ? (
+                        <button onClick={() => setIsCollapsed(false)}
+                            onMouseEnter={(e) => showTooltip(e, activeProject ? `Projet : ${activeProject.name}` : 'Projet : tous')} onMouseLeave={() => setTooltip(null)}
+                            className={`mx-auto mb-1 w-10 h-10 flex-shrink-0 inline-flex items-center justify-center rounded-lg hover:bg-white/[0.06] ${activeProject ? 'text-brand-400' : 'text-slate-400 hover:text-white'}`}>
+                            <MapPin size={17} />
+                        </button>
+                    ) : (
+                        <label className="block mb-3">
+                            <span className="block px-1 mb-1 text-[8.8px] font-semibold text-slate-500 uppercase tracking-[0.12em]">Projet actif</span>
+                            <select
+                                value={activeProject?.id ?? ''}
+                                onChange={(e) => {
+                                    const t = projects.find(x => x.id === Number(e.target.value));
+                                    setActiveProject(t ? { id: t.id, name: projectName(t) } : null);
+                                }}
+                                className={`w-full h-9 px-2.5 rounded-lg bg-white/[0.05] ring-1 ring-inset text-[11.4px] font-medium outline-none cursor-pointer transition-colors hover:bg-white/[0.08] ${activeProject ? 'ring-brand-500/60 text-white' : 'ring-white/[0.06] text-slate-300'}`}
+                            >
+                                <option value="" className="text-slate-900">Tous les projets</option>
+                                {activeProject && !projects.some(x => x.id === activeProject.id) && (
+                                    <option value={activeProject.id} className="text-slate-900">{activeProject.name}</option>
+                                )}
+                                {projects.map(t => <option key={t.id} value={t.id} className="text-slate-900">{projectName(t)}</option>)}
+                            </select>
+                        </label>
+                    )}
                     {isCollapsed ? (
                         <div className="flex flex-col items-center gap-1 mb-4">
                             {showBell && <NotificationBell compact />}
