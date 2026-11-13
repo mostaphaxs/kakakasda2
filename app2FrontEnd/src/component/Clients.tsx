@@ -13,6 +13,7 @@ import { downloadSaleDocument } from '../lib/documents';
 import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 import { openClientDocuments } from './common/ClientDocuments';
 import { clientPaid, clientPrice } from '../lib/clientBalance';
 
@@ -163,7 +164,7 @@ const Clients = () => {
     const [filterFinition, setFilterFinition] = usePersistedState<'all' | 'avec' | 'sans'>('Clients.filterFinition', 'all');
     const [filterContrat, setFilterContrat] = usePersistedState<'all' | 'avec' | 'sans'>('Clients.filterContrat', 'all');
     const [filterType, setFilterType] = usePersistedState<string>('Clients.filterType', 'all');
-    const [filterTerrain, setFilterTerrain] = usePersistedState<string>('Clients.filterTerrain', 'all');
+    const [filterTerrain, setFilterTerrain] = useProjectFilter<string>('Clients.filterTerrain', 'all', p => String(p.id));
     const [filterHasBien, setFilterHasBien] = usePersistedState<'all' | 'with' | 'without'>('Clients.filterHasBien', 'all');
     const [filterStatutChoix, setFilterStatutChoix] = usePersistedState<string>('Clients.filterStatutChoix', 'all');
 

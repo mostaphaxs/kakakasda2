@@ -9,6 +9,7 @@ import { MessagesSquare, Search, Send, SkipForward, Check, Plus, Pencil, Trash2,
 import { apiFetch } from '../lib/api';
 import { openExternal } from '../lib/tauri';
 import { usePersistedState } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 import { CATEGORIES, VARIABLES, fillTemplate, useMessageContext, type MessageTemplate } from '../lib/messageTemplates';
 import { toWhatsAppNumber } from './common/WhatsAppReminder';
 import { confirmDialog } from './common/ConfirmDialog';
@@ -70,7 +71,7 @@ const AUDIENCES: Record<Audience, string> = {
 
 function BulkSend() {
     const ctx = useMessageContext();
-    const [projet, setProjet] = usePersistedState<string>('Messages.projet', 'all');
+    const [projet, setProjet] = useProjectFilter<string>('Messages.projet', 'all', p => String(p.id));
     const [audience, setAudience] = usePersistedState<Audience>('Messages.audience', 'actifs');
     const [q, setQ] = useState('');
     const [selected, setSelected] = useState<Set<number>>(new Set());

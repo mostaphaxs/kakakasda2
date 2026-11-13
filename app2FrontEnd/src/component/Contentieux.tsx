@@ -8,6 +8,7 @@ import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { openExternal } from '../lib/tauri';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import CaseDocuments, { uploadCaseDocument, type PendingCaseDoc } from './common/CaseDocuments';
 
 export type CourtType = 'CIVILE' | 'COMMERCIALE' | 'PENALE';
 export type CaseStage = 'PREMIERE_INSTANCE' | 'APPEL' | 'CASSATION';
@@ -74,6 +75,7 @@ const Contentieux = () => {
     const [isViewModalOpen, setIsViewModalOpen] = useState(false);
     const [selectedCase, setSelectedCase] = useState<LegalCase | null>(null);
     const [formData, setFormData] = useState<Partial<LegalCase>>(initialFormState);
+    const [pendingDocs, setPendingDocs] = useState<PendingCaseDoc[]>([]); // documents of a case not created yet
 
     const fetchCases = async () => {
         setIsLoading(true);
@@ -145,11 +147,20 @@ const Contentieux = () => {
 
         try {
             toast.loading(isEditing ? "Modification..." : "Enregistrement...");
-            await apiFetch(isEditing ? endpoint : '/contentieux', {
+            const savedCase = await apiFetch<{ id: number }>(isEditing ? endpoint : '/contentieux', {
                 method: 'POST', // Laravel expects POST with _method=PUT for FormData
                 body: submitData
             });
+            // documents added while creating the case
+            let failedDocs = 0;
+            if (!isEditing && savedCase?.id) {
+                for (const d of pendingDocs) {
+                    try { await uploadCaseDocument(savedCase.id, d); } catch { failedDocs++; }
+                }
+            }
+            setPendingDocs([]);
             toast.dismiss();
+            if (failedDocs) toast.error(`${failedDocs} document(s) non enregistré(s) — ajoutez-les depuis le dossier.`);
             toast.success(`Dossier contentieux ${isEditing ? 'modifié' : 'enregistré'} !`);
             setIsAddEditModalOpen(false);
             fetchCases();
@@ -230,6 +241,7 @@ const Contentieux = () => {
                 <button
                     onClick={() => {
                         setFormData({ ...initialFormState });
+                        setPendingDocs([]);
                         setIsAddEditModalOpen(true);
                     }}
                     className="flex items-center gap-2 px-4 py-2.5 text-white rounded-lg shadow-sm transition active:scale-[0.98] font-medium text-sm bg-slate-900 hover:bg-slate-800"
@@ -440,9 +452,9 @@ const Contentieux = () => {
 
             {/* Modal: View Details */}
             {isViewModalOpen && selectedCase && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-300 pointer-events-auto bg-slate-950/50 animate-fade-in">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden duration-300 ring-1 ring-slate-900/5 animate-dialog-in">
-                        <div className="p-6 bg-slate-900 text-white flex justify-between items-start">
+                <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[5vh] pb-4 pointer-events-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl shadow-xl overflow-hidden ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="p-6 bg-slate-900 text-white flex justify-between items-start flex-shrink-0">
                             <div>
                                 <h3 className="text-2xl font-bold tracking-tight">Détails du Dossier</h3>
                                 <p className="text-white/70 text-sm font-semibold mt-1">{selectedCase.fileNumber}</p>
@@ -455,7 +467,7 @@ const Contentieux = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-6">
+                        <div className="p-8 space-y-6 overflow-y-auto flex-1 min-h-0">
                             <div className="flex gap-4">
                                 <div className={`px-4 py-2 rounded-xl text-xs font-semibold ${selectedCase.courtType === 'CIVILE' ? 'bg-blue-50 text-blue-600' :
                                     selectedCase.courtType === 'COMMERCIALE' ? 'bg-amber-50 text-amber-600' :
@@ -549,6 +561,13 @@ const Contentieux = () => {
                                 </div>
                             </div>
 
+                            {selectedCase.id && (
+                                <div className="space-y-2">
+                                    <h4 className="text-xs font-semibold text-slate-400">Documents du dossier</h4>
+                                    <CaseDocuments caseId={selectedCase.id} />
+                                </div>
+                            )}
+
                             {selectedCase.document_path && (
                                 <div className="space-y-2">
                                     <h4 className="text-xs font-semibold text-slate-400">Document Attaché</h4>
@@ -568,7 +587,7 @@ const Contentieux = () => {
                             )}
                         </div>
 
-                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end flex-shrink-0">
                             <button
                                 onClick={() => setIsViewModalOpen(false)}
                                 className="px-4 py-2 text-white font-medium rounded-lg transition shadow-sm active:scale-[0.98] text-sm bg-slate-900 hover:bg-slate-800"
@@ -845,20 +864,13 @@ const Contentieux = () => {
                                 <div className="space-y-1 relative">
                                     <label className="text-xs font-medium flex items-center gap-2 text-slate-600">
                                         <FileText size={14} className="text-amber-500" />
-                                        Scan / Pièce Jointe
+                                        Documents du dossier
                                     </label>
-                                    <input
-                                        type="file"
-                                        accept="image/*,.pdf"
-                                        className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-amber-500/20 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200"
-                                        onChange={(e) => {
-                                            if (e.target.files && e.target.files.length > 0) {
-                                                setFormData({ ...formData, documentFile: e.target.files[0] });
-                                            }
-                                        }}
-                                    />
-                                    {formData.document_path && !formData.documentFile && (
-                                        <p className="text-xs font-medium text-emerald-600 mt-2 px-2">Un document est déjà rattaché à ce dossier. Vous pouvez le remplacer en choisissant un nouveau fichier.</p>
+                                    {formData.id
+                                        ? <CaseDocuments caseId={formData.id} />
+                                        : <CaseDocuments pending={pendingDocs} onPendingChange={setPendingDocs} />}
+                                    {formData.document_path && (
+                                        <p className="text-xs text-slate-400 mt-2">L'ancien document rattaché à ce dossier reste consultable depuis la fiche du dossier.</p>
                                     )}
                                 </div>
                             </div>

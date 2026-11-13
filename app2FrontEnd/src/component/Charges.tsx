@@ -9,6 +9,7 @@ import { formatNumber, parseNumber } from '../lib/utils';
 import { analyzeInvoicePremium } from '../lib/gemini';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 
 interface Charge {
     id: number;
@@ -118,7 +119,7 @@ const Charges = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = usePersistedState('Charges.searchTerm', '');
     useUrlSearch(setSearchTerm);
-    const [filterTerrain, setFilterTerrain] = usePersistedState('Charges.filterTerrain', 'all');
+    const [filterTerrain, setFilterTerrain] = useProjectFilter<string>('Charges.filterTerrain', 'all', p => String(p.id));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isMonthlyModalOpen, setIsMonthlyModalOpen] = useState(false);

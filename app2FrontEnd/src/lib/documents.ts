@@ -268,6 +268,91 @@ export async function downloadReceipt(clientId: number, paymentId: number) {
     doc.save(`Recu_${no}_${(st.client.nom || '').replace(/\s+/g, '_')}.pdf`);
 }
 
+// ── Reçu de paiement ouvrier ──────────────────────────────────────────────────
+export interface WorkerReceiptData {
+    worker: { name: string; cin?: string | null; speciality?: string | null; phone?: string | null };
+    payment: { id: number; amount: number | string; payment_date: string; method?: string | null; reference_no?: string | null; bank_name?: string | null; notes?: string | null };
+    /** Worker totals once this payment is counted. */
+    totals: { earned: number; paid: number };
+}
+
+/** Receipt handed to a worker when he is paid (signed by him, stamped by the company). */
+export async function downloadWorkerReceipt({ worker, payment: p, totals }: WorkerReceiptData) {
+    await prepareBrand();
+    const amount = Number(p.amount) || 0;
+    const no = `OUV-${String(p.id).padStart(5, '0')}`;
+
+    const doc = new jsPDF();
+    let y = header(doc, 'REÇU DE PAIEMENT', [`N° ${no}`, `Date : ${fmtDate(p.payment_date)}`]);
+
+    label(doc, 'Payé à', M, y);
+    label(doc, 'Spécialité', M + W / 2, y);
+    value(doc, (worker.name || '').toUpperCase(), M, y + 6, true, 11);
+    value(doc, worker.speciality || '-', M + W / 2, y + 6, true, 11);
+    doc.setFontSize(9); doc.setTextColor(...MUTED);
+    doc.text([worker.cin ? `CIN : ${worker.cin.toUpperCase()}` : '', worker.phone ? `Tél : ${worker.phone}` : ''].filter(Boolean).join('   '), M, y + 11);
+    y += 22;
+
+    // Amount box
+    doc.setFillColor(...FILL);
+    doc.setDrawColor(...LINE);
+    doc.roundedRect(M, y, W, 26, 2, 2, 'FD');
+    label(doc, 'Montant payé', M + 6, y + 8);
+    value(doc, money(amount), M + 6, y + 17, true, 18);
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(...MUTED);
+    const w = numberToFrenchWords(Math.floor(amount)).trim();
+    doc.text(doc.splitTextToSize(capitalize(/dirham/i.test(w) ? w : `${w} dirhams`), W / 2 - 6), M + W / 2, y + 11);
+    y += 36;
+
+    const details: [string, string][] = [
+        ['Mode de paiement', p.method || '-'],
+        ['Référence', p.reference_no || '-'],
+        ['Banque', p.bank_name || '-'],
+        ['Objet', 'Paiement de main-d\'œuvre'],
+    ];
+    details.forEach(([k, v], i) => {
+        const x = M + (i % 2) * (W / 2);
+        const yy = y + Math.floor(i / 2) * 13;
+        label(doc, k, x, yy);
+        value(doc, v, x, yy + 5.5);
+    });
+    y += 30;
+
+    if (p.notes) {
+        label(doc, 'Observation', M, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+        const lines = (doc.splitTextToSize(p.notes, W) as string[]).slice(0, 3);
+        doc.text(lines, M, y + 5.5);
+        y += lines.length * 4.5 + 10;
+    }
+
+    // Situation of the worker after this payment
+    doc.setDrawColor(...LINE);
+    doc.line(M, y, 210 - M, y);
+    y += 8;
+    const tot: [string, number][] = [['Total des travaux', totals.earned], ['Total payé à ce jour', totals.paid], ['Reste à payer', Math.max(0, totals.earned - totals.paid)]];
+    tot.forEach(([k, v], i) => {
+        const x = M + i * (W / 3);
+        label(doc, k, x, y);
+        value(doc, money(v), x, y + 6, i === 2, 11);
+    });
+    y += 22;
+
+    doc.setFont('helvetica', 'italic'); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+    doc.text(`Je soussigné(e) reconnais avoir reçu de ${companyName()} la somme indiquée ci-dessus.`, M, y);
+    y += 8;
+
+    label(doc, 'Signature de l\'ouvrier', M, y);
+    label(doc, 'Cachet et signature de la société', M + W / 2, y);
+    doc.setDrawColor(...LINE);
+    doc.rect(M, y + 3, W / 2 - 6, 26);
+    doc.rect(M + W / 2, y + 3, W / 2, 26);
+    drawStamp(doc, M + W / 2, y + 3, W / 2, 26);
+
+    footer(doc);
+    doc.save(`Recu_${no}_${(worker.name || '').trim().replace(/\s+/g, '_')}.pdf`);
+}
+
 /** Full client statement: totals, all payments, payment schedule. */
 export async function downloadStatement(clientId: number) {
     await prepareBrand();

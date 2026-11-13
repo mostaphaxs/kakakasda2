@@ -8,6 +8,7 @@ import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import { confirmDialog } from './common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { useProjectFilter } from '../lib/activeProject';
 
 interface Payment {
     id: number;
@@ -44,7 +45,7 @@ const Intervenants = () => {
     const [searchTerm, setSearchTerm] = usePersistedState('Intervenants.searchTerm', '');
     useUrlSearch(setSearchTerm);
     const [filterCategorie, setFilterCategorie] = usePersistedState('Intervenants.filterCategorie', 'all');
-    const [filterTerrain, setFilterTerrain] = usePersistedState('Intervenants.filterTerrain', 'all');
+    const [filterTerrain, setFilterTerrain] = useProjectFilter<string>('Intervenants.filterTerrain', 'all', p => String(p.id));
     const [isMainModalOpen, setIsMainModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);

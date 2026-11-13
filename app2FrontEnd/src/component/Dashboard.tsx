@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { formatNumber, parseDate } from '../lib/utils';
 import { getAppSettings } from '../lib/appSettings';
+import { useProjectFilter } from '../lib/activeProject';
 
 interface Stats {
   investissement: number;
@@ -68,7 +69,7 @@ interface Stats {
 
 const Dashboard = () => {
   const [apiStats, setApiStats] = useState<Stats | null>(null);
-  const [selectedTerrainId, setSelectedTerrainId] = useState<number | null>(null);
+  const [selectedTerrainId, setSelectedTerrainId] = useProjectFilter<number | null>('Dashboard.terrain', null, p => p.id);
   const [loading, setLoading] = useState(true);
   const [showStats, setShowStats] = useState(false);
   const navigate = useNavigate();

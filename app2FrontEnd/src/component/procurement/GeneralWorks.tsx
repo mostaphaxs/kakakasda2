@@ -9,6 +9,7 @@ import { formatNumber, parseNumber } from '../../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { confirmDialog } from '../common/ConfirmDialog';
 import { usePersistedState, useUrlSearch } from '../../lib/usePersistedState';
+import { useProjectFilter } from '../../lib/activeProject';
 
 interface GeneralWork {
     id: number;
@@ -37,7 +38,7 @@ const GeneralWorks: React.FC = () => {
     useUrlSearch(setSearchTerm);
     const [filterWorkType, setFilterWorkType] = usePersistedState('GeneralWorks.filterWorkType', 'all');
     const [filterSupplier, setFilterSupplier] = usePersistedState('GeneralWorks.filterSupplier', 'all');
-    const [filterTerrain, setFilterTerrain] = usePersistedState('GeneralWorks.filterTerrain', 'all');
+    const [filterTerrain, setFilterTerrain] = useProjectFilter<string>('GeneralWorks.filterTerrain', 'all', p => String(p.id));
     const [filterBalance, setFilterBalance] = usePersistedState('GeneralWorks.filterBalance', 'all');
     const [showFilters, setShowFilters] = useState(false);
     const [editingWork, setEditingWork] = useState<GeneralWork | null>(null);

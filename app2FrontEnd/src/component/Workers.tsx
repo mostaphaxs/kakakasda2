@@ -13,7 +13,55 @@ import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import { extractMissionFromVoice } from '../lib/gemini';
 import { confirmDialog } from './common/ConfirmDialog';
+import { downloadWorkerReceipt } from '../lib/lazyDocs';
 import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+
+// ── Paiement prévu d'une mission ──────────────────────────────────────────────
+type PayTerm = 'fin' | '15j' | '1m' | 'date';
+const PAY_TERMS: { value: PayTerm; label: string }[] = [
+    { value: 'fin', label: 'Fin de mission' },
+    { value: '15j', label: 'Après 15 jours' },
+    { value: '1m', label: 'Après 1 mois' },
+    { value: 'date', label: 'Date précise' },
+];
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const frDay = (iso: string) => iso.slice(0, 10).split('-').reverse().join('/');
+/** The day the mission ends (period) or takes place. */
+const missionBaseDate = (f: { type: string; start_date: string; end_date: string }) =>
+    (f.type === 'periode' && f.end_date) ? f.end_date : f.start_date;
+/** Due date for a payment term, counted from the end of the mission. */
+function payDueDate(term: PayTerm, base: string, custom: string): string {
+    if (term === 'date') return custom;
+    if (!base) return '';
+    const d = new Date(`${base}T00:00:00`);
+    if (term === '15j') d.setDate(d.getDate() + 15);
+    if (term === '1m') d.setMonth(d.getMonth() + 1);
+    return isoDay(d);
+}
+
+function PayTermField({ term, customDate, baseDate, onChange }: {
+    term: PayTerm; customDate: string; baseDate: string; onChange: (term: PayTerm, customDate: string) => void;
+}) {
+    const due = payDueDate(term, baseDate, customDate);
+    return (
+        <div className="col-span-full">
+            <label className="block text-xs font-medium mb-2 text-slate-600">Paiement prévu</label>
+            <div className="flex flex-wrap items-center gap-2">
+                {PAY_TERMS.map(t => (
+                    <button key={t.value} type="button" onClick={() => onChange(t.value, t.value === 'date' ? (customDate || due) : customDate)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${term === t.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
+                        {t.label}
+                    </button>
+                ))}
+                {term === 'date' && (
+                    <input type="date" required value={customDate} onChange={e => onChange('date', e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20" />
+                )}
+            </div>
+            {due && <p className="mt-1.5 text-xs text-slate-500">À payer le <span className="font-medium text-slate-700">{frDay(due)}</span></p>}
+        </div>
+    );
+}
 
 interface WorkerMission {
     id: number;
@@ -22,6 +70,7 @@ interface WorkerMission {
     type: 'journalier' | 'periode' | 'm2' | 'ml' | 'forfait';
     start_date: string;
     end_date: string | null;
+    payment_due_date?: string | null;
     quantity: number;
     unit_price: number;
     total_amount: number;
@@ -140,6 +189,8 @@ const Workers = () => {
         type: 'journalier' as 'journalier' | 'periode' | 'm2' | 'ml' | 'forfait',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
+        payment_term: 'fin' as PayTerm,
+        payment_due_date: '',
         quantity: '1',
         unit_price: '',
         description: '',
@@ -159,6 +210,8 @@ const Workers = () => {
         type: 'journalier' as 'journalier' | 'periode' | 'm2' | 'ml' | 'forfait',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
+        payment_term: 'fin' as PayTerm,
+        payment_due_date: '',
         quantity: '1',
         unit_price: '',
         description: '',
@@ -486,11 +539,12 @@ const Workers = () => {
 
         setIsSubmitting(true);
         try {
-            const { bienSearchTerm, ...missionData } = missionForm;
+            const { bienSearchTerm, payment_term, ...missionData } = missionForm;
             await apiFetch(`/ouvriers/${selectedWorker.id}/missions`, {
                 method: 'POST',
                 body: JSON.stringify({
                     ...missionData,
+                    payment_due_date: payDueDate(payment_term, missionBaseDate(missionForm), missionForm.payment_due_date) || null,
                     quantity: quantityNum,
                     unit_price: unitPriceNum,
                     partner_id: missionForm.partner_id || null,
@@ -513,17 +567,22 @@ const Workers = () => {
         if (!selectedWorker) return;
         setIsSubmitting(true);
         try {
-            await apiFetch(`/ouvriers/${selectedWorker.id}/payments`, {
+            const amount = parseNumber(paymentForm.amount);
+            const created = await apiFetch<WorkerPayment>(`/ouvriers/${selectedWorker.id}/payments`, {
                 method: 'POST',
                 body: JSON.stringify({
                     ...paymentForm,
-                    amount: parseNumber(paymentForm.amount),
+                    amount,
                     bank_commission: parseNumber(paymentForm.bank_commission),
                 })
             });
             toast.success('Versement enregistré');
             setIsPaymentModalOpen(false);
             fetchWorkers();
+            // the receipt to hand to the worker
+            if (created?.id) {
+                receiptPdf(selectedWorker, { ...paymentForm, ...created, amount }, Number(selectedWorker.paid_amount) + amount);
+            }
         } catch (err: any) {
             toast.error(err.message || 'Erreur lors de l’ajout du paiement');
         } finally {
@@ -560,11 +619,12 @@ const Workers = () => {
 
         setIsSubmitting(true);
         try {
-            const { primary_worker_id, primarySearchTerm, ...missionData } = globalMissionForm;
+            const { primary_worker_id, primarySearchTerm, payment_term, ...missionData } = globalMissionForm;
             await apiFetch(`/ouvriers/${primary_worker_id}/missions`, {
                 method: 'POST',
                 body: JSON.stringify({
                     ...missionData,
+                    payment_due_date: payDueDate(payment_term, missionBaseDate(globalMissionForm), globalMissionForm.payment_due_date) || null,
                     quantity: quantityNum,
                     unit_price: unitPriceNum,
                     partner_id: globalMissionForm.partner_id,
@@ -613,6 +673,13 @@ const Workers = () => {
             toast.error(err.message || 'Erreur lors de la suppression');
         }
     };
+
+    /** PDF receipt for a worker payment. `paid` = total paid once this payment is counted. */
+    const receiptPdf = (worker: Worker, payment: Pick<WorkerPayment, 'id' | 'amount' | 'payment_date' | 'method' | 'reference_no' | 'bank_name' | 'notes'>, paid = Number(worker.paid_amount)) =>
+        toast.promise(
+            downloadWorkerReceipt({ worker, payment, totals: { earned: Number(worker.total_earned), paid } }),
+            { loading: 'Génération du reçu…', success: 'Reçu téléchargé', error: (e: Error) => e.message || 'Reçu non généré' },
+        );
 
     const handlePrintReceipt = (payment: WorkerPayment, worker: Worker) => {
         setSelectedWorker(worker);
@@ -1229,10 +1296,18 @@ const Workers = () => {
                                         )}
                                     </div>
 
+
+                                    <PayTermField
+                                        term={missionForm.payment_term}
+                                        customDate={missionForm.payment_due_date}
+                                        baseDate={missionBaseDate(missionForm)}
+                                        onChange={(payment_term, payment_due_date) => setMissionForm({ ...missionForm, payment_term, payment_due_date })}
+                                    />
+
                                     {missionForm.type !== 'forfait' && (
                                         <div>
                                             <label className="block text-xs font-medium mb-2 text-slate-600">
-                                                {missionForm.type === 'journalier' || missionForm.type === 'periode' ? 'Nombre de Jours' : missionForm.type === 'm2' ? 'Surface (m²)' : 'Longueur (ml)'}
+                                                {missionForm.type === 'journalier' ? 'Nombre de Jours' : missionForm.type === 'periode' ? 'Jours travaillés' : missionForm.type === 'm2' ? 'Surface (m²)' : 'Longueur (ml)'}
                                             </label>
                                             <input
                                                 type="text"
@@ -1242,6 +1317,9 @@ const Workers = () => {
                                                 onChange={(e) => setMissionForm({ ...missionForm, quantity: formatNumber(e.target.value) })}
                                                 className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             />
+                                            {missionForm.type === 'periode' && (
+                                                <p className="mt-1 text-xs text-slate-400">Calculé d'après les dates — modifiez-le si moins de jours ont été travaillés.</p>
+                                            )}
                                         </div>
                                     )}
 
@@ -1669,6 +1747,14 @@ const Workers = () => {
                                                                                 <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-white text-slate-700 ring-1 ring-inset ring-slate-600/20">
                                                                                     {m.start_date} {m.end_date ? `au ${m.end_date}` : ''}
                                                                                 </span>
+                                                                                {m.payment_due_date && (() => {
+                                                                                    const late = m.payment_due_date.slice(0, 10) < isoDay(new Date()) && (selectedWorker.total_earned - selectedWorker.paid_amount) > 0;
+                                                                                    return (
+                                                                                        <span className={`ml-1.5 inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium ring-1 ring-inset ${late ? 'bg-red-50 text-red-700 ring-red-600/20' : 'bg-white text-slate-500 ring-slate-600/20'}`}>
+                                                                                            {late ? 'Paiement en retard depuis le' : 'À payer le'} {frDay(m.payment_due_date)}
+                                                                                        </span>
+                                                                                    );
+                                                                                })()}
                                                                             </div>
                                                                         </div>
                                                                         <p className="text-xs text-slate-400 font-medium">
@@ -2082,6 +2168,14 @@ const Workers = () => {
                                     )}
                                 </div>
 
+
+                                    <PayTermField
+                                        term={globalMissionForm.payment_term}
+                                        customDate={globalMissionForm.payment_due_date}
+                                        baseDate={missionBaseDate(globalMissionForm)}
+                                        onChange={(payment_term, payment_due_date) => setGlobalMissionForm({ ...globalMissionForm, payment_term, payment_due_date })}
+                                    />
+
                                 {globalMissionForm.type !== 'forfait' && (
                                     <div>
                                         <label className="block text-xs font-medium mb-2 text-slate-600">
@@ -2262,6 +2356,13 @@ const Workers = () => {
                         <div className="px-8 py-4 border-b border-slate-100 flex items-center justify-between no-print">
                             <h3 className="font-semibold text-slate-800 text-xs">Aperçu du Reçu de Paiement</h3>
                             <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => receiptPdf(selectedWorker, selectedPayment)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                    type="button"
+                                >
+                                    <Download size={16} /> PDF
+                                </button>
                                 <button
                                     onClick={() => window.print()}
                                     className="flex items-center gap-2 px-4 py-2 text-white rounded-lg font-medium text-sm transition shadow-sm bg-slate-900 hover:bg-slate-800"

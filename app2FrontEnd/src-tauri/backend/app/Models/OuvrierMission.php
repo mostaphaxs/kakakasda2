@@ -17,6 +17,7 @@ class OuvrierMission extends Model
         'type',
         'start_date',
         'end_date',
+        'payment_due_date',
         'quantity',
         'unit_price',
         'total_amount',
