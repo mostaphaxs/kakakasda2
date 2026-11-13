@@ -1,61 +1,89 @@
 import './index.css';
 import './App.css'
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Menu } from 'lucide-react';
-import { Toaster } from 'react-hot-toast';
+const AppToaster = lazy(() => import('./component/common/AppToaster'));
+import { ConfirmHost } from './component/common/ConfirmDialog';
+import { QuickPaymentHost } from './component/common/QuickPayment';
+import { WhatsAppReminderHost } from './component/common/WhatsAppReminder';
+import { CommandPaletteHost, useGlobalShortcuts } from './component/common/CommandPalette';
+const Echeancier = lazy(() => import('./component/Echeancier'));
+const Cheques = lazy(() => import('./component/Cheques'));
+const Rentabilite = lazy(() => import('./component/Rentabilite'));
+const Disponibilites = lazy(() => import('./component/Disponibilites'));
+const Taches = lazy(() => import('./component/Taches'));
+const Messages = lazy(() => import('./component/Messages'));
+import { TaskEditorHost } from './component/common/TaskEditor';
+import { ClientDocumentsHost } from './component/common/ClientDocuments';
+import { ProgressPhotosHost } from './component/common/ProgressPhotos';
+import { useAppSettings, isPathEnabled, isModuleEnabled } from './lib/appSettings';
+const Parametres = lazy(() => import('./component/Parametres'));
 
 import Login from './component/Login'
 import Sidebar from './component/Sidebar';
-import AddProperty from './component/AddProperty';
-import AddTerrain from './component/AddTerrain';
-import AddClient from './component/AddClient';
-import Dashboard from './component/Dashboard'
-import Home from './component/Home'
-import Terrains from './component/Terrains'
-import Properties from './component/Properties'
-import Contractors from './component/Contractors'
-import Intervenants from './component/Intervenants'
-import EditTerrain from './component/EditTerrain'
-import Charges from './component/Charges'
-import Clients from './component/Clients'
-import Profile from './component/Profile'
-import ConfigPrixBiens from './component/ConfigPrixBiens'
+const AddProperty = lazy(() => import('./component/AddProperty'));
+const AddTerrain = lazy(() => import('./component/AddTerrain'));
+const AddClient = lazy(() => import('./component/AddClient'));
+const Dashboard = lazy(() => import('./component/Dashboard'));
+const Home = lazy(() => import('./component/Home'));
+const Terrains = lazy(() => import('./component/Terrains'));
+const Properties = lazy(() => import('./component/Properties'));
+const Contractors = lazy(() => import('./component/Contractors'));
+const Intervenants = lazy(() => import('./component/Intervenants'));
+const EditTerrain = lazy(() => import('./component/EditTerrain'));
+const Charges = lazy(() => import('./component/Charges'));
+const Clients = lazy(() => import('./component/Clients'));
+const Profile = lazy(() => import('./component/Profile'));
+const ConfigPrixBiens = lazy(() => import('./component/ConfigPrixBiens'));
 import GlobalPreview from './component/GlobalPreview';
-import Workers from './component/Workers'
-import Salaries from './component/Salaries'
-import Transactions from './component/Transactions'
-import Contentieux from './component/Contentieux'
-import ServiceSocietes from './component/ServiceSocietes'
+const Workers = lazy(() => import('./component/Workers'));
+const Salaries = lazy(() => import('./component/Salaries'));
+const Transactions = lazy(() => import('./component/Transactions'));
+const Contentieux = lazy(() => import('./component/Contentieux'));
+const ServiceSocietes = lazy(() => import('./component/ServiceSocietes'));
 
 // Procurement Components
-import Articles from './component/procurement/Articles';
-import AddArticle from './component/procurement/AddArticle';
-import Suppliers from './component/procurement/Suppliers';
-import AddSupplier from './component/procurement/AddSupplier';
-import PurchaseInvoices from './component/procurement/PurchaseInvoices';
-import AddAchat from './component/procurement/AddAchat';
-import GeneralWorks from './component/procurement/GeneralWorks';
-import AddGeneralWork from './component/procurement/AddGeneralWork';
-import StockDashboard from './component/procurement/StockDashboard';
-import StockExitForm from './component/procurement/StockExitForm';
-import FactureBuilder from './component/FactureBuilder';
-import FacturesList from './component/FacturesList';
-import AIAssistant from './component/AIAssistant';
-import ClientLogin from './component/ClientLogin';
-import ClientDashboard from './component/ClientDashboard';
-import TerrainMap from './component/TerrainMap';
+const Articles = lazy(() => import('./component/procurement/Articles'));
+const AddArticle = lazy(() => import('./component/procurement/AddArticle'));
+const Suppliers = lazy(() => import('./component/procurement/Suppliers'));
+const AddSupplier = lazy(() => import('./component/procurement/AddSupplier'));
+const PurchaseInvoices = lazy(() => import('./component/procurement/PurchaseInvoices'));
+const AddAchat = lazy(() => import('./component/procurement/AddAchat'));
+const GeneralWorks = lazy(() => import('./component/procurement/GeneralWorks'));
+const AddGeneralWork = lazy(() => import('./component/procurement/AddGeneralWork'));
+const StockDashboard = lazy(() => import('./component/procurement/StockDashboard'));
+const StockExitForm = lazy(() => import('./component/procurement/StockExitForm'));
+const FactureBuilder = lazy(() => import('./component/FactureBuilder'));
+const FacturesList = lazy(() => import('./component/FacturesList'));
+const AIAssistant = lazy(() => import('./component/AIAssistant'));
+const ClientLogin = lazy(() => import('./component/ClientLogin'));
+const ClientDashboard = lazy(() => import('./component/ClientDashboard'));
+const TerrainMap = lazy(() => import('./component/TerrainMap'));
 
 // ── Auth Guard ─────────────────────────────────────────────────────────────────
 const PrivateRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+  const { pathname } = useLocation();
+  const { settings } = useAppSettings(!!token);
+  if (!token) return <Navigate to="/login" replace />;
+  // page switched off in Paramètres → Pages
+  if (!isPathEnabled(pathname, settings)) return <Navigate to="/home" replace />;
+  return children;
 };
 
 const PortalRoute: React.FC<{ children: React.ReactElement }> = ({ children }) => {
   const clientUser = localStorage.getItem('clientUser');
   return clientUser ? children : <Navigate to="/portal/login" replace />;
 };
+
+/** Shown for a split second while a page's code loads. */
+const PageLoading = () => (
+  <div className="space-y-5 animate-fade-in" aria-busy="true">
+    <div className="h-24 rounded-xl bg-white border border-slate-200" />
+    <div className="h-64 rounded-xl bg-white border border-slate-200" />
+  </div>
+);
 
 // ── App Inner Content ──────────────────────────────────────────────────────────
 const AppContent: React.FC = () => {
@@ -68,10 +96,22 @@ const AppContent: React.FC = () => {
   }, [location]);
 
   const isPortal = location.pathname.startsWith('/portal');
+  // Login screens take the full window (no page padding / width limit)
+  const isAuthScreen = location.pathname === '/login' || location.pathname === '/portal/login';
+  const isAdmin = !!token && !isPortal && location.pathname !== '/login';
+  useGlobalShortcuts(isAdmin);
+  const { settings } = useAppSettings(isAdmin); // company identity, preferences, AI key, pages
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Toaster position="top-right" reverseOrder={false} />
+    <div className="flex min-h-screen bg-slate-100">
+      <AppToaster />
+      <ConfirmHost />
+      {isAdmin && <QuickPaymentHost />}
+      {isAdmin && <WhatsAppReminderHost />}
+      {isAdmin && <ClientDocumentsHost />}
+      {isAdmin && <ProgressPhotosHost />}
+      {isAdmin && <TaskEditorHost />}
+      {isAdmin && <CommandPaletteHost />}
       <GlobalPreview />
 
       {!isPortal && (
@@ -87,26 +127,27 @@ const AppContent: React.FC = () => {
       >
         {/* Mobile Header */}
         {token && (
-          <header className="lg:hidden sticky top-0 z-[100] bg-[#1a0f0a] border-b border-[#2a1a11] shadow-2xl h-[60px] flex items-center px-3">
+          <header className="lg:hidden sticky top-0 z-[100] bg-sidebar border-b border-sidebar-border shadow-lg h-[60px] flex items-center px-3">
             <button
               onClick={() => setIsMobileSidebarOpen(true)}
               className="p-2 text-white/60 rounded cursor-pointer hover:bg-white/10 mr-2"
             >
               <Menu size={24} />
             </button>
-            <div onClick={() => { }} className="flex items-center cursor-pointer group">
+            <div className="flex items-center">
               <img src="/assets/LogoNavbar.png" alt="Logo" className="h-8 w-auto mr-3" />
-              <span className="self-center text-lg font-bold whitespace-nowrap text-white">
-                Amical <span className="text-amber-500 font-black">El Ouaha</span>
+              <span className="self-center text-base font-semibold whitespace-nowrap text-white tracking-tight">
+                Amical <span className="text-brand-500">El Ouaha</span>
               </span>
             </div>
           </header>
         )}
 
-        {token && !isPortal && <AIAssistant />}
+        {token && !isPortal && isModuleEnabled('assistant', settings) && <Suspense fallback={null}><AIAssistant /></Suspense>}
 
-        <main className="flex-grow px-4 py-6">
-          <div className="max-w-7xl mx-auto">
+        <main className={isAuthScreen ? 'flex-grow' : 'flex-grow px-4 py-6'}>
+          <div key={location.pathname} className={isAuthScreen ? 'animate-page-in' : 'max-w-7xl mx-auto animate-page-in'}>
+            <Suspense fallback={<PageLoading />}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={token ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
@@ -144,6 +185,13 @@ const AppContent: React.FC = () => {
               <Route path="/factures" element={<PrivateRoute><FactureBuilder /></PrivateRoute>} />
               <Route path="/factures-list" element={<PrivateRoute><FacturesList /></PrivateRoute>} />
               <Route path="/transactions" element={<PrivateRoute><Transactions /></PrivateRoute>} />
+              <Route path="/echeancier" element={<PrivateRoute><Echeancier /></PrivateRoute>} />
+              <Route path="/cheques" element={<PrivateRoute><Cheques /></PrivateRoute>} />
+              <Route path="/rentabilite" element={<PrivateRoute><Rentabilite /></PrivateRoute>} />
+              <Route path="/disponibilites" element={<PrivateRoute><Disponibilites /></PrivateRoute>} />
+              <Route path="/taches" element={<PrivateRoute><Taches /></PrivateRoute>} />
+              <Route path="/messages" element={<PrivateRoute><Messages /></PrivateRoute>} />
+              <Route path="/parametres" element={<PrivateRoute><Parametres /></PrivateRoute>} />
 
               {/* Client Portal Routes */}
               <Route path="/portal/login" element={<ClientLogin />} />
@@ -151,6 +199,7 @@ const AppContent: React.FC = () => {
 
               <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
+            </Suspense>
           </div>
         </main>
       </div>

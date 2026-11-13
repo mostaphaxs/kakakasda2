@@ -17,14 +17,16 @@ class payments extends Model
         'method',
         'reference_no',
         'bank_name',
-        'source_bank',
-        'destination_bank',
-        'virement_type',
         'receipt_path',
         'bank_commission',
         'notes',
         'status',
         'refund_amount',
+        'cheque_status',
+        'cheque_deposited_at',
+        'cheque_cashed_at',
+        'cheque_rejected_at',
+        'cheque_reject_reason',
     ];
 
     protected $casts = [

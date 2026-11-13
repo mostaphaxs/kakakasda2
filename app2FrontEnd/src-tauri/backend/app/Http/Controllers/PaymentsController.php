@@ -49,6 +49,11 @@ class PaymentsController extends Controller
             $validated['receipt_path'] = $path;
         }
 
+        // New cheques start their life cycle as "reçu" (to deposit)
+        if (($validated['method'] ?? null) === 'Chèque') {
+            $validated['cheque_status'] = 'recu';
+        }
+
         $payment = payments::create($validated);
 
         return response()->json([

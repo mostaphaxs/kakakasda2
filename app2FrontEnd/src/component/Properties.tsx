@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus } from 'lucide-react';
+import { Home, Plus, Loader2, Trash2, Layout, Boxes, X, Check, Layers, Landmark, Download, Edit2, Eye, Search, UserPlus, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiFetch } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
@@ -8,6 +8,9 @@ import { formatNumber, parseNumber } from '../lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import MarkdownText from './common/MarkdownText';
 import MediaManager from './media/MediaManager';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { openProgressPhotos } from './common/ProgressPhotos';
 
 
 interface AnnexUnit {
@@ -47,11 +50,12 @@ interface Bien {
 const Properties = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatut, setFilterStatut] = useState<string>('all');
-    const [filterTerrain, setFilterTerrain] = useState<string>('all');
-    const [filterEtage, setFilterEtage] = useState<string>('all');
-    const [filterImmeuble, setFilterImmeuble] = useState<string>('all');
+    const [searchTerm, setSearchTerm] = usePersistedState('Properties.searchTerm', '');
+    useUrlSearch(setSearchTerm);
+    const [filterStatut, setFilterStatut] = usePersistedState<string>('Properties.filterStatut', 'all');
+    const [filterTerrain, setFilterTerrain] = usePersistedState<string>('Properties.filterTerrain', 'all');
+    const [filterEtage, setFilterEtage] = usePersistedState<string>('Properties.filterEtage', 'all');
+    const [filterImmeuble, setFilterImmeuble] = usePersistedState<string>('Properties.filterImmeuble', 'all');
     const headerRef = useRef<HTMLDivElement>(null);
     const [stickyOffset, setStickyOffset] = useState(0);
 
@@ -161,8 +165,8 @@ const Properties = () => {
         onError: () => toast.error('Erreur lors de la suppression'),
     });
 
-    const handleDeleteBien = (id: number) => {
-        if (!window.confirm('Supprimer ce bien ?')) return;
+    const handleDeleteBien = async (id: number) => {
+        if (!await confirmDialog('Supprimer ce bien ?')) return;
         deleteBienMutation.mutate(id);
     };
 
@@ -330,21 +334,21 @@ const Properties = () => {
         <div className="space-y-6">
             <div
                 ref={headerRef}
-                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1"
+                className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6 mx-1"
             >
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
-                        <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                            <Home className="text-amber-600" size={32} />
+                        <h2 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                            <Home className="text-slate-400 flex-shrink-0" size={26} />
                             Parc Immobilier
                         </h2>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-bold"> Amical El Ouaha </span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Gestion des unités, blocs et locaux de <span className="text-slate-800 font-semibold">Amical El Ouaha</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest border border-slate-200 active:scale-[0.98]"
+                            className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition font-medium text-sm border border-slate-200 active:scale-[0.98]"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
@@ -353,7 +357,7 @@ const Properties = () => {
 
                         <button
                             onClick={() => navigate('/add-property')}
-                            className="flex items-center gap-2 bg-amber-600 text-white px-8 py-3.5 rounded-2xl hover:bg-amber-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98]"
+                            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition font-medium text-sm shadow-sm active:scale-[0.98] bg-slate-900 hover:bg-slate-800"
                         >
                             <Plus size={18} />
                             Ajouter Unité
@@ -372,14 +376,14 @@ const Properties = () => {
                             placeholder="Recherche..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-tight text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none transition-all placeholder:text-slate-300"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                     </div>
 
                     <select
                         value={filterStatut}
                         onChange={(e) => setFilterStatut(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Statut: Tous</option>
                         <option value="Libre">Libre</option>
@@ -390,7 +394,7 @@ const Properties = () => {
                     <select
                         value={filterTerrain}
                         onChange={(e) => setFilterTerrain(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Tous les projets</option>
                         {Array.from(new Set(biens.map(b => b.terrain_id).filter(Boolean))).map(tId => {
@@ -407,7 +411,7 @@ const Properties = () => {
                     <select
                         value={filterImmeuble}
                         onChange={(e) => setFilterImmeuble(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Bloc: Tous</option>
                         {Array.from(new Set(biens.map(b => b.immeuble).filter(Boolean)))
@@ -418,7 +422,7 @@ const Properties = () => {
                     <select
                         value={filterEtage}
                         onChange={(e) => setFilterEtage(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Étage: Tous</option>
                         {Array.from(new Set(biens.map(b => b.etage)))
@@ -434,7 +438,7 @@ const Properties = () => {
 
                     <button
                         onClick={resetFilters}
-                        className="w-full text-slate-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-100 rounded-2xl py-3 hover:bg-slate-50"
+                        className="w-full text-slate-400 hover:text-blue-600 text-sm font-medium flex items-center justify-center gap-2 transition border border-slate-100 rounded-lg py-2.5 hover:bg-slate-50"
                     >
                         <X size={14} />
                         Réinitialiser
@@ -444,24 +448,24 @@ const Properties = () => {
 
             {/* Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
-                    <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl"><Layout size={24} /></div>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-5 transition-transform duration-300">
+                    <div className="hidden"><Layout size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        <p className="text-xs font-semibold text-slate-400">
                             {filteredBiens.length !== biens.length ? 'Résultats' : 'Total Unités'}
                         </p>
                         <div className="flex items-baseline gap-2">
-                            <p className="text-2xl font-black text-slate-800">{filteredBiens.length}</p>
+                            <p className="text-2xl font-bold text-slate-800">{filteredBiens.length}</p>
                             {filteredBiens.length !== biens.length && (
-                                <p className="text-[10px] font-bold text-slate-400">/ {biens.length}</p>
+                                <p className="text-xs font-medium text-slate-400">/ {biens.length}</p>
                             )}
                         </div>
-                        <div className="mt-2 flex items-center flex-wrap gap-x-2 gap-y-1 text-[8px] font-black uppercase tracking-tight text-slate-400">
+                        <div className="mt-2 flex items-center flex-wrap gap-x-2 gap-y-1 text-[8px] font-semibold tracking-tight text-slate-400">
                             {typeBreakdown.map(([type, count]: [string, number], i) => (
                                 <React.Fragment key={type}>
                                     {i > 0 && <span className="text-slate-200">/</span>}
                                     <span className="text-slate-600 flex items-center gap-1">
-                                        <span className="text-amber-500 font-black">{count}</span>
+                                        <span className="text-amber-500 font-semibold">{count}</span>
                                         {type}{type.endsWith('s') || type.endsWith('x') ? '' : count > 1 ? 's' : ''}
                                     </span>
                                 </React.Fragment>
@@ -469,60 +473,60 @@ const Properties = () => {
                         </div>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
-                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><Check size={24} /></div>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-5 transition-transform duration-300">
+                    <div className="hidden"><Check size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Réservés / Vendus</p>
-                        <p className="text-2xl font-black text-slate-800">{filteredBiens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
+                        <p className="text-xs font-semibold text-slate-400">Réservés / Vendus</p>
+                        <p className="text-2xl font-bold text-slate-800">{filteredBiens.filter(b => b.statut === 'Reserve' || b.statut === 'Vendu').length}</p>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
-                    <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl"><Boxes size={24} /></div>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-5 transition-transform duration-300">
+                    <div className="hidden"><Boxes size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Disponibles</p>
-                        <p className="text-2xl font-black text-slate-800">{filteredBiens.filter(b => b.statut === 'Libre').length}</p>
+                        <p className="text-xs font-semibold text-slate-400">Disponibles</p>
+                        <p className="text-2xl font-bold text-slate-800">{filteredBiens.filter(b => b.statut === 'Libre').length}</p>
                     </div>
                 </div>
-                <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm flex items-center gap-5 transition-transform hover:scale-[1.02] duration-300">
-                    <div className="p-4 bg-rose-50 text-rose-600 rounded-2xl"><Landmark size={24} /></div>
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center gap-5 transition-transform duration-300">
+                    <div className="hidden"><Landmark size={24} /></div>
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valeur Stock (Filtré)</p>
-                        <p className="text-xl font-black text-slate-800 tracking-tighter">
+                        <p className="text-xs font-semibold text-slate-400">Valeur Stock (Filtré)</p>
+                        <p className="text-xl font-semibold text-slate-800 tracking-tight">
                             {formatNumber(filteredBiens.reduce((acc, b) => acc + Number(getEffectivePrice(b, 'finition')), 0))} <span className="text-xs text-slate-400">MAD</span>
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.02)]">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
                 <table className="w-full text-sm text-left border-collapse">
                     <thead
-                        className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
+                        className="sticky z-20 bg-white border-b border-slate-200"
                         style={{ top: `${stickyOffset}px` }}
                     >
-                        <tr className="bg-white">
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Type & N°</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest">Localisation</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Surface</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Statut</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center whitespace-nowrap">Réalisation</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Prix Total</th>
-                            <th className="px-6 py-5 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                        <tr className="">
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Type & N°</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Localisation</th>
+                            <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Surface</th>
+                            <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Statut</th>
+                            <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Réalisation</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Prix Total</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                         {loading ? (
                             <tr>
-                                <td colSpan={8} className="py-20 text-center text-gray-400">Chargement...</td>
+                                <td colSpan={8} className="py-20 text-center text-slate-400">Chargement...</td>
                             </tr>
                         ) : filteredBiens.length > 0 ? (
                             filteredBiens.map((b) => (
-                                <tr key={b.id} className="hover:bg-gray-50/50 transition-colors group">
+                                <tr key={b.id} className="hover:bg-slate-50 transition-colors group">
                                     <td className="px-4 py-3">
                                         <div className="flex flex-col">
-                                            <span className="font-medium text-slate-600 uppercase tracking-tight">
+                                            <span className="font-medium text-slate-600 tracking-tight">
                                                 {b.nom ? (
-                                                    <span className="text-indigo-600 mr-2"><MarkdownText text={b.nom} /></span>
+                                                    <span className="text-blue-600 mr-2"><MarkdownText text={b.nom} /></span>
                                                 ) : (
                                                     b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien
                                                 )}
@@ -531,19 +535,19 @@ const Properties = () => {
                                                 {b.etage === 0 ? ' - RDC' : b.etage ? ` - Étage ${b.etage}` : ''}
                                                 {b.num_appartement ? <> - N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                             </span>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
+                                            <span className="text-xs text-slate-400 font-medium mt-1">ID: {b.id} {b.nom ? `(${b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien})` : ''}</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className="text-xs text-slate-600 font-bold uppercase whitespace-nowrap">
+                                        <span className="text-xs text-slate-600 font-medium whitespace-nowrap">
                                             {b.terrain?.nom_projet || `Projet #${b.terrain_id}`}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-3 text-center font-bold text-slate-500 text-xs">{b.surface_m2} m²</td>
+                                    <td className="px-4 py-3 text-center font-medium text-slate-500 text-xs">{b.surface_m2} m²</td>
                                     <td className="px-4 py-3 text-center">
                                         <div className="flex flex-col items-center gap-1.5">
-                                            <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border whitespace-nowrap ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                b.statut === 'Vendu' ? 'bg-rose-50 text-rose-500 border-rose-100' :
+                                            <span className={`px-2 py-1 rounded-md text-xs font-semibold border whitespace-nowrap ${b.statut === 'Libre' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                b.statut === 'Vendu' ? 'bg-rose-50 text-rose-500 !border-rose-100' :
                                                     'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                 }`}>
                                                 {b.statut}
@@ -551,7 +555,7 @@ const Properties = () => {
                                             {b.clients && b.clients.length > 0 && b.statut !== 'Libre' && (
                                                 <div className="flex flex-col items-center">
                                                     {b.clients.map((c: any) => (
-                                                        <span key={c.id} className="text-[9px] font-bold text-gray-400 uppercase tracking-tight whitespace-nowrap">
+                                                        <span key={c.id} className="text-xs font-medium text-slate-400 tracking-tight whitespace-nowrap">
                                                             <MarkdownText text={`${c.nom} ${c.prenom}`} />
                                                         </span>
                                                     ))}
@@ -563,8 +567,8 @@ const Properties = () => {
                                         <div className="flex items-center gap-3 min-w-[200px]">
                                             {/* GO Status Badge */}
                                             <div className="flex items-center gap-2 bg-slate-50/50 px-2.5 py-1.5 rounded-xl border border-slate-100/50">
-                                                <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter shrink-0">G.O</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${b.gros_oeuvre_pourcentage === 100
+                                                <span className="text-xs font-semibold text-slate-400 tracking-tight shrink-0">G.O</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold border whitespace-nowrap ${b.gros_oeuvre_pourcentage === 100
                                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                     : 'bg-white text-slate-400 border-slate-100'}`}>
                                                     {b.gros_oeuvre_pourcentage === 100 ? 'Fait' : 'En cours'}
@@ -573,9 +577,9 @@ const Properties = () => {
 
                                             {/* FIN Status Badge Always visible */}
                                             <div className="flex items-center gap-2 bg-slate-50/50 px-2.5 py-1.5 rounded-xl border border-slate-100/50">
-                                                <span className="text-[9px] font-black uppercase text-slate-500 tracking-tighter shrink-0">FIN</span>
-                                                <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${b.finition_pourcentage === 100
-                                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                                <span className="text-xs font-semibold text-slate-500 tracking-tight shrink-0">FIN</span>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold border whitespace-nowrap ${b.finition_pourcentage === 100
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-100'
                                                     : b.finition_pourcentage > 0
                                                         ? 'bg-blue-50 text-blue-600 border-blue-100'
                                                         : 'bg-white text-slate-400 border-slate-100'}`}>
@@ -586,32 +590,35 @@ const Properties = () => {
                                     </td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex flex-col items-end">
-                                            <span className="font-black text-slate-900 text-xs whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'finition'))} DH</span>
-                                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'gros'))} DH</span>
+                                            <span className="font-semibold text-slate-900 text-xs whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'finition'))} DH</span>
+                                            <span className="text-xs font-medium text-slate-400 whitespace-nowrap">{formatNumber(getEffectivePrice(b, 'gros'))} DH</span>
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <div className="flex items-center justify-end gap-1.5">
-                                            <button onClick={() => navigate(`/edit-property/${b.id}`)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-transparent hover:border-indigo-100" title="Modifier">
-                                                <Edit2 size={18} />
+                                        <div className="flex items-center justify-end gap-0.5">
+                                            <button onClick={() => navigate(`/edit-property/${b.id}`)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
+                                                <Edit2 size={16} />
                                             </button>
-                                            <button onClick={() => handleOpenDetails(b)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-transparent hover:border-blue-100" title="Détails">
-                                                <Eye size={18} />
+                                            <button onClick={() => handleOpenDetails(b)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Détails">
+                                                <Eye size={16} />
                                             </button>
-                                            <button onClick={() => openAnnexes(b)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-transparent hover:border-emerald-100" title="Annexes">
-                                                <Layers size={18} />
+                                            <button onClick={() => openProgressPhotos(b as any)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Photos d'avancement">
+                                                <Camera size={16} />
+                                            </button>
+                                            <button onClick={() => openAnnexes(b)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Annexes">
+                                                <Layers size={16} />
                                             </button>
                                             {b.statut === 'Libre' && (
                                                 <button
                                                     onClick={() => handleOpenAssocClient(b)}
-                                                    className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors border border-transparent hover:border-amber-200"
+                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                     title="Associer à un client"
                                                 >
-                                                    <UserPlus size={18} />
+                                                    <UserPlus size={16} />
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteBien(b.id)} className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors border border-transparent hover:border-rose-100" title="Supprimer">
-                                                <Trash2 size={18} />
+                                            <button onClick={() => handleDeleteBien(b.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50" title="Supprimer">
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </td>
@@ -619,7 +626,7 @@ const Properties = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={7} className="py-20 text-center text-gray-400">Aucun bien enregistré.</td>
+                                <td colSpan={7} className="py-20 text-center text-slate-400">Aucun bien enregistré.</td>
                             </tr>
                         )}
                     </tbody>
@@ -629,33 +636,33 @@ const Properties = () => {
 
             {/* Annex Modal */}
             {isAnnexModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden duration-200 flex flex-col max-h-[90vh] ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
                             <div>
-                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest flex items-center gap-2">
-                                    <Layers className="text-indigo-600" />
+                                <h3 className="font-semibold text-slate-800 text-lg flex items-center gap-2">
+                                    <Layers className="text-blue-600" />
                                     Unités Annexes
                                 </h3>
-                                <p className="text-[10px] font-bold text-indigo-600">POUR BLOC {selectedBien?.num_appartement ? `#${selectedBien.num_appartement}` : ''}</p>
+                                <p className="text-xs font-medium text-blue-600">POUR BLOC {selectedBien?.num_appartement ? `#${selectedBien.num_appartement}` : ''}</p>
                             </div>
-                            <button onClick={() => setIsAnnexModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={20} />
+                            <button onClick={() => setIsAnnexModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <div className="flex-grow overflow-y-auto p-8 space-y-6">
                             {/* Add form */}
-                            <form onSubmit={handleAddAnnex} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 grid grid-cols-2 gap-3">
+                            <form onSubmit={handleAddAnnex} className="p-4 bg-slate-50 rounded-xl border border-slate-100 grid grid-cols-2 gap-3">
                                 <div className="col-span-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Type d'annexe</label>
+                                    <label className="text-xs font-medium mb-1 block text-slate-600">Type d'annexe</label>
                                     <select
                                         value={newAnnex.type}
                                         onChange={e => {
                                             setNewAnnex({ ...newAnnex, type: e.target.value });
                                             setShowOtherType(e.target.value === 'Autre');
                                         }}
-                                        className={`w-full px-4 py-2 text-sm rounded-lg border ${fieldErrors.type ? 'border-red-500' : 'border-gray-200'} outline-none font-bold bg-white`}
+                                        className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.type ? '!border-red-500' : 'border-slate-200'} `}
                                     >
                                         <option value="Parking">Parking</option>
                                         <option value="Cave">Cave / Box</option>
@@ -663,35 +670,35 @@ const Properties = () => {
                                         <option value="Terrasse">Terrasse privative</option>
                                         <option value="Autre">Autre (Préciser...)</option>
                                     </select>
-                                    {fieldErrors.type && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.type[0]}</p>}
+                                    {fieldErrors.type && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.type[0]}</p>}
                                 </div>
                                 {showOtherType && (
-                                    <div className="col-span-2 animate-in slide-in-from-top-1 duration-200">
-                                        <label className="text-[10px] font-black text-indigo-600 uppercase mb-1 block">Précisez le type</label>
+                                    <div className="col-span-2 duration-200">
+                                        <label className="text-xs font-medium text-blue-600 mb-1 block text-slate-600">Précisez le type</label>
                                         <input
                                             type="text"
                                             placeholder="Ex: Jardin, Solarium..."
                                             required
                                             value={newAnnex.customType}
                                             onChange={e => setNewAnnex({ ...newAnnex, customType: e.target.value })}
-                                            className="w-full px-4 py-2 text-sm rounded-lg border border-indigo-200 bg-indigo-50/30 outline-none font-bold"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         />
                                     </div>
                                 )}
                                 <div>
-                                    <label className="text-[10px] font-black text-gray-400 uppercase mb-1 block">Prix (DH)</label>
+                                    <label className="text-xs font-medium mb-1 block text-slate-600">Prix (DH)</label>
                                     <input
                                         type="text"
                                         placeholder="0"
                                         required
                                         value={newAnnex.prix}
                                         onChange={e => setNewAnnex({ ...newAnnex, prix: formatNumber(e.target.value) })}
-                                        className={`w-full px-4 py-2 text-sm rounded-lg border ${fieldErrors.prix ? 'border-red-500' : 'border-gray-200'} outline-none font-bold text-lg`}
+                                        className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.prix ? '!border-red-500' : 'border-slate-200'} `}
                                     />
-                                    {fieldErrors.prix && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.prix[0]}</p>}
+                                    {fieldErrors.prix && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.prix[0]}</p>}
                                 </div>
                                 <div className="flex items-end">
-                                    <button type="submit" className="w-full h-[38px] bg-indigo-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-700 flex items-center justify-center gap-2">
+                                    <button type="submit" className="w-full h-[38px] text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800">
                                         <Plus size={16} /> Ajouter
                                     </button>
                                 </div>
@@ -700,32 +707,32 @@ const Properties = () => {
                             {/* List */}
                             <div className="space-y-3">
                                 {annexLoading ? (
-                                    <div className="py-10 text-center"><Loader2 className="animate-spin inline-block text-gray-300" /></div>
+                                    <div className="py-10 text-center"><Loader2 className="animate-spin inline-block text-slate-300" /></div>
                                 ) : annexesData.length > 0 ? (
                                     annexesData.map(a => (
-                                        <div key={a.id} className="flex items-center justify-between p-4 rounded-xl border border-gray-100 group">
+                                        <div key={a.id} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 group">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-gray-50 text-indigo-500 rounded-lg">
+                                                <div className="hidden">
                                                     <Boxes size={18} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black text-gray-700 uppercase tracking-tight">{a.type}</p>
-                                                    <p className="text-xs font-bold text-indigo-600">{formatNumber(a.prix)} DH</p>
+                                                    <p className="text-sm font-semibold text-slate-700 tracking-tight">{a.type}</p>
+                                                    <p className="text-xs font-medium text-blue-600">{formatNumber(a.prix)} DH</p>
                                                 </div>
                                             </div>
-                                            <button onClick={() => deleteAnnex(a.id)} className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 transition-all">
+                                            <button onClick={() => deleteAnnex(a.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50">
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-center text-gray-400 italic text-sm py-10">Aucune annexe liée.</p>
+                                    <p className="text-center text-slate-400 text-sm py-10">Aucune annexe liée.</p>
                                 )}
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-gray-100 bg-gray-50/50">
-                            <button onClick={() => setIsAnnexModalOpen(false)} className="w-full py-3 bg-gray-900 text-white rounded-xl font-black text-xs uppercase tracking-widest">
+                        <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                            <button onClick={() => setIsAnnexModalOpen(false)} className="w-full py-2.5 text-white rounded-lg font-medium text-sm bg-slate-900 hover:bg-slate-800">
                                 Fermer
                             </button>
                         </div>
@@ -734,68 +741,68 @@ const Properties = () => {
             )}
             {/* Details Modal */}
             {isDetailsModalOpen && selectedBien && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
                             <div>
-                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">
+                                <h3 className="font-semibold text-slate-800 text-lg leading-none mb-1">
                                     {selectedBien.nom ? <MarkdownText text={selectedBien.nom} /> : <>Détails Bloc <MarkdownText text={selectedBien.num_appartement} /></>}
                                 </h3>
-                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">
+                                <p className="text-xs font-medium text-blue-600">
                                     {selectedBien.type_bien === 'Appartement' ? 'Bloc' : selectedBien.type_bien} {selectedBien.nom ? `(${selectedBien.num_appartement})` : ''} • ID #{selectedBien.id}
                                 </p>
                             </div>
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={20} />
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-8 space-y-8">
                             {/* Key Stats */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Prix Total (Fin / Non Fin)</p>
-                                    <p className="text-lg font-black text-indigo-700">{formatNumber(selectedBien.prix_global_finition)} <span className="text-xs text-indigo-400">/</span> {formatNumber(selectedBien.prix_global_non_finition)} DH</p>
+                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                                    <p className="text-xs font-medium text-blue-400 mb-1">Prix Total (Fin / Non Fin)</p>
+                                    <p className="text-lg font-semibold text-blue-700">{formatNumber(selectedBien.prix_global_finition)} <span className="text-xs text-blue-400">/</span> {formatNumber(selectedBien.prix_global_non_finition)} DH</p>
                                 </div>
-                                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Surface</p>
-                                    <p className="text-lg font-black text-emerald-700">{selectedBien.surface_m2} m²</p>
+                                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                    <p className="text-xs font-medium text-emerald-400 mb-1">Surface</p>
+                                    <p className="text-lg font-semibold text-emerald-700">{selectedBien.surface_m2} m²</p>
                                 </div>
-                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Statut</p>
-                                    <p className="text-lg font-black text-blue-700 uppercase">{selectedBien.statut}</p>
+                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                                    <p className="text-xs font-medium text-blue-400 mb-1">Statut</p>
+                                    <p className="text-lg font-semibold text-blue-700">{selectedBien.statut}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-8">
                                 <div className="space-y-6">
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Localisation & Caractéristiques</label>
-                                        <div className="p-4 bg-gray-50 rounded-2xl space-y-3">
+                                        <label className="text-xs font-medium block mb-2 text-slate-600">Localisation & Caractéristiques</label>
+                                        <div className="p-4 bg-slate-50 rounded-xl space-y-3">
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-500">Projet:</span>
-                                                <span className="font-bold text-gray-800"> {selectedBien.terrain?.nom_projet ? `${selectedBien.terrain.nom_projet}` : 'Aucun Projet'}</span>
+                                                <span className="text-slate-500">Projet:</span>
+                                                <span className="font-semibold text-slate-800"> {selectedBien.terrain?.nom_projet ? `${selectedBien.terrain.nom_projet}` : 'Aucun Projet'}</span>
                                             </div>
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="text-gray-500">Étage:</span>
-                                                <span className="font-bold text-gray-800">{selectedBien.etage ? `Étage ${selectedBien.etage}` : 'Rez-de-chaussée'}</span>
+                                                <span className="text-slate-500">Étage:</span>
+                                                <span className="font-semibold text-slate-800">{selectedBien.etage ? `Étage ${selectedBien.etage}` : 'Rez-de-chaussée'}</span>
                                             </div>
-                                            <div className="flex items-center justify-between text-sm border-t border-gray-100 pt-2">
-                                                <span className="text-gray-500">Prix / m²:</span>
-                                                <span className="font-bold text-gray-800">{formatNumber(selectedBien.prix_par_m2_finition)} <span className="text-gray-400">/</span> {formatNumber(selectedBien.prix_par_m2_non_finition)} DH</span>
+                                            <div className="flex items-center justify-between text-sm border-t border-slate-100 pt-2">
+                                                <span className="text-slate-500">Prix / m²:</span>
+                                                <span className="font-semibold text-slate-800">{formatNumber(selectedBien.prix_par_m2_finition)} <span className="text-slate-400">/</span> {formatNumber(selectedBien.prix_par_m2_non_finition)} DH</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     {selectedBien.clients && selectedBien.clients.length > 0 && (
-                                        <div className="animate-in slide-in-from-left-2 duration-300">
-                                            <label className="text-[10px] font-black text-emerald-600 uppercase block mb-2 tracking-widest">Informations Client</label>
+                                        <div className="duration-300">
+                                            <label className="text-xs font-medium text-emerald-600 block mb-2 text-slate-600">Informations Client</label>
                                             <div className="flex flex-col gap-2">
                                                 {selectedBien.clients.map((c: any) => (
-                                                    <div key={c.id} className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                                        <p className="text-sm font-black text-emerald-800 uppercase"><MarkdownText text={`${c.nom} ${c.prenom}`} /></p>
-                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">CIN: <MarkdownText text={c.cin} /></p>
-                                                        <p className="text-[10px] font-bold text-emerald-600 uppercase">Tél: {c.tel}</p>
+                                                    <div key={c.id} className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                                        <p className="text-sm font-semibold text-emerald-800"><MarkdownText text={`${c.nom} ${c.prenom}`} /></p>
+                                                        <p className="text-xs font-medium text-emerald-600 mt-1">CIN: <MarkdownText text={c.cin} /></p>
+                                                        <p className="text-xs font-medium text-emerald-600">Tél: {c.tel}</p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -805,23 +812,23 @@ const Properties = () => {
 
                                 <div className="space-y-6">
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Unités Annexes Associées</label>
+                                        <label className="text-xs font-medium block mb-2 text-slate-600">Unités Annexes Associées</label>
                                         <button
                                             onClick={() => { setIsDetailsModalOpen(false); openAnnexes(selectedBien); }}
-                                            className="w-full p-4 bg-indigo-50 border border-dashed border-indigo-200 rounded-2xl text-left group hover:bg-indigo-100 transition-colors"
+                                            className="w-full p-4 bg-blue-50 border border-dashed border-blue-200 rounded-lg text-left group hover:bg-blue-100 transition-colors"
                                         >
                                             <div className="flex justify-between items-center">
-                                                <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">Gérer les Annexes</span>
-                                                <Plus size={16} className="text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                                                <span className="text-xs font-semibold text-blue-700">Gérer les Annexes</span>
+                                                <Plus size={16} className="text-blue-400 group-hover:text-blue-600 transition-colors" />
                                             </div>
-                                            <p className="text-[10px] text-indigo-400 font-bold uppercase mt-1">Parkings, Cages, Caves...</p>
+                                            <p className="text-xs text-blue-400 font-medium mt-1">Parkings, Cages, Caves...</p>
                                         </button>
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-2 tracking-widest">Notes & Description</label>
-                                        <div className="p-4 bg-gray-50 rounded-2xl min-h-[100px]">
-                                            <p className="text-xs text-gray-600 italic leading-relaxed">
+                                        <label className="text-xs font-medium block mb-2 text-slate-600">Notes & Description</label>
+                                        <div className="p-4 bg-slate-50 rounded-xl min-h-[100px]">
+                                            <p className="text-xs text-slate-600 leading-relaxed">
                                                 <MarkdownText text={selectedBien.description || 'Aucune description particulière pour cette unité.'} />
                                             </p>
                                         </div>
@@ -830,7 +837,7 @@ const Properties = () => {
                             </div>
 
                             {/* Media Management - Photos */}
-                            <div className="mt-6 pt-6 border-t border-gray-100">
+                            <div className="mt-6 pt-6 border-t border-slate-100">
                                 <div className="bg-white border text-left border-slate-200 shadow-sm p-4 rounded-xl">
                                     <MediaManager
                                         modelType="Bien"
@@ -852,30 +859,30 @@ const Properties = () => {
                             {/* Charges Section */}
                             {(selectedBien.charges_syndic || selectedBien.frais_branchement_eau || selectedBien.frais_branchement_electricite || selectedBien.tva) && (
                                 <div className="mt-6">
-                                    <label className="text-[10px] font-black text-amber-600 uppercase block mb-2 tracking-widest">Charges &amp; Frais Annexes</label>
-                                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl space-y-2">
+                                    <label className="text-xs font-medium text-amber-600 block mb-2 text-slate-600">Charges &amp; Frais Annexes</label>
+                                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl space-y-2">
                                         {selectedBien.charges_syndic && (
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-amber-700">Syndic (DH/mois):</span>
-                                                <span className="font-black text-amber-800">{formatNumber(selectedBien.charges_syndic)} DH</span>
+                                                <span className="font-semibold text-amber-800">{formatNumber(selectedBien.charges_syndic)} DH</span>
                                             </div>
                                         )}
                                         {selectedBien.tva && (
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-amber-700">TVA:</span>
-                                                <span className="font-black text-amber-800">{selectedBien.tva}%</span>
+                                                <span className="font-semibold text-amber-800">{selectedBien.tva}%</span>
                                             </div>
                                         )}
                                         {selectedBien.frais_branchement_eau && (
                                             <div className="flex items-center justify-between text-sm border-t border-amber-100 pt-2">
                                                 <span className="text-amber-700">Branchement Eau:</span>
-                                                <span className="font-black text-amber-800">{formatNumber(selectedBien.frais_branchement_eau)} DH</span>
+                                                <span className="font-semibold text-amber-800">{formatNumber(selectedBien.frais_branchement_eau)} DH</span>
                                             </div>
                                         )}
                                         {selectedBien.frais_branchement_electricite && (
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="text-amber-700">Branchement Élec:</span>
-                                                <span className="font-black text-amber-800">{formatNumber(selectedBien.frais_branchement_electricite)} DH</span>
+                                                <span className="font-semibold text-amber-800">{formatNumber(selectedBien.frais_branchement_electricite)} DH</span>
                                             </div>
                                         )}
                                     </div>
@@ -883,8 +890,8 @@ const Properties = () => {
                             )}
                         </div>
 
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-colors shadow-sm">
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-2 bg-white border border-slate-200 text-slate-500 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors shadow-sm">
                                 Fermer
                             </button>
                         </div>
@@ -895,41 +902,41 @@ const Properties = () => {
             {/* Bien → Client Association Modal */}
             {
                 isAssocClientModalOpen && assocBien && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/40">
                                 <div>
-                                    <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                    <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
                                         <UserPlus size={16} className="text-amber-500" />
                                         Associer un Client
                                     </h3>
-                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                    <p className="text-xs font-medium text-amber-600 mt-0.5">
                                         BIEN : <MarkdownText text={assocBien.type_bien === 'Appartement' ? 'Bloc' : assocBien.type_bien} />
                                         {assocBien.immeuble ? <> – Imm. <MarkdownText text={assocBien.immeuble} /></> : ''}
                                         {assocBien.num_appartement ? <> – <MarkdownText text={assocBien.num_appartement} /></> : ''}
                                     </p>
                                 </div>
-                                <button onClick={() => setIsAssocClientModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
-                                    <X size={20} />
+                                <button onClick={() => setIsAssocClientModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
                             <form onSubmit={handleBienAssociateClient} className="p-6 space-y-4">
                                 {/* Search */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                     <input
                                         type="text"
                                         placeholder="Rechercher nom, prénom, CIN, tel..."
                                         value={assocClientSearch}
                                         onChange={(e) => setAssocClientSearch(e.target.value)}
-                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                        className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                     />
                                 </div>
 
                                 {/* Clients list */}
                                 <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
                                     {isLoadingAssocClients ? (
-                                        <div className="py-8 flex items-center justify-center gap-2 text-gray-400">
+                                        <div className="py-8 flex items-center justify-center gap-2 text-slate-400">
                                             <Loader2 size={16} className="animate-spin" /> Chargement...
                                         </div>
                                     ) : (
@@ -949,9 +956,9 @@ const Properties = () => {
                                                 .map((c: any) => (
                                                     <label
                                                         key={c.id}
-                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocClientId === String(c.id)
+                                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition ${assocClientId === String(c.id)
                                                             ? 'bg-amber-50 border-amber-400 shadow-sm'
-                                                            : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                            : 'bg-slate-50 border-slate-200 hover:border-amber-300 hover:bg-amber-50/40'
                                                             }`}
                                                     >
                                                         <input
@@ -963,10 +970,10 @@ const Properties = () => {
                                                             className="accent-amber-500"
                                                         />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-black text-gray-800 uppercase truncate">
+                                                            <p className="text-sm font-semibold text-slate-800 truncate">
                                                                 <MarkdownText text={`${c.nom} ${c.prenom}`} />
                                                             </p>
-                                                            <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                            <p className="text-xs text-slate-400 font-medium">
                                                                 CIN: <MarkdownText text={c.cin} /> · Tél: {c.tel}
                                                             </p>
                                                         </div>
@@ -977,7 +984,7 @@ const Properties = () => {
                                                 if (!q) return true;
                                                 return c.nom?.toLowerCase().includes(q) || c.prenom?.toLowerCase().includes(q) || c.cin?.toLowerCase().includes(q) || c.tel?.includes(q) || c.tel_2?.includes(q) || `${c.nom} ${c.prenom}`.toLowerCase().includes(q) || `${c.prenom} ${c.nom}`.toLowerCase().includes(q);
                                             }).length === 0 && (
-                                                    <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                                    <div className="py-8 text-center text-slate-400 text-sm font-medium">
                                                         Aucun client disponible ou correspondant à la recherche trouvé.
                                                     </div>
                                                 )}
@@ -987,10 +994,10 @@ const Properties = () => {
 
                                 {/* Avec finition */}
                                 {assocClientId && (
-                                    <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-4 bg-blue-50/60 border border-blue-100 rounded-xl">
                                         <div>
-                                            <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
-                                            <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                            <p className="text-sm font-semibold text-blue-900">Avec Finition ?</p>
+                                            <p className="text-xs text-blue-500">Le client souhaite-t-il la finition ?</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
@@ -999,19 +1006,19 @@ const Properties = () => {
                                                 onChange={e => setAssocAvecFinition(e.target.checked)}
                                                 className="sr-only peer"
                                             />
-                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                         </label>
                                     </div>
                                 )}
 
                                 <div className="flex gap-3 pt-1">
-                                    <button type="button" onClick={() => setIsAssocClientModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                    <button type="button" onClick={() => setIsAssocClientModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition">
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingAssocClient || !assocClientId}
-                                        className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                        className="flex-[2] px-4 py-2 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmittingAssocClient ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
                                     </button>

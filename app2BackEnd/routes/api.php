@@ -28,6 +28,14 @@ use App\Http\Controllers\ContentieuxController;
 use App\Http\Controllers\ServiceProviderController;
 use App\Http\Controllers\ProviderInvoiceController;
 use App\Http\Controllers\TerrainMapController;
+use App\Http\Controllers\EcheanceController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ChequeController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\MessageTemplateController;
+use App\Http\Controllers\AppSettingController;
 
 // Public routes
 Route::post('/login', [UserController::class, 'login']);
@@ -60,12 +68,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clients', [ClientController::class, 'index']);
     Route::post('/clients', [ClientController::class, 'store']);
     Route::get('/clients/{client}', [ClientController::class, 'show']);
-    Route::get('/clients/{client}', [ClientController::class, 'show']);
     Route::put('/clients/{client}', [ClientController::class, 'update']);
     Route::post('/clients/{client}/cancel', [ClientController::class, 'cancel']);
     Route::delete('/clients/{client}', [ClientController::class, 'destroy']);
     Route::post('/clients/{client}/documents', [ClientController::class, 'uploadDocument']);
     Route::delete('/clients/{client}/documents/{documentIndex}', [ClientController::class, 'deleteDocument']);
+
+    // Échéancier (payment schedule) & notifications
+    Route::get('/echeances', [EcheanceController::class, 'index']);
+    Route::post('/echeances', [EcheanceController::class, 'store']);
+    Route::post('/echeances/plan', [EcheanceController::class, 'plan']);
+    Route::put('/echeances/{echeance}', [EcheanceController::class, 'update']);
+    Route::delete('/echeances/{echeance}', [EcheanceController::class, 'destroy']);
+    Route::get('/clients/{client}/statement', [EcheanceController::class, 'statement']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+
+    // Cheques, reports, one-click reservation
+    Route::get('/cheques', [ChequeController::class, 'index']);
+    Route::post('/cheques/{payment}/status', [ChequeController::class, 'updateStatus']);
+    Route::get('/reports/profit', [ReportController::class, 'profit']);
+    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+    Route::post('/biens/{bien}/reserve', [ReservationController::class, 'reserve']);
+
+    // Tasks / follow-ups
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::put('/tasks/{task}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
+
+    // WhatsApp message templates
+    Route::get('/message-templates', [MessageTemplateController::class, 'index']);
+    Route::post('/message-templates', [MessageTemplateController::class, 'store']);
+    Route::put('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'update']);
+    Route::delete('/message-templates/{messageTemplate}', [MessageTemplateController::class, 'destroy']);
 
     // Stats
     Route::get('/stats', [StatsController::class, 'index']);
@@ -120,6 +155,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Settings
     Route::get('/settings/pricing', [SettingController::class, 'getPricing']);
     Route::post('/settings/pricing', [SettingController::class, 'updatePricing']);
+
+    // Paramètres (company, preferences, AI)
+    Route::get('/settings/app', [AppSettingController::class, 'show']);
+    Route::put('/settings/app', [AppSettingController::class, 'update']);
+    Route::post('/settings/image/{kind}', [AppSettingController::class, 'uploadImage']);
+    Route::delete('/settings/image/{kind}', [AppSettingController::class, 'deleteImage']);
+    Route::get('/settings/about', [AppSettingController::class, 'about']);
     
     // Factures
     Route::apiResource('factures', FactureController::class);
@@ -136,10 +178,6 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Contentieux (Dossiers Juridiques)
     Route::apiResource('contentieux', ContentieuxController::class);
-    Route::post('/contentieux/{id}/mouvements', [ContentieuxController::class, 'addMouvement']);
-    Route::delete('/contentieux-mouvements/{id}', [ContentieuxController::class, 'deleteMouvement']);
-    Route::post('/contentieux/{id}/fees', [ContentieuxController::class, 'addFee']);
-    Route::delete('/contentieux-fees/{id}', [ContentieuxController::class, 'deleteFee']);
 
     // Sociétés de Services
     Route::apiResource('service-providers', ServiceProviderController::class);
@@ -149,14 +187,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/media', [\App\Http\Controllers\MediaController::class, 'index']);
     Route::post('/media', [\App\Http\Controllers\MediaController::class, 'store']);
     Route::delete('/media/{media}', [\App\Http\Controllers\MediaController::class, 'destroy']);
-    
-    // TTS Proxy
-    Route::get('/proxy-tts', function (Request $request) {
-        $text = $request->query('text');
-        $url = "https://translate.googleapis.com/translate_tts?ie=UTF-8&q=" . urlencode($text) . "&tl=fr&client=gtx";
-        $content = file_get_contents($url);
-        return response($content)->header('Content-Type', 'audio/mpeg');
-    });
 
 });
 

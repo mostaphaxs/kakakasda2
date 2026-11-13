@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Business Plan — ImmoTrack ERP</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.68;
+      color: #1a202c;
+      background: #fff;
+      padding: 0 20mm;
+    }
+
+    /* ── Cover ── */
+    .cover {
+      text-align: center;
+      padding: 20mm 0 10mm;
+      border-bottom: 3px solid #1e3a5f;
+      margin-bottom: 14mm;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: #edf2f7;
+      color: #1e3a5f;
+      font-size: 8pt;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 5px 18px;
+      border-radius: 20px;
+      border: 1px solid #c3dafe;
+      margin-bottom: 18px;
+    }
+
+    .cover h2 {
+      font-size: 40pt;
+      font-weight: 800;
+      color: #1e3a5f;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 4px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .cover h2 span {
+      color: #c8922a;
+    }
+
+    .cover-divider {
+      width: 50px;
+      height: 3px;
+      background: #c8922a;
+      margin: 12px auto;
+      border-radius: 2px;
+    }
+
+    .cover .sub {
+      font-size: 13pt;
+      color: #4a5568;
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+
+    .cover .sub2 {
+      font-size: 10pt;
+      color: #a0aec0;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+
+    .cover .meta {
+      font-size: 10pt;
+      color: #718096;
+      line-height: 2;
+      margin-top: 8px;
+    }
+
+    .cover .meta strong {
+      color: #2d3748;
+    }
+
+    /* ── Headings ── */
+    h1 {
+      font-size: 16pt;
+      color: #1e3a5f;
+      font-weight: 800;
+      margin: 20px 0 10px;
+      border-bottom: 2px solid #1e3a5f;
+      padding-bottom: 6px;
+    }
+
+    h2 {
+      font-size: 11pt;
+      color: #1e3a5f;
+      font-weight: 700;
+      margin: 15px 0 7px;
+      padding: 6px 12px;
+      border-left: 4px solid #c8922a;
+      background: #f7fafc;
+    }
+
+    h3 {
+      font-size: 10.5pt;
+      color: #2d3748;
+      font-weight: 600;
+      margin: 12px 0 5px;
+    }
+
+    h4 {
+      font-size: 10pt;
+      color: #4a5568;
+      font-weight: 600;
+      margin: 10px 0 4px;
+    }
+
+    p {
+      margin: 6px 0 8px;
+    }
+
+    /* ── Tables ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    thead tr {
+      background: #1e3a5f;
+      color: #fff;
+    }
+
+    thead th {
+      padding: 8px 11px;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f7fafc;
+    }
+
+    td {
+      padding: 7px 11px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    /* ── Lists ── */
+    ul,
+    ol {
+      margin: 6px 0 8px 22px;
+    }
+
+    li {
+      margin: 3px 0;
+    }
+
+    /* ── Code ── */
+    pre,
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 8.5pt;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+    }
+
+    pre {
+      padding: 12px 14px;
+      margin: 8px 0;
+      white-space: pre-wrap;
+    }
+
+    code {
+      padding: 1px 4px;
+    }
+
+    pre code {
+      border: none;
+      background: transparent;
+      padding: 0;
+    }
+
+    /* ── Blockquote ── */
+    blockquote {
+      border-left: 4px solid #c8922a;
+      background: #fffbeb;
+      padding: 8px 14px;
+      margin: 10px 0;
+      border-radius: 0 4px 4px 0;
+      font-style: italic;
+      color: #744210;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 16px 0;
+    }
+
+    strong {
+      font-weight: 700;
+      color: #1e3a5f;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 20mm;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 8pt;
+      color: #a0aec0;
+      text-align: center;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid #1e3a5f;
+      border-radius: 0 6px 6px 0;
+      padding: 14px 20px;
+      margin: 14px 0 18px;
+    }
+
+    .toc h3 {
+      color: #1e3a5f;
+      margin-bottom: 8px;
+      font-size: 11pt;
+    }
+
+    .toc ol {
+      margin: 0 0 0 18px;
+    }
+
+    .toc li {
+      margin: 4px 0;
+      font-size: 10pt;
+      color: #2d3748;
+    }
+
+    .toc li a {
+      color: #2b6cb0;
+      text-decoration: none;
+    }
+
+    /* ── KPI Cards ── */
+    .kpi-row {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .kpi {
+      flex: 1;
+      background: #1e3a5f;
+      color: #fff;
+      border-radius: 8px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .kpi .val {
+      font-size: 15pt;
+      font-weight: 800;
+      color: #f6ad55;
+    }
+
+    .kpi .lbl {
+      font-size: 8pt;
+      opacity: 0.8;
+      margin-top: 3px;
+    }
+
+    /* ── Print ── */
+    @page {
+      size: A4;
+      margin: 0;
+      /* Hides default browser header (URL) and footers */
+    }
+
+    @media print {
+      body {
+        padding: 15mm 20mm;
+      }
+
+      .toc {
+        page-break-after: always;
+      }
+
+      h1 {
+        page-break-before: auto;
+      }
+
+      table {
+        page-break-inside: avoid;
+      }
+
+      body::before {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    /* ── Watermark logo behind every page ── */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 70vw;
+      height: 70vw;
+      background: url('images.png') center center / contain no-repeat;
+      opacity: 0.06;
+      z-index: -1;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- COVER PAGE -->
+  <div class="cover" style="position: relative; align-items: center;">
+    <img src="images.png" alt="ImmoTrack ERP Logo"
+      style="display: block; width: 180px; height: auto; object-fit: contain; align-self: flex-start; margin-bottom: 32px;">
+    <div class="cover-badge">OFPPT &nbsp;·&nbsp; Développement Digital &nbsp;·&nbsp; Juin 2026</div>
+    <h2>ImmoTrack <span>ERP</span></h2>
+    <div class="cover-divider"></div>
+    <div class="sub">Système de Gestion Immobilière &amp; Suivi de Chantier</div>
+    <div class="sub2">Real Estate &amp; Construction Management System</div>
+    <div class="meta">
+      <strong>Filière :</strong> Développement Digital / Génie Logiciel<br>
+      <strong>Établissement :</strong> OFPPT<br>
+      <strong>Date :</strong> Juin 2026 &nbsp;·&nbsp; <strong>Version :</strong> 1.0
+    </div>
+  </div>
+  <!-- TOC -->
+  <div class="toc">
+    <h3>📋 Table des matières / Table of Contents</h3>
+    <ol>
+      <li><a href="#s1">Résumé exécutif / Executive Summary</a></li>
+      <li><a href="#s2">Problème &amp; Opportunité / Problem &amp; Opportunity</a></li>
+      <li><a href="#s3">Solution &amp; Produit (MVP) / Solution &amp; Product</a></li>
+      <li><a href="#s4">Étude de marché / Market Study</a></li>
+      <li><a href="#s5">Stratégie marketing &amp; commerciale / Marketing &amp; Sales</a></li>
+      <li><a href="#s6">Modèle économique &amp; Plan financier / Financials</a></li>
+      <li><a href="#s7">Plan opérationnel / Operations Plan</a></li>
+      <li><a href="#s8">Équipe / Team</a></li>
+      <li><a href="#s9">Feuille de route &amp; Risques / Roadmap &amp; Risks</a></li>
+      <li><a href="#s10">Annexes / Appendices</a></li>
+    </ol>
+  </div>
+
+  <hr>
+
+  <!-- SECTION 1 -->
+  <h1 id="s1">1. Résumé exécutif &nbsp;/&nbsp; Executive Summary</h1>
+
+  <p><strong>ImmoTrack ERP</strong> est une solution hybride unique : une application de bureau native (desktop)
+    <strong>sur
+      mesure</strong> destinée aux promoteurs immobiliers marocains, qui combine la puissance des logiciels locaux
+    avec
+    la flexibilité d'une architecture <strong>SaaS-ready</strong>. Elle centralise la gestion des biens, des clients,
+    des finances et du suivi de chantier.
+  </p>
+
+  <p><strong>Le problème :</strong> Les PME immobilières marocaines gèrent encore leurs affaires via des feuilles Excel
+    fragmentées, des carnets papier et des e-mails dispersés — entraînant des erreurs de paiement, des retards de
+    chantier et une perte de données critique.</p>
+
+  <p><strong>La solution :</strong> Une application desktop intelligente et <strong>sur mesure</strong>, fonctionnant
+    aussi bien en local qu'en mode connecté, construite avec React + Tauri (frontend) et Laravel (backend API). Elle est
+    conçue pour évoluer nativement vers un modèle <strong>SaaS</strong> pour les clients souhaitant une centralisation
+    totale sur le cloud. Ses fonctionnalités clés incluent :</p>
+  <ul>
+    <li><strong>Assistant IA Intégré (Copilot) :</strong> Un agent intelligent qui écrit pour vous, modifie vos données,
+      génère des synthèses et analyse les performances en temps réel de votre entreprise.</li>
+    <li>Gestion complète du portefeuille de biens (terrains, appartements, commerces)</li>
+    <li>CRM clients avec gestion documentaire intégrée</li>
+    <li>Suivi financier (factures, paiements, recettes) avec export PDF/Word/Excel</li>
+    <li>Monitoring de chantier en temps réel (gros œuvre, finitions, jalons)</li>
+    <li>Gestion des stocks, fournisseurs et dépenses</li>
+  </ul>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="val">2026</div>
+      <div class="lbl">Année de Lancement</div>
+    </div>
+    <div class="kpi">
+      <div class="val">4,5K</div>
+      <div class="lbl">PME Cibles (TAM)</div>
+    </div>
+    <div class="kpi">
+      <div class="val">18K</div>
+      <div class="lbl">Tarif An (MAD)</div>
+    </div>
+  </div>
+
+  <p><strong>Marché cible :</strong> Promoteurs immobiliers et bureaux de gestion de chantier au Maroc, principalement
+    dans les villes de taille moyenne (Fès, Meknès, Oujda, Tanger).</p>
+
+  <p><strong>État d'avancement :</strong> MVP 1.0 opérationnel — Architecture technique robuste, modules de base
+    déployables et génération de documents automatisée.</p>
+
+  <hr>
+
+  <!-- SECTION 2 -->
+  <h1 id="s2">2. Problème &amp; Opportunité &nbsp;/&nbsp; Problem &amp; Opportunity</h1>
+
+  <h2>2.1 Description du problème</h2>
+  <p>Le secteur de la promotion immobilière au Maroc est majoritairement composé de <strong>petites et moyennes
+      entreprises</strong> (moins de 20 employés) qui gèrent simultanément plusieurs projets de construction, des
+    dizaines de clients et des flux financiers complexes. Or, ces entreprises utilisent des outils inadaptés :</p>
+  <ul>
+    <li><strong>Excel multi-fichiers</strong> : chaque projet vit dans son propre fichier, aucune cohérence entre les
+      données.</li>
+    <li><strong>Carnets et classeurs papier</strong> : suivi des paiements à la main, risques de perte et d'erreur.</li>
+    <li><strong>E-mails et WhatsApp</strong> : communication non structurée avec les entrepreneurs et les intervenants.
+    </li>
+    <li><strong>Aucun historique centralisé</strong> : impossible de retrouver l'historique complet d'un client ou d'un
+      bien en quelques secondes.</li>
+  </ul>
+
+  <h2>2.2 Preuves terrain</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Résultat</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Utilisez-vous Excel ou papier pour la gestion ?</td>
+        <td><strong>89 %</strong> (33/37)</td>
+      </tr>
+      <tr>
+        <td>Avez-vous déjà perdu des données financières critiques ?</td>
+        <td><strong>62 %</strong> (23/37)</td>
+      </tr>
+      <tr>
+        <td>Êtes-vous satisfait de vos outils actuels ?</td>
+        <td><strong>19 %</strong> seulement satisfaits</td>
+      </tr>
+      <tr>
+        <td>Seriez-vous prêt à payer pour un logiciel adapté ?</td>
+        <td><strong>70 %</strong> (26/37)</td>
+      </tr>
+      <tr>
+        <td>Budget mensuel envisagé</td>
+        <td>Médiane : <strong>1 500–2 500 MAD/mois</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <blockquote>
+    "On perd facilement 2 heures par jour à chercher dans les fichiers Excel. On a eu une erreur de 30 000 MAD dans un
+    paiement client l'année dernière." — <em>Gérant de promotion immobilière, Fès.</em>
+  </blockquote>
+
+  <hr>
+
+  <!-- SECTION 3 -->
+  <h1 id="s3">3. Solution &amp; Produit (MVP) &nbsp;/&nbsp; Solution &amp; Product</h1>
+
+  <h2>3.1 Description du produit</h2>
+  <p><strong>ImmoTrack ERP</strong> est une <strong>application de bureau native</strong> (Windows 10/11, Linux) qui
+    combine une interface moderne React avec un moteur backend Laravel, packagé via <strong>Tauri</strong> en une
+    application installable légère (~65 Mo).</p>
+
+  <p><strong>Type de produit :</strong> Application logicielle desktop native. Sa conception modulaire permet une
+    utilisation <strong>sur mesure</strong> : elle peut fonctionner en autonomie totale (base de données locale) ou être
+    déployée instantanément comme un <strong>SaaS</strong> (backend centralisé).</p>
+
+  <h2>3.2 État actuel du MVP</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Composant</th>
+        <th>État</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Application desktop (Tauri + React)</td>
+        <td>✅ Alpha testée</td>
+      </tr>
+      <tr>
+        <td>Backend API Laravel (Auth Sanctum)</td>
+        <td>✅ 40+ Endpoints opérationnels</td>
+      </tr>
+      <tr>
+        <td>Module Contentieux &amp; Justice</td>
+        <td>✅ Gestion des dossiers juridiques</td>
+      </tr>
+      <tr>
+        <td>Module RH (Salaires &amp; Ouvriers)</td>
+        <td>✅ Gestion des missions et bulletins</td>
+      </tr>
+      <tr>
+        <td>Suivi Technique (Gros Œuvre / Finition)</td>
+        <td>✅ Structure de données opérationnelle</td>
+      </tr>
+      <tr>
+        <td>Gestion des Cautions (Guarantee Checks)</td>
+        <td>✅ Suivi des chèques de garantie</td>
+      </tr>
+      <tr>
+        <td>Interface de carte interactive (terrain map)</td>
+        <td>✅ SVG vectoriel dynamique</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECTION 4 -->
+  <h1 id="s4">4. Étude de marché &nbsp;/&nbsp; Market Study</h1>
+
+  <h2>4.1 Persona client</h2>
+  <p><em>Source : Recensement économique HCP 2024, secteur Immobilier &amp; Construction.</em></p>
+
+  <h2>4.3 Méthodologie de recherche</h2>
+  <ul>
+    <li><strong>Questionnaire en ligne</strong> diffusé via LinkedIn et groupes WhatsApp professionnels : <strong>37
+        réponses</strong></li>
+    <li><strong>Entretiens semi-directifs :</strong> 8 entretiens individuels (30–45 min) à Fès et Oujda</li>
+    <li><strong>Observation terrain :</strong> Visite de 2 bureaux de promotion pour observer les workflows réels</li>
+    <li><strong>Analyse de la concurrence :</strong> Test des 4 solutions concurrentes identifiées</li>
+  </ul>
+
+  <h2>4.4 Analyse concurrentielle</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Critère</th>
+        <th>Excel/Papier</th>
+        <th>ERP (Odoo)</th>
+        <th>Logiciel FR importé</th>
+        <th>ImmoTrack ERP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Prix</strong></td>
+        <td>Gratuit</td>
+        <td>500–3 000 €/mois</td>
+        <td>200–500 €/mois</td>
+        <td><strong>2 000 MAD/mois</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Adapté Maroc</strong></td>
+        <td>Partiel</td>
+        <td>Non</td>
+        <td>Non</td>
+        <td><strong>Oui</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Hors-ligne</strong></td>
+        <td>Oui</td>
+        <td>Non</td>
+        <td>Non</td>
+        <td><strong>Oui</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Suivi chantier intégré</strong></td>
+        <td>Non</td>
+        <td>Partiel</td>
+        <td>Non</td>
+        <td><strong>Oui</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Export PDF/DOCX/XLSX</strong></td>
+        <td>Partiel</td>
+        <td>Oui</td>
+        <td>Oui</td>
+        <td><strong>Oui</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Courbe d'apprentissage</strong></td>
+        <td>Faible</td>
+        <td>Très élevée</td>
+        <td>Élevée</td>
+        <td><strong>Faible</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Support local</strong></td>
+        <td>N/A</td>
+        <td>Non</td>
+        <td>Non</td>
+        <td><strong>Oui</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4.5 Positionnement</h2>
+  <blockquote><strong>ImmoTrack ERP occupe la case que personne d'autre ne coche :</strong> un logiciel de gestion
+    immobilière complet, abordable, conçu pour le contexte marocain, fonctionnant hors-ligne, avec un support local.
+  </blockquote>
+
+  <hr>
+
+  <!-- SECTION 5 -->
+  <h1 id="s5">5. Stratégie marketing &amp; commerciale &nbsp;/&nbsp; Marketing &amp; Sales</h1>
+
+  <h2>5.1 Prix et justification</h2>
+  <p><strong>Tarif principal : 18000 MAD/an (2 000 MAD/mois)</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Justification</th>
+        <th>Détail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Coût de revient par licence</td>
+        <td>~600 MAD/an (hébergement, support, maintenance)</td>
+      </tr>
+      <tr>
+        <td>Prix concurrents les moins chers</td>
+        <td>2 000–6 000 MAD/an</td>
+      </tr>
+      <tr>
+        <td>Budget déclaré par les sondés</td>
+        <td>150–250 MAD/mois</td>
+      </tr>
+      <tr>
+        <td>Marge brute</td>
+        <td>~75 %</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Option on-premise : 8 000 MAD</strong> (installation locale + 1 an de support inclus).</p>
+
+  <h2>5.2 Canal principal : Vente directe &amp; démonstration terrain</h2>
+  <ol>
+    <li><strong>Phase 1 (Validation MVP) :</strong> Identifier 5 promoteurs pilotes via notre réseau de proximité
+      (contacts sectoriels, OFPPT).</li>
+    <li>Proposer <strong>3 mois d'essai gratuit</strong> en échange d'un retour structuré et d'une référence.</li>
+    <li>Assurer l'installation, la formation (1 journée), et le suivi mensuel.</li>
+    <li>Convertir en licence payante au mois 4 (tarif préférentiel la 1ère année).</li>
+    <li><strong>Phase 2 (Croissance) :</strong> Déploiement commercial agressif sur <strong>Casablanca</strong> (centre
+      névralgique de l'immobilier), armés de nos références clients.</li>
+  </ol>
+  <p><strong>Actions concrètes (90 jours) :</strong></p>
+  <ul>
+    <li>Semaine 1–2 : Contacter 20 promoteurs par téléphone/WhatsApp</li>
+    <li>Semaine 3–4 : 5 démonstrations en entreprise planifiées</li>
+    <li>Mois 2 : 3 installations pilotes actives</li>
+    <li>Mois 3 : Premier retour utilisateur documenté, ajustements produit</li>
+  </ul>
+
+  <h2>5.3 Page web &amp; présence en ligne</h2>
+  <ul>
+    <li><strong>URL de la landing page :</strong> <code>myamical.ma</code> <em>(en cours d'acquisition)</em></li>
+    <li><strong>Objectif :</strong> Présenter le produit, recueillir des demandes de démonstration</li>
+    <li><strong>Contenu :</strong> Vidéo démo 2 min, captures d'écran, formulaire de contact</li>
+    <li><strong>Objectif de conversion :</strong> 5 % des visiteurs → demande de démo</li>
+  </ul>
+
+  <h2>5.4 Plan de communication</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Canal</th>
+        <th>Message</th>
+        <th>Calendrier</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>LinkedIn</td>
+        <td>Contenu éducatif (problèmes Excel) + démos vidéo</td>
+        <td>2 posts/semaine</td>
+      </tr>
+      <tr>
+        <td>WhatsApp Business</td>
+        <td>Suivi personnalisé des prospects</td>
+        <td>Contenu journalier</td>
+      </tr>
+      <tr>
+        <td>Salon BAT'IMMO Maroc</td>
+        <td>Démonstration live, stand partenarial</td>
+        <td>Septembre 2026</td>
+      </tr>
+      <tr>
+        <td>Bouche-à-oreille</td>
+        <td>Parrainage : 500 MAD de réduction pour chaque référence</td>
+        <td>Permanent</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5.5 Plan pour les 10 premiers clients</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Mois</th>
+        <th>Action</th>
+        <th>Clients attendus</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>5 pilotes gratuits (réseau direct)</td>
+        <td>0 payant</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Conversion 2 pilotes + 3 nouveaux prospects</td>
+        <td>2 payants</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Démonstration salon régional</td>
+        <td>4 payants</td>
+      </tr>
+      <tr>
+        <td>4–6</td>
+        <td>Programme de parrainage lancé</td>
+        <td>10 payants</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECTION 6 -->
+  <h1 id="s6">6. Modèle économique &amp; Plan financier &nbsp;/&nbsp; Financials</h1>
+
+  <h2>6.1 Sources de revenus</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Source</th>
+        <th>Prix</th>
+        <th>Fréquence</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Licence annuelle SaaS</strong></td>
+        <td>18 000 MAD/an</td>
+        <td>Récurrent</td>
+      </tr>
+      <tr>
+        <td><strong>Déploiement on-premise</strong></td>
+        <td>8 000 MAD</td>
+        <td>Unique</td>
+      </tr>
+      <tr>
+        <td><strong>Formation &amp; onboarding</strong></td>
+        <td>500 MAD/session</td>
+        <td>À la demande</td>
+      </tr>
+      <tr>
+        <td><strong>Support prioritaire</strong></td>
+        <td>1 200 MAD/an</td>
+        <td>Optionnel</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6.2 Coûts de démarrage</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Poste</th>
+        <th>Coût estimé</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Hébergement serveur (VPS, 1 an)</td>
+        <td>2 400 MAD</td>
+      </tr>
+      <tr>
+        <td>Domaine + SSL (myamical.ma)</td>
+        <td>400 MAD</td>
+      </tr>
+      <tr>
+        <td>Marketing &amp; démonstrations (déplacements)</td>
+        <td>3 000 MAD</td>
+      </tr>
+      <tr>
+        <td>Matériel de présentation (flyers, clés USB)</td>
+        <td>1 500 MAD</td>
+      </tr>
+      <tr>
+        <td>Outils de développement &amp; licences</td>
+        <td>1 200 MAD</td>
+      </tr>
+      <tr>
+        <td>Réserve imprévus</td>
+        <td>2 500 MAD</td>
+      </tr>
+      <tr>
+        <td><strong>TOTAL</strong></td>
+        <td><strong>11 000 MAD</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6.3 Coût unitaire &amp; marge par licence</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Élément</th>
+        <th>Montant</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Prix de vente (annuel)</td>
+        <td>18 000 MAD</td>
+      </tr>
+      <tr>
+        <td>Coût variable par client (support, serveur)</td>
+        <td>600 MAD</td>
+      </tr>
+      <tr>
+        <td><strong>Marge brute par licence</strong></td>
+        <td><strong>17 400 MAD (~96 %)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6.4 Prévision sur 12 mois</h2>
+  <p><em>Hypothèses : 0 vente mois 1–2 (pilotes gratuits), montée progressive, 3 on-premise dans l'année.</em></p>
+  <table>
+    <thead>
+      <tr>
+        <th>Mois</th>
+        <th>Licences actives</th>
+        <th>Revenus (MAD)</th>
+        <th>Charges (MAD)</th>
+        <th>Trésorerie cumulée</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>3 500</td>
+        <td>-3 500</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1 500</td>
+        <td>-5 000</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>2</td>
+        <td>36 000</td>
+        <td>1 500</td>
+        <td>29 500</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>4</td>
+        <td>36 000</td>
+        <td>1 500</td>
+        <td>64 000</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>6</td>
+        <td>36 000</td>
+        <td>1 500</td>
+        <td>98 500</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>10 + 1 on-premise</td>
+        <td>188 000</td>
+        <td>2 000</td>
+        <td>284 500</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>15</td>
+        <td>90 000</td>
+        <td>2 000</td>
+        <td>372 500</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>20</td>
+        <td>90 000</td>
+        <td>2 000</td>
+        <td>460 500</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>25 + 1 on-premise</td>
+        <td>458 000</td>
+        <td>2 500</td>
+        <td>916 000</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>30</td>
+        <td>90 000</td>
+        <td>2 500</td>
+        <td>1 003 500</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>35</td>
+        <td>90 000</td>
+        <td>2 500</td>
+        <td>1 091 000</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td>40 + 1 on-premise</td>
+        <td>728 000</td>
+        <td>3 000</td>
+        <td>1 816 000</td>
+      </tr>
+      <tr style="background:#1e3a5f;color:#fff">
+        <td><strong>TOTAL AN 1</strong></td>
+        <td><strong>40 + 3 on-premise</strong></td>
+        <td><strong>~744 000 MAD</strong></td>
+        <td><strong>~25 500 MAD</strong></td>
+        <td><strong>~718 500 MAD</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>6.5 Seuil de rentabilité</h2>
+  <pre>Charges fixes annuelles estimées : ~11 000 MAD
+Marge brute par licence           :   17 400 MAD
+
+Seuil de rentabilité = 11 000 / 17 400 = ~0,63 licence
+→ Seuil atteint dès la 1ère licence vendue.</pre>
+
+  <h2>6.6 Hypothèses déclarées</h2>
+  <ul>
+    <li>On suppose 5 pilotes gratuits les 2 premiers mois (sans revenus).</li>
+    <li>On prévoit un taux de <strong>Contentieux</strong> client de ~5% (géré nativement par l'outil).</li>
+    <li>Les charges incluent les frais de <strong>Protection Civile</strong> et de <strong>Conservation
+        Foncière</strong> simulés pour les projets tests.</li>
+    <li>L'hébergement est prévu sur des serveurs <strong>OVH Cloud (Région Maroc/France)</strong> pour garantir la
+      latence.</li>
+    <li>Aucun employé salarié en année 1 — Mustapha et Yahya uniquement.</li>
+  </ul>
+
+  <hr>
+
+  <!-- SECTION 7 -->
+  <h1 id="s7">7. Plan opérationnel &nbsp;/&nbsp; Operations Plan</h1>
+
+  <h2>7.1 Comment le produit est délivré</h2>
+  <p><strong>Deux modes de déploiement flexibles :</strong></p>
+
+  <p><strong>1. Mode SaaS (Centralisé) :</strong><br>
+    C'est l'option recommandée pour la collaboration. Le backend Laravel est hébergé sur un serveur cloud (VPS),
+    permettant à plusieurs applications desktop ImmoTrack ERP (sur différents postes ou villes) de partager la même base
+    de
+    données en temps réel.</p>
+
+  <p><strong>2. Mode Bureau Sur Mesure (Local / On-Premise) :</strong><br>
+    Pour les clients exigeant une confidentialité totale ou travaillant sur des sites sans internet fiable. Tout le
+    système (Frontend + Backend + BDD) est installé sur une machine locale ou un serveur d'entreprise.</p>
+
+  <h2>7.2 Outils &amp; Infrastructure</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Outil</th>
+        <th>Usage</th>
+        <th>Coût</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>VPS OVH (4 Go RAM)</td>
+        <td>Backend API + BDD PostgreSQL</td>
+        <td>200 MAD/mois</td>
+      </tr>
+      <tr>
+        <td>GitHub + GitHub Actions</td>
+        <td>Versionnage + CI/CD automatisé</td>
+        <td>Gratuit</td>
+      </tr>
+      <tr>
+        <td>Tauri Build System</td>
+        <td>Compilation cross-platform</td>
+        <td>Gratuit (open source)</td>
+      </tr>
+      <tr>
+        <td>Laravel Forge (optionnel)</td>
+        <td>Déploiement serveur simplifié</td>
+        <td>190 MAD/mois</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>7.3 Forme juridique envisagée</h2>
+  <p><strong>Auto-entrepreneur</strong> dans un premier temps (revenus &lt; 500 000 MAD/an), puis passage en
+    <strong>SARL</strong> à partir de la 2e année si les revenus dépassent 100 000 MAD.
+  </p>
+
+  <h2>7.4 Ce qu'il faut pour lancer réellement</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Élément</th>
+        <th>Statut</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>MVP développé et fonctionnel</td>
+        <td>✅ Fait</td>
+      </tr>
+      <tr>
+        <td>Domaine myamical.ma</td>
+        <td>⬜ À acquérir (~400 MAD)</td>
+      </tr>
+      <tr>
+        <td>VPS serveur configuré</td>
+        <td>⬜ À configurer (~2 400 MAD/an)</td>
+      </tr>
+      <tr>
+        <td>Statut auto-entrepreneur</td>
+        <td>⬜ À déposer (CNSS, gratuit)</td>
+      </tr>
+      <tr>
+        <td>5 promoteurs pilotes identifiés</td>
+        <td>⬜ En cours de prospection</td>
+      </tr>
+      <tr>
+        <td>Landing page en ligne</td>
+        <td>⬜ À finaliser</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECTION 8 -->
+  <h1 id="s8">8. Équipe &nbsp;/&nbsp; Team</h1>
+
+  <h2>Composition de l'équipe</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Membre</th>
+        <th>Rôle</th>
+        <th>Contribution au projet</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Mustapha Farouss</strong></td>
+        <td>Analyste &amp; Systèmes (Business Analyst)</td>
+        <td>Analyse des besoins métier, stratégie de déploiement et relations avec les promoteurs pilotes.</td>
+      </tr>
+      <tr>
+        <td><strong>Yahya Elkhazraoui</strong></td>
+        <td>Développeur (Tech Lead Full Stack)</td>
+        <td>Développement React/Tauri, architecture backend Laravel, et infrastructure logicielle globale.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Complémentarité</h2>
+  <p>L'équipe couvre les trois compétences fondamentales d'une startup technologique : <strong>développement
+      (backend)</strong>, <strong>produit (frontend/UX)</strong>, et <strong>business (marché/commercial)</strong>.
+    L'équipe de co-fondateurs (Mustapha et Yahya) a travaillé main dans la main sur l'intégralité du projet, de la
+    conception à la livraison du MVP.</p>
+
+  <h2>Compétences manquantes &amp; plan</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Manque identifié</th>
+        <th>Solution</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Comptabilité / gestion financière</td>
+        <td>Partenaire expert-comptable (OFPPT alumni)</td>
+      </tr>
+      <tr>
+        <td>Design graphique professionnel</td>
+        <td>Freelance ponctuel (Fiverr, 1 000 MAD)</td>
+      </tr>
+      <tr>
+        <td>Support client à grande échelle</td>
+        <td>Embauche d'un assistant support (an 2)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECTION 9 -->
+  <h1 id="s9">9. Feuille de route &amp; Risques &nbsp;/&nbsp; Roadmap &amp; Risks</h1>
+
+  <h2>9.1 Jalons à 3, 6 et 12 mois</h2>
+  <p><strong>À 3 mois (Septembre 2026) :</strong></p>
+  <ul>
+    <li>Domaine myamical.ma acquis et landing page en ligne</li>
+    <li>Statut auto-entrepreneur déposé</li>
+    <li>5 promoteurs pilotes actifs avec l'application installée</li>
+    <li>Première version de documentation utilisateur (PDF)</li>
+    <li>3 retours structurés collectés → correctifs appliqués</li>
+  </ul>
+  <p><strong>À 6 mois (Décembre 2026) :</strong></p>
+  <ul>
+    <li>15 licences payantes actives — seuil de rentabilité atteint</li>
+    <li>Premier salon professionnel (BAT'IMMO ou équivalent)</li>
+    <li>Module de reporting analytique (version bêta)</li>
+    <li>3 témoignages clients publiés sur la landing page</li>
+  </ul>
+  <p><strong>À 12 mois (Juin 2027) :</strong></p>
+  <ul>
+    <li>40 licences actives + 3 on-premise = <strong>~60 000 MAD de revenus</strong></li>
+    <li>Interface en arabe (RTL) disponible</li>
+    <li>Application mobile de consultation (React Native)</li>
+    <li>Passage au statut SARL si revenus &gt; 100 000 MAD</li>
+    <li>2 partenariats avec des agences immobilières régionales</li>
+  </ul>
+
+  <h2>9.2 Risques &amp; plans de réponse</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Risque</th>
+        <th>Prob.</th>
+        <th>Impact</th>
+        <th>Plan de réponse</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>Résistance au changement — promoteurs préfèrent Excel</td>
+        <td>Élevée</td>
+        <td>Élevé</td>
+        <td>Formation incluse (1 jour), interface simplifiée, 3 mois d'essai gratuit</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>Concurrent direct émergeant avec des fonds</td>
+        <td>Moyenne</td>
+        <td>Élevé</td>
+        <td>Accélérer l'acquisition, construire une base fidèle, veille active</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Dépendance à un seul canal de vente (direct)</td>
+        <td>Moyenne</td>
+        <td>Moyen</td>
+        <td>Développer LinkedIn et parrainage en parallèle dès le mois 3</td>
+      </tr>
+      <tr>
+        <td><strong>4</strong></td>
+        <td>Bug critique chez un client payant en production</td>
+        <td>Faible</td>
+        <td>Élevé</td>
+        <td>CI/CD automatisé, sauvegardes journalières, hotline support 24h</td>
+      </tr>
+      <tr>
+        <td><strong>5</strong></td>
+        <td>Budget insuffisant pour le démarrage</td>
+        <td>Faible</td>
+        <td>Moyen</td>
+        <td>Coûts maîtrisés (11 000 MAD), réductibles à 6 000 MAD si nécessaire</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr>
+
+  <!-- SECTION 10 -->
+  <h1 id="s10">10. Annexes &nbsp;/&nbsp; Appendices</h1>
+
+  <h2>A. Questionnaire et résultats détaillés</h2>
+  <p><strong>Questionnaire diffusé auprès de 37 professionnels du secteur immobilier</strong></p>
+  <ol>
+    <li><strong>Quelle est votre fonction principale ?</strong><br>Promoteur/gérant : 54 % | Comptable : 22 % | Chef
+      de
+      chantier : 16 % | Autre : 8 %</li>
+    <li><strong>Combien de projets gérez-vous simultanément ?</strong><br>1–2 projets : 43 % | 3–5 projets : 40 % | 5+
+      projets : 17 %</li>
+    <li><strong>Quels outils utilisez-vous actuellement ?</strong><br>Excel : 89 % | Logiciel spécialisé : 8 % |
+      Papier/carnet : 65 % | ERP : 3 %</li>
+    <li><strong>Avez-vous déjà perdu des données financières critiques ?</strong><br>Oui : 62 % | Non : 38 %</li>
+    <li><strong>Êtes-vous satisfait de vos outils actuels ?</strong><br>Très satisfait : 3 % | Satisfait : 16 % |
+      Insatisfait : 49 % | Très insatisfait : 32 %</li>
+    <li><strong>Seriez-vous prêt à utiliser un logiciel dédié ?</strong><br>Oui : 70 % | Peut-être : 22 % | Non : 8 %
+    </li>
+    <li><strong>Quel budget mensuel seriez-vous prêt à allouer ?</strong><br>&lt;900 MAD : 11 % | 900–1 500 MAD : 35 % |
+      1 500–3 000 MAD : 38 % | &gt;3 000 MAD : 16 %</li>
+  </ol>
+
+  <h2>B. Architecture technique simplifiée</h2>
+  <pre>┌─────────────────────────────────────────────────┐
+│           ImmoTrack ERP Desktop App (Tauri)     │
+│  ┌───────────────────────────────────────────┐  │
+│  │   React 19 + TypeScript (Frontend UI)    │  │
+│  │   TanStack React Query (State/Cache)     │  │
+│  │   Tailwind CSS + Lucide Icons            │  │
+│  └──────────────────┬────────────────────────┘  │
+└─────────────────────┼───────────────────────────┘
+                      │ HTTPS / REST API
+┌─────────────────────▼───────────────────────────┐
+│           Laravel Backend (API Server)          │
+│  ┌──────────────┐  ┌──────────────────────────┐ │
+│  │ Sanctum Auth │  │  Resource Controllers     │ │
+│  └──────────────┘  └──────────────────────────┘ │
+│  ┌──────────────────────────────────────────┐   │
+│  │    PostgreSQL Database (Eloquent ORM)    │   │
+│  └──────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────┘</pre>
+
+  <h2>C. Captures d'écran du MVP</h2>
+
+  <!-- INSTRUCTIONS POUR AJOUTER VOS IMAGES : 
+       1. Prenez vos captures d'écran et placez-les dans le même dossier `docs` que ce fichier HTML.
+       2. Renommez-les par exemple `dashboard.png` ou `suivi-chantier.png`
+       3. Remplacez le texte "votre-image.png" ci-dessous par le nom de votre image. -->
+
+  <p><strong>Tableau de bord principal</strong></p>
+  <img src="image.png" alt="Aperçu du logiciel"
+    style="max-width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; margin: 10px 0 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+
+  <h2>D. Calculs financiers détaillés</h2>
+  <pre>Charges fixes annuelles :
+  - Hébergement VPS          : 2 400 MAD
+  - Domaine + SSL            :   400 MAD
+  - Marketing & déplacements : 3 000 MAD
+  - Matériel de présentation : 1 500 MAD
+  - Outils dev               : 1 200 MAD
+  - Imprévus                 : 2 500 MAD
+  TOTAL charges fixes        : 11 000 MAD
+  + Charges variables (support, ~600 MAD x N licences)
+
+Marge brute par licence : 18 000 - 600 = 17 400 MAD
+Seuil = 11 000 / 17 400 = ~0,63 licence (charges fixes seules)
+En incluant les charges variables : équilibre atteint dès la 1ère licence.
+
+Vérification cohérence (scénario optimiste) :
+  40 licences × 18 000 MAD   = 720 000 MAD
+  3 on-premise × 8 000 MAD   =  24 000 MAD
+  Total revenus bruts an 1   = 744 000 MAD
+  Total charges estimées     =  35 000 MAD
+  Résultat net estimé an 1   = 709 000 MAD
+
+Scénario conservateur (25 licences + 1 on-premise) :
+  25 licences × 18 000 MAD   = 450 000 MAD
+  1 on-premise               =   8 000 MAD
+  Total revenus              = 458 000 MAD
+  458 000 - 25 000 (charges) = 433 000 MAD net</pre>
+
+  <h2>E. Références &amp; sources</h2>
+  <ol>
+    <li>HCP Maroc — Recensement économique 2024 : <em>Structure des entreprises du secteur immobilier et construction
+        au
+        Maroc</em></li>
+    <li>Ministère de l'Habitat et de la Politique de la Ville — Rapport annuel 2023</li>
+    <li>FNAIM Maroc — <em>Baromètre de la promotion immobilière 2024</em></li>
+    <li>Enquête primaire réalisée par l'équipe ImmoTrack ERP (Mai–Juin 2026) — N=37 répondants</li>
+  </ol>
+
+  <hr>
+
+  <div class="footer">
+    ImmoTrack ERP &mdash; Business Plan Confidentiel &mdash; OFPPT &mdash; Juin 2026 &mdash; Version 1.0
+  </div>
+
+</body>
+
+</html>

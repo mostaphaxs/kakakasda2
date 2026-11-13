@@ -39,9 +39,6 @@ class PaymentsController extends Controller
             'method'       => 'required|string',
             'reference_no' => ['nullable', 'string', new UniqueReference()],
             'bank_name'    => 'nullable|string',
-            'source_bank'  => 'nullable|string',
-            'destination_bank' => 'nullable|string',
-            'virement_type' => 'nullable|string',
             'bank_commission' => 'nullable|numeric|min:0',
             'notes'        => 'nullable|string',
             'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',
@@ -50,6 +47,11 @@ class PaymentsController extends Controller
         if ($request->hasFile('receipt')) {
             $path = $request->file('receipt')->store('receipts', 'public');
             $validated['receipt_path'] = $path;
+        }
+
+        // New cheques start their life cycle as "reçu" (to deposit)
+        if (($validated['method'] ?? null) === 'Chèque') {
+            $validated['cheque_status'] = 'recu';
         }
 
         $payment = payments::create($validated);
@@ -131,9 +133,6 @@ class PaymentsController extends Controller
             'method'       => 'nullable|string',
             'reference_no' => ['nullable', 'string', new UniqueReference('payments', $payment->id)],
             'bank_name'    => 'nullable|string',
-            'source_bank'  => 'nullable|string',
-            'destination_bank' => 'nullable|string',
-            'virement_type' => 'nullable|string',
             'bank_commission' => 'nullable|numeric|min:0',
             'notes'        => 'nullable|string',
             'receipt'      => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:5120',

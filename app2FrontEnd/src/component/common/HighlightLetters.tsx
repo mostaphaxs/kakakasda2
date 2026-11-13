@@ -16,7 +16,7 @@ export const HighlightLetters: React.FC<HighlightLettersProps> = ({ text }) => {
         <>
             {parts.map((part, i) => {
                 if (/[a-zA-Z]+/.test(part)) {
-                    return <strong key={i} className="font-extrabold text-gray-900">{part}</strong>;
+                    return <strong key={i} className="font-semibold text-slate-900">{part}</strong>;
                 }
                 return <React.Fragment key={i}>{part}</React.Fragment>;
             })}

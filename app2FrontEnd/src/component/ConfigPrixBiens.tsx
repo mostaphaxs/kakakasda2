@@ -22,7 +22,7 @@ interface PricingSettings {
 
 const PROPERTY_TYPES = ['Appartement', 'Villa', 'Lot Villa', 'Local Commercial', 'Bureau', 'Autre'];
 
-const ConfigPrixBiens: React.FC = () => {
+const ConfigPrixBiens: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     const queryClient = useQueryClient();
 
     // Per-project state: { [terrainId]: { [type_bien]: { fin, gros } } }
@@ -117,15 +117,14 @@ const ConfigPrixBiens: React.FC = () => {
     }
 
     return (
-        <div className="max-w-4xl mx-auto px-4 py-12 mt-12">
-            {/* Header */}
-            <div className="mb-10 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-3 mb-2">
-                    <Settings2 size={20} className="text-slate-400" />
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paramètres de Tarification par Type</h1>
-                </div>
-                <p className="text-slate-500 text-sm">Configurez les prix unitaires par projet pour chaque type de bien.</p>
-            </div>
+        <div className="space-y-5 pb-10">
+            {/* Header (hidden when shown inside Paramètres) */}
+            {!embedded && <div className="bg-white p-6 rounded-xl border border-slate-200">
+                <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                    <Settings2 size={26} className="text-slate-400 flex-shrink-0" /> Configuration des prix
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">Prix unitaires (DH/m²) par projet et par type de bien, avec ou sans finition.</p>
+            </div>}
 
             <div className="space-y-4">
                 {terrains.map((terrain) => {
@@ -136,7 +135,7 @@ const ConfigPrixBiens: React.FC = () => {
                     const isSaving = savingId === key;
 
                     return (
-                        <div key={terrain.id} className="group bg-white border border-slate-200 rounded-lg overflow-hidden transition-all hover:border-slate-300">
+                        <div key={terrain.id} className="group bg-white border border-slate-200 rounded-lg overflow-hidden transition hover:border-slate-300">
                             {/* Row Header */}
                             <button
                                 type="button"
@@ -144,16 +143,16 @@ const ConfigPrixBiens: React.FC = () => {
                                 className="w-full flex items-center justify-between px-5 py-4 text-left transition"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest shrink-0 w-8">
+                                    <div className="text-xs font-medium text-slate-400 shrink-0 w-8">
                                         #{terrain.id}
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-semibold text-slate-800 uppercase tracking-tight">{terrain.nom_projet}</h3>
+                                        <h3 className="text-sm font-semibold text-slate-800 tracking-tight">{terrain.nom_projet}</h3>
                                         <div className="flex items-center gap-3 mt-1">
                                             {cfg ? (
-                                                <span className="text-[10px] text-emerald-600 font-bold uppercase">Tarifs spécifiques configurés</span>
+                                                <span className="text-xs text-emerald-600 font-medium">Tarifs spécifiques configurés</span>
                                             ) : (
-                                                <span className="text-[10px] text-slate-400 font-medium">Tarifs par défaut appliqués</span>
+                                                <span className="text-xs text-slate-400 font-medium">Tarifs par défaut appliqués</span>
                                             )}
                                         </div>
                                     </div>
@@ -165,14 +164,14 @@ const ConfigPrixBiens: React.FC = () => {
 
                             {/* Settings Panel */}
                             {isOpen && (
-                                <div className="px-5 pb-6 pt-2 bg-slate-50/30 border-t border-slate-100 animate-in fade-in duration-300">
+                                <div className="px-5 pb-6 pt-2 bg-slate-50/30 border-t border-slate-100 duration-300">
                                     <div className="overflow-x-auto mb-6">
                                         <table className="w-full text-left">
                                             <thead>
                                                 <tr>
-                                                    <th className="pb-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Type de Bien</th>
-                                                    <th className="pb-3 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Prix avec finition (DH / m²)</th>
-                                                    <th className="pb-3 px-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Prix gros œuvre (DH / m²)</th>
+                                                    <th className="pb-3 whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Type de Bien</th>
+                                                    <th className="pb-3 text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Prix avec finition (DH / m²)</th>
+                                                    <th className="pb-3 text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Prix gros œuvre (DH / m²)</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 border-t border-slate-100">
@@ -186,7 +185,7 @@ const ConfigPrixBiens: React.FC = () => {
                                                                     type="text"
                                                                     value={typeVals.fin}
                                                                     onChange={e => setProjectVal(key, type, 'fin', e.target.value)}
-                                                                    className="w-32 h-9 px-3 bg-white border border-slate-200 rounded text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-right transition-all"
+                                                                    className="w-32 text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                                     placeholder="9.000"
                                                                 />
                                                             </td>
@@ -195,7 +194,7 @@ const ConfigPrixBiens: React.FC = () => {
                                                                     type="text"
                                                                     value={typeVals.gros}
                                                                     onChange={e => setProjectVal(key, type, 'gros', e.target.value)}
-                                                                    className="w-32 h-9 px-3 bg-white border border-slate-200 rounded text-sm font-bold text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 text-right transition-all"
+                                                                    className="w-32 text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                                     placeholder="7.000"
                                                                 />
                                                             </td>
@@ -211,7 +210,7 @@ const ConfigPrixBiens: React.FC = () => {
                                             type="button"
                                             disabled={isSaving}
                                             onClick={() => handleProjectSave(terrain.id)}
-                                            className="h-10 px-6 bg-slate-900 text-white rounded-md text-[11px] font-bold uppercase tracking-widest hover:bg-black disabled:bg-slate-400 transition-all shadow-sm flex items-center justify-center gap-2"
+                                            className="h-10 px-4 text-white rounded-md text-sm font-medium disabled:bg-slate-400 transition shadow-sm flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800"
                                         >
                                             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                                             {isSaving ? 'Mise à jour...' : 'Appliquer les tarifs'}
@@ -226,7 +225,7 @@ const ConfigPrixBiens: React.FC = () => {
 
             <div className="mt-12 pt-8 border-t border-slate-100 flex items-center justify-center sm:justify-start gap-4">
                 <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Calculateur de prix par type actif</p>
+                <p className="text-xs text-slate-400 font-semibold">Calculateur de prix par type actif</p>
             </div>
         </div>
     );

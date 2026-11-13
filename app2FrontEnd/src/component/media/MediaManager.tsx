@@ -13,6 +13,7 @@ import {
 import toast from 'react-hot-toast';
 import { openExternal } from '../../lib/tauri';
 import { apiFetch, STORAGE_BASE } from '../../lib/api';
+import { confirmDialog } from '../common/ConfirmDialog';
 
 
 interface Media {
@@ -94,7 +95,7 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Supprimer ce fichier ?')) return;
+        if (!await confirmDialog('Supprimer ce fichier ?')) return;
         try {
             await apiFetch(`/media/${id}`, { method: 'DELETE' });
             toast.success('Fichier supprimé');
@@ -113,7 +114,7 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
         <div className="space-y-4">
             {/* Header row */}
             <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <h3 className="text-xs font-semibold text-slate-500 flex items-center gap-2">
                     {category === 'photo'
                         ? <ImageIcon size={14} className="text-blue-500" />
                         : <FileText size={14} className="text-amber-500" />}
@@ -143,7 +144,7 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
                     </label>
                 ) : (
                     <span
-                        className="p-1.5 rounded-lg bg-slate-50 text-slate-300 cursor-not-allowed select-none"
+                        className="hidden"
                         title="Enregistrez d'abord pour activer l'upload"
                     >
                         <Plus size={16} />
@@ -155,7 +156,7 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
             {!hasModel && (
                 <div className="p-6 border-2 border-dashed border-slate-100 rounded-xl flex flex-col items-center gap-2">
                     <AlertCircle size={18} className="text-slate-300" />
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 text-center">
+                    <p className="text-xs font-medium text-slate-400 text-center">
                         {category === 'photo'
                             ? 'Enregistrez d\'abord pour ajouter des photos'
                             : 'Enregistrez d\'abord pour ajouter des documents'}
@@ -173,13 +174,13 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
                     ) : media.length === 0 ? (
                         <div className="p-6 border border-dashed border-slate-200 rounded-xl flex flex-col items-center gap-1 text-center bg-slate-50/50">
                             <Upload size={18} className="text-slate-300" />
-                            <p className="text-[9px] font-bold uppercase text-slate-400">Aucun fichier</p>
+                            <p className="text-xs font-medium text-slate-400">Aucun fichier</p>
                         </div>
                     ) : (
                         media.map(m => (
                             <div
                                 key={m.id}
-                                className="group flex items-center gap-3 p-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all"
+                                className="group flex items-center gap-3 p-2 bg-white border border-slate-200 rounded-xl hover:border-blue-200 hover:shadow-sm transition"
                             >
                                 {category === 'photo' ? (
                                     <div
@@ -204,17 +205,17 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
 
 
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-black text-slate-700 truncate uppercase">{m.file_name}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase">
+                                    <p className="text-xs font-semibold text-slate-700 truncate">{m.file_name}</p>
+                                    <p className="text-xs font-medium text-slate-400">
                                         {m.file_type.split('/')[1]?.toUpperCase() || 'FILE'}
                                     </p>
                                 </div>
 
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center transition-opacity justify-end gap-0.5">
                                     <button
                                         type="button"
                                         onClick={() => openExternal(getFullUrl(m.file_path))}
-                                        className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors"
+                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                         title="Voir / Télécharger"
                                     >
                                         <Download size={14} />
@@ -223,7 +224,7 @@ const MediaManager: React.FC<MediaManagerProps> = ({ modelType, modelId, categor
                                     <button
                                         type="button"
                                         onClick={() => handleDelete(m.id)}
-                                        className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
                                     >
                                         <Trash2 size={14} />
                                     </button>

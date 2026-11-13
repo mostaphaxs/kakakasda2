@@ -5,12 +5,16 @@ import toast from 'react-hot-toast';
 import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { exportToExcel } from '../lib/excel';
-import { formatNumber, parseNumber, stripMarkdown, parseDate, MAROC_BANKS } from '../lib/utils';
+import { formatNumber, parseNumber, stripMarkdown, parseDate } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
 import MarkdownText from './common/MarkdownText';
 import { Sparkles, Mail, FileSignature } from 'lucide-react';
-import { generateContract } from '../lib/ContractGenerator';
+import { downloadSaleDocument } from '../lib/documents';
 import { generateClientEmail, improveWhatsAppMessage } from '../lib/gemini';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
+import { openClientDocuments } from './common/ClientDocuments';
+import { clientPaid, clientPrice } from '../lib/clientBalance';
 
 
 interface Bien {
@@ -36,9 +40,6 @@ interface Payment {
     method?: string;
     reference_no?: string;
     bank_name?: string;
-    source_bank?: string;
-    destination_bank?: string;
-    virement_type?: string;
     notes?: string;
     status: string;
     refund_amount?: string | number;
@@ -100,9 +101,6 @@ const Clients = () => {
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
     const [bankCommission, setBankCommission] = useState('');
     const [editingPaymentId, setEditingPaymentId] = useState<number | null>(null);
-    const [virementType, setVirementType] = useState<'Transfert' | 'Versement'>('Transfert');
-    const [sourceBank, setSourceBank] = useState('');
-    const [destinationBank, setDestinationBank] = useState('');
 
     // Cancel / Associate State
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -113,7 +111,6 @@ const Clients = () => {
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
     const [selectedBienId, setSelectedBienId] = useState<string>('');
     const [isSubmittingAssociate, setIsSubmittingAssociate] = useState(false);
-    const [paymentViewId, setPaymentViewId] = useState<number | null>(null);
 
     // Edit Client Modal State
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -161,13 +158,14 @@ const Clients = () => {
     const [contractTargetClient, setContractTargetClient] = useState<Client | null>(null);
 
     // Search & Filter State
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterFinition, setFilterFinition] = useState<'all' | 'avec' | 'sans'>('all');
-    const [filterContrat, setFilterContrat] = useState<'all' | 'avec' | 'sans'>('all');
-    const [filterType, setFilterType] = useState<string>('all');
-    const [filterTerrain, setFilterTerrain] = useState<string>('all');
-    const [filterHasBien, setFilterHasBien] = useState<'all' | 'with' | 'without'>('all');
-    const [filterStatutChoix, setFilterStatutChoix] = useState<string>('all');
+    const [searchTerm, setSearchTerm] = usePersistedState('Clients.searchTerm', '');
+    useUrlSearch(setSearchTerm);
+    const [filterFinition, setFilterFinition] = usePersistedState<'all' | 'avec' | 'sans'>('Clients.filterFinition', 'all');
+    const [filterContrat, setFilterContrat] = usePersistedState<'all' | 'avec' | 'sans'>('Clients.filterContrat', 'all');
+    const [filterType, setFilterType] = usePersistedState<string>('Clients.filterType', 'all');
+    const [filterTerrain, setFilterTerrain] = usePersistedState<string>('Clients.filterTerrain', 'all');
+    const [filterHasBien, setFilterHasBien] = usePersistedState<'all' | 'with' | 'without'>('Clients.filterHasBien', 'all');
+    const [filterStatutChoix, setFilterStatutChoix] = usePersistedState<string>('Clients.filterStatutChoix', 'all');
 
     const fetchData = async () => {
         try {
@@ -282,7 +280,7 @@ const Clients = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm("Supprimer ce client définitivement ?")) return;
+        if (!await confirmDialog("Supprimer ce client définitivement ?")) return;
         try {
             await apiFetch(`/clients/${id}`, { method: 'DELETE' });
             setClients(prev => prev.filter(c => c.id !== id));
@@ -398,7 +396,7 @@ const Clients = () => {
     };
 
     const handleDeleteDocument = async (client: Client, index: number) => {
-        if (!window.confirm("Voulez-vous vraiment supprimer ce document ? Il sera perdu définitivement.")) return;
+        if (!await confirmDialog("Voulez-vous vraiment supprimer ce document ? Il sera perdu définitivement.")) return;
 
         try {
             const res = await apiFetch<{ client: Client }>(`/clients/${client.id}/documents/${index}`, {
@@ -430,9 +428,6 @@ const Clients = () => {
             setPaymentBank('');
             setPaymentNotes('');
             setBankCommission('');
-            setVirementType('Transfert');
-            setSourceBank('');
-            setDestinationBank('');
             setPaymentDate(new Date().toLocaleDateString('fr-MA'));
         }
         setPaymentFile(null);
@@ -440,7 +435,7 @@ const Clients = () => {
     };
 
     const handleDeletePayment = async (paymentId: number) => {
-        if (!window.confirm("Supprimer ce paiement ? cette action est irréversible.")) return;
+        if (!await confirmDialog("Supprimer ce paiement ? cette action est irréversible.")) return;
         try {
             await apiFetch(`/payments/${paymentId}`, { method: 'DELETE' });
             toast.success('Paiement supprimé');
@@ -486,14 +481,8 @@ const Clients = () => {
             return;
         }
 
-        const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-        const totalVerse = client.payments?.reduce((acc, p) => {
-            const amt = parseFloat(String(p.amount));
-            const refund = parseFloat(String(p.refund_amount || 0));
-            const commission = parseFloat(String(p.bank_commission || 0));
-            if (p.type === 'Reprise') return acc - amt;
-            return acc + (amt - refund - commission);
-        }, 0) || 0;
+        const prixGlobal = clientPrice(client as any);
+        const totalVerse = clientPaid(client as any);
         const reste = Math.max(0, prixGlobal - totalVerse);
 
         let message = '';
@@ -526,14 +515,8 @@ const Clients = () => {
             setIsAILoading(true);
             setWhatsappTargetClient(client);
             setWhatsappTargetPhone(client.tel);
-            const prixGlobal = client.biens?.reduce((acc, b) => acc + (client.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-            const totalVerse = client.payments?.reduce((acc, p) => {
-                const amt = parseFloat(String(p.amount));
-                const refund = parseFloat(String(p.refund_amount || 0));
-                const commission = parseFloat(String(p.bank_commission || 0));
-                if (p.type === 'Reprise') return acc - amt;
-                return acc + (amt - refund - commission);
-            }, 0) || 0;
+            const prixGlobal = clientPrice(client as any);
+            const totalVerse = clientPaid(client as any);
             const reste = Math.max(0, prixGlobal - totalVerse);
             const projectName = client.biens?.[0]?.terrain?.nom_projet || "Vôtre Projet";
 
@@ -627,9 +610,6 @@ const Clients = () => {
             formData.append('method', paymentMethod);
             formData.append('reference_no', paymentReference);
             formData.append('bank_name', paymentBank);
-            formData.append('source_bank', sourceBank);
-            formData.append('destination_bank', destinationBank);
-            formData.append('virement_type', virementType);
             formData.append('bank_commission', parseNumber(bankCommission).toString());
             formData.append('notes', paymentNotes);
             if (paymentFile) {
@@ -733,14 +713,8 @@ const Clients = () => {
         }
 
         const dataToExport = filteredClients.map(c => {
-            const prixGlobal = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? parseFloat(String(b.prix_global_finition || 0)) : parseFloat(String(b.prix_global_non_finition || 0))), 0) || 0;
-            const totalVerse = c.payments?.reduce((acc, p) => {
-                const amt = parseFloat(String(p.amount));
-                const refund = parseFloat(String(p.refund_amount || 0));
-                const commission = parseFloat(String(p.bank_commission || 0));
-                if (p.type === 'Reprise') return acc - amt;
-                return acc + (amt - refund - commission);
-            }, 0) || 0;
+            const prixGlobal = clientPrice(c as any);
+            const totalVerse = clientPaid(c as any);
             return {
                 'ID': c.id,
                 'NOM': c.nom?.toUpperCase(),
@@ -766,21 +740,21 @@ const Clients = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-            <div className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-8 rounded-[32px] border border-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] space-y-6 mx-1">
+        <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+            <div className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-6 mx-1">
                 <div className="flex flex-wrap items-center justify-between gap-6">
                     <div>
-                        <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                            <Users className="text-blue-600" size={32} />
+                        <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                            <Users className="text-slate-400 flex-shrink-0" size={26} />
                             Clients & Réservations
                         </h1>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-bold">Société les cinq elements</span>.</p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">Dossiers clients, situation financière et documents de <span className="text-slate-800 font-semibold">Amical El Ouaha</span>.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-2xl hover:bg-slate-200 transition-all font-black text-xs uppercase tracking-widest border border-slate-200 active:scale-[0.98]"
+                            className="flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 transition font-medium text-sm border border-slate-200 active:scale-[0.98]"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
@@ -789,7 +763,7 @@ const Clients = () => {
 
                         <button
                             onClick={() => navigate('/add-client')}
-                            className="flex items-center gap-2 bg-amber-600 text-white px-8 py-3.5 rounded-2xl hover:bg-amber-700 transition-all font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/20 active:scale-[0.98]"
+                            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg transition font-medium text-sm shadow-sm active:scale-[0.98] bg-slate-900 hover:bg-slate-800"
                         >
                             <PlusCircle size={18} />
                             Nouveau Client
@@ -798,19 +772,19 @@ const Clients = () => {
                 </div>
 
                 {searchParams.get('client_id') && (
-                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-2xl animate-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-100 rounded-xl">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
                                 <Info size={20} />
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-slate-800">Affichage filtré</p>
-                                <p className="text-[10px] text-slate-500 font-medium font-bold uppercase tracking-widest">Vous visualisez le dossier spécifique lié à la sélection de la carte.</p>
+                                <p className="text-sm font-semibold text-slate-800">Affichage filtré</p>
+                                <p className="text-xs text-slate-500 font-medium">Vous visualisez le dossier spécifique lié à la sélection de la carte.</p>
                             </div>
                         </div>
                         <button
                             onClick={() => navigate('/clients')}
-                            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-600 hover:text-white transition shadow-sm"
                         >
                             Afficher Tous
                         </button>
@@ -819,53 +793,45 @@ const Clients = () => {
 
                 {/* Contract Selection Modal */}
                 {isContractModalOpen && contractTargetClient && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/50">
-                                <h3 className="font-bold text-gray-800">Générer un Contrat</h3>
-                                <button onClick={() => setIsContractModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
-                                    <X size={20} />
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/50">
+                                <h3 className="font-semibold text-slate-800">Générer un Contrat</h3>
+                                <button onClick={() => setIsContractModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
                             <div className="p-6 space-y-4">
-                                <p className="text-xs text-gray-500 text-center font-medium">Quel type de document souhaitez-vous générer pour <span className="font-bold text-slate-800">{contractTargetClient.nom} {contractTargetClient.prenom}</span> ?</p>
+                                <p className="text-xs text-slate-500 text-center font-medium">Quel type de document souhaitez-vous générer pour <span className="font-semibold text-slate-800">{contractTargetClient.nom} {contractTargetClient.prenom}</span> ?</p>
 
                                 <button
                                     onClick={() => {
-                                        const bien = contractTargetClient.biens?.[0];
-                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
-                                        generateContract('RESERVATION',
-                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
-                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
-                                        );
+                                        if (!contractTargetClient.biens?.[0]) { toast.error("Le client n'a pas de bien assigné."); return; }
                                         setIsContractModalOpen(false);
-                                        toast.success("Contrat de réservation généré !");
+                                        // same generator as everywhere else: uses Paramètres (société, cachet, clauses)
+                                        toast.promise(downloadSaleDocument('reservation', contractTargetClient.id), { loading: 'Génération…', success: 'Contrat de réservation téléchargé', error: (e: Error) => e.message });
                                     }}
-                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-amber-50 hover:border-amber-200 transition-all group"
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-amber-50 hover:border-amber-200 transition group"
                                 >
                                     <div className="text-left">
-                                        <p className="text-sm font-bold text-slate-800 group-hover:text-amber-700">Contrat de Réservation</p>
-                                        <p className="text-[10px] text-slate-400">Pour une nouvelle réservation</p>
+                                        <p className="text-sm font-semibold text-slate-800 group-hover:text-amber-700">Contrat de Réservation</p>
+                                        <p className="text-xs text-slate-400">Pour une nouvelle réservation</p>
                                     </div>
                                     <FileSignature size={20} className="text-slate-300 group-hover:text-amber-500" />
                                 </button>
 
                                 <button
                                     onClick={() => {
-                                        const bien = contractTargetClient.biens?.[0];
-                                        if (!bien) { toast.error("Le client n'a pas de bien assigné."); return; }
-                                        generateContract('COMPROMIS',
-                                            { nom: contractTargetClient.nom, prenom: contractTargetClient.prenom, cin: contractTargetClient.cin, tel: contractTargetClient.tel },
-                                            { type_bien: bien.type_bien, num_appartement: bien.num_appartement || 'N/A', surface_m2: bien.surface_m2 || 0, prix_global: contractTargetClient.avec_finition ? bien.prix_global_finition : bien.prix_global_non_finition, projet_nom: bien.terrain?.nom_projet || "Vôtre Projet", etage: bien.etage?.toString() }
-                                        );
+                                        if (!contractTargetClient.biens?.[0]) { toast.error("Le client n'a pas de bien assigné."); return; }
                                         setIsContractModalOpen(false);
-                                        toast.success("Compromis de vente généré !");
+                                        // same generator as everywhere else: uses Paramètres (société, cachet, clauses)
+                                        toast.promise(downloadSaleDocument('compromis', contractTargetClient.id), { loading: 'Génération…', success: 'Compromis de vente téléchargé', error: (e: Error) => e.message });
                                     }}
-                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                                    className="w-full flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition group"
                                 >
                                     <div className="text-left">
-                                        <p className="text-sm font-bold text-slate-800 group-hover:text-blue-700">Compromis de Vente</p>
-                                        <p className="text-[10px] text-slate-400">Document légal définitif</p>
+                                        <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700">Compromis de Vente</p>
+                                        <p className="text-xs text-slate-400">Document légal définitif</p>
                                     </div>
                                     <Check size={20} className="text-slate-300 group-hover:text-blue-500" />
                                 </button>
@@ -883,12 +849,12 @@ const Clients = () => {
                             placeholder="Recherche intelligente..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-10 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black uppercase tracking-tight text-slate-700 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none transition-all"
+                            className="w-full pl-10 pr-10 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                         {searchTerm && (
                             <button
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                             >
                                 <X size={14} />
                             </button>
@@ -898,7 +864,7 @@ const Clients = () => {
                     <select
                         value={filterFinition}
                         onChange={(e) => setFilterFinition(e.target.value as any)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Finition: Tous</option>
                         <option value="avec">Avec Finition</option>
@@ -908,7 +874,7 @@ const Clients = () => {
                     <select
                         value={filterContrat}
                         onChange={(e) => setFilterContrat(e.target.value as any)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Contrat: Tout</option>
                         <option value="avec">Avec Contrat</option>
@@ -918,7 +884,7 @@ const Clients = () => {
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Type: Tous</option>
                         {Array.from(new Set(availableBiens.map(b => b.type_bien).filter(type => type && type !== "Terrain"))).sort().map(type => (
@@ -930,7 +896,7 @@ const Clients = () => {
                     <select
                         value={filterStatutChoix}
                         onChange={(e) => setFilterStatutChoix(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Statut Choix: Tous</option>
                         <option value="SANS_CHOIX">Sans Choix</option>
@@ -941,7 +907,7 @@ const Clients = () => {
                     <select
                         value={filterTerrain}
                         onChange={(e) => setFilterTerrain(e.target.value)}
-                        className="bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-600 focus:bg-white focus:ring-4 focus:ring-blue-50/50 outline-none cursor-pointer transition-all appearance-none"
+                        className="cursor-pointer appearance-none pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Projet: Tous</option>
                         {Array.from(new Set(availableBiens.map(b => b.terrain_id).filter(Boolean))).map(tId => {
@@ -956,7 +922,7 @@ const Clients = () => {
 
                     <button
                         onClick={resetFilters}
-                        className="w-full text-slate-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-slate-100 rounded-2xl py-3 hover:bg-slate-50"
+                        className="w-full text-slate-400 hover:text-blue-600 text-sm font-medium flex items-center justify-center gap-2 transition border border-slate-100 rounded-lg py-2.5 hover:bg-slate-50"
                     >
                         <X size={14} />
                         Réinitialiser
@@ -964,11 +930,11 @@ const Clients = () => {
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-lg border border-white rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-bold text-gray-800">Flux de Réservations</h3>
-                        <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                        <h3 className="text-lg font-semibold text-slate-800">Flux de Réservations</h3>
+                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">
                             {filteredClients.length} / {clients.length} Entrées
                         </span>
                     </div>
@@ -976,61 +942,55 @@ const Clients = () => {
 
                 <div className="overflow-x-auto min-h-[200px]">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
                             <Loader2 className="animate-spin mb-2" size={18} />
                             <p className="text-sm">Chargement des réservations...</p>
                         </div>
                     ) : (
-                        <table className="w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-400 uppercase bg-gray-50/50">
+                        <table className="w-full text-sm text-left text-slate-500">
+                            <thead className="bg-white border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-4 font-semibold">Client</th>
-                                    <th className="px-6 py-4 font-semibold">Contact / CIN</th>
-                                    <th className="px-6 py-4 font-semibold">Prix Global</th>
-                                    <th className="px-6 py-4 font-semibold">Total Versé</th>
-                                    <th className="px-6 py-4 font-semibold">Reste</th>
-                                    <th className="px-6 py-4 font-semibold">Statut Bien</th>
-                                    <th className="px-6 py-4 font-semibold">Statut Choix</th>
-                                    <th className="px-6 py-4 font-semibold text-center">Actions</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Client</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Contact / CIN</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Prix Global</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Total Versé</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Reste</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Statut Bien</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Statut Choix</th>
+                                    <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-slate-100">
                                 {filteredClients.length > 0 ? (
                                     filteredClients.map((c) => (
-                                        <tr key={c.id} className="hover:bg-blue-50/30 transition-colors">
-                                            <td className="px-6 py-4">
+                                        <tr key={c.id} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="font-bold text-gray-800"><MarkdownText text={`${c.nom} ${c.prenom}`} /></div>
+                                                    <div className="font-semibold text-slate-800"><MarkdownText text={`${c.nom} ${c.prenom}`} /></div>
                                                     {c.statut === 'Annulé' && (
-                                                        <span className="px-2 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-full">Annulé</span>
+                                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-600/20">Annulé</span>
                                                     )}
                                                 </div>
-                                                <div className="text-[10px] text-gray-400">Réf: #{c.id} • {c.date_reservation || 'Pas de date'}</div>
+                                                <div className="text-xs text-slate-400">Réf: #{c.id} • {c.date_reservation || 'Pas de date'}</div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="text-xs text-slate-600 font-medium">{c.tel}</div>
-                                                <div className="text-[10px] text-slate-400 font-medium uppercase"><MarkdownText text={c.cin} /></div>
+                                                <div className="text-xs text-slate-400 font-medium"><MarkdownText text={c.cin} /></div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-slate-700">
+                                            <td className="px-4 py-3 font-semibold text-slate-700">
                                                 {c.biens && c.biens.length > 0
                                                     ? formatNumber(c.biens.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0)) + ' DH'
                                                     : '—'}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 py-3">
                                                 <div className="flex flex-col">
-                                                    <span className="font-bold text-emerald-600">
+                                                    <span className="font-semibold text-emerald-600">
                                                         {(() => {
-                                                            const total = c.payments?.reduce((acc, p) => {
-                                                                const amt = parseFloat(String(p.amount));
-                                                                const refund = parseFloat(String(p.refund_amount || 0));
-                                                                const commission = parseFloat(String(p.bank_commission || 0));
-                                                                if (p.type === 'Reprise') return acc - amt;
-                                                                return acc + (amt - refund - commission);
-                                                            }, 0) || 0;
+                                                            const total = clientPaid(c as any);
                                                             return formatNumber(total) + ' DH';
                                                         })()}
                                                     </span>
-                                                    <span className="text-[10px] text-gray-400 flex items-center gap-1">
+                                                    <span className="text-xs text-slate-400 flex items-center gap-1">
                                                         {c.payments?.length || 0} versement(s)
                                                         {c.payments?.find(p => p.receipt_path) && (
                                                             <a
@@ -1050,103 +1010,104 @@ const Clients = () => {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 font-bold text-rose-500">
+                                            <td className="px-4 py-3 font-semibold text-rose-500">
                                                 {(() => {
-                                                    const prix = c.biens?.reduce((acc, b) => acc + (c.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                    const paid = c.payments?.reduce((acc, p) => {
-                                                        const amt = parseFloat(String(p.amount));
-                                                        const refund = parseFloat(String(p.refund_amount || 0));
-                                                        const commission = parseFloat(String(p.bank_commission || 0));
-                                                        if (p.type === 'Reprise') return acc - amt;
-                                                        return acc + (amt - refund - commission);
-                                                    }, 0) || 0;
+                                                    const prix = clientPrice(c as any);
+                                                    const paid = clientPaid(c as any);
                                                     const reste = Math.max(0, prix - paid);
                                                     if (!c.biens || c.biens.length === 0) return '—';
                                                     return reste > 0 ? formatNumber(reste) + ' DH' : 'Soldé';
                                                 })()}
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 py-3">
                                                 <div className="flex flex-wrap gap-1">
                                                     {(c.biens || []).map(b => (
-                                                        <span key={b.id} className={`inline-flex flex-col px-2 py-0.5 rounded-full text-[9px] font-bold ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
+                                                        <span key={b.id} className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium flex-col ${b.statut === 'Libre' ? 'bg-green-100 text-green-700' :
                                                             b.statut === 'Vendu' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'
                                                             }`}>
                                                             <span>{b.type_bien} {b.num_appartement ? <>Bloc #<MarkdownText text={b.num_appartement} /></> : ''}</span>
                                                             {c.biens && c.biens.length > 0 && c.statut !== 'Annulé' && (
                                                                 Boolean(c.avec_contrat)
-                                                                    ? <span className="text-[8px] font-black text-amber-600 uppercase tracking-wide mt-0.5">Avec Contrat</span>
-                                                                    : <span className="text-[8px] font-black text-gray-400 uppercase tracking-wide mt-0.5">Sans Contrat</span>
+                                                                    ? <span className="text-[8px] font-semibold text-amber-600 mt-0.5">Avec Contrat</span>
+                                                                    : <span className="text-[8px] font-semibold text-slate-400 mt-0.5">Sans Contrat</span>
                                                             )}
                                                         </span>
                                                     ))}
-                                                    {(!c.biens || c.biens.length === 0) && <span className="text-[10px] text-gray-400 italic">Aucun bien</span>}
+                                                    {(!c.biens || c.biens.length === 0) && <span className="text-xs text-slate-400">Aucun bien</span>}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 py-3">
                                                 {c.statut_choix === 'SANS_CHOIX' && (
-                                                    <span className="px-2 py-1 bg-slate-100 text-slate-500 text-[9px] font-black uppercase rounded-lg border border-slate-200">Sans Choix</span>
+                                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">Sans Choix</span>
                                                 )}
                                                 {c.statut_choix === 'CHOIX_FAIT' && (
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-600 text-[9px] font-black uppercase rounded-lg border border-blue-200">Choix Fait</span>
+                                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">Choix Fait</span>
                                                 )}
                                                 {c.statut_choix === 'CONTRAT_SIGNE' && (
-                                                    <span className="px-2 py-1 bg-emerald-100 text-emerald-600 text-[9px] font-black uppercase rounded-lg border border-emerald-200">Contrat Signé</span>
+                                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Contrat Signé</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 text-center whitespace-nowrap">
-                                                <div className="flex justify-center gap-2">
+                                            <td className="px-4 py-3 text-center whitespace-nowrap">
+                                                <div className="flex items-center justify-end gap-0.5">
                                                     <button
                                                         onClick={() => handleOpenPaymentModal(c)}
-                                                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                         title="Ajouter une Avance"
                                                     >
-                                                        <PlusCircle size={18} />
+                                                        <PlusCircle size={16} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleOpenDetails(c)}
-                                                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                         title="Voir Détails"
                                                     >
-                                                        <Eye size={18} />
+                                                        <Eye size={16} />
                                                     </button>
                                                     <button
                                                         onClick={() => handleOpenWhatsAppLangModal(c)}
-                                                        className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                         title="Envoyer Rappel WhatsApp"
                                                     >
-                                                        <MessageCircle size={18} />
+                                                        <MessageCircle size={16} />
                                                     </button>
-                                                    <button onClick={() => handleEdit(c)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-all" >
+                                                    <button
+                                                        onClick={() => openClientDocuments(c.id)}
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
+                                                        title="Documents de vente (contrat, compromis, attestation)"
+                                                    >
+                                                        <FileSignature size={16} />
+                                                    </button>
+                                                    <button onClick={() => handleEdit(c)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" >
                                                         <Edit2 size={16} />
                                                     </button>
                                                     {(!c.biens || c.biens.length === 0) && (
                                                         <button
                                                             onClick={() => handleOpenClientAssoc(c)}
-                                                            className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-all border border-transparent hover:border-amber-200"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                             title="Associer un bien"
                                                         >
                                                             <Link size={16} />
                                                         </button>
                                                     )}
-                                                    <button onClick={() => handleDelete(c.id)} className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-all" >
+                                                    <button onClick={() => handleDelete(c.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50" >
                                                         <Trash2 size={16} />
                                                     </button>
                                                     {c.statut !== 'Annulé' && (
                                                         <button
                                                             onClick={() => { setContractTargetClient(c); setIsContractModalOpen(true); }}
-                                                            className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                             title="Générer Contrat (PDF)"
                                                         >
-                                                            <FileSignature size={18} />
+                                                            <FileSignature size={16} />
                                                         </button>
                                                     )}
                                                     {c.statut !== 'Annulé' && (
                                                         <button
                                                             onClick={() => handleOpenCancelClient(c)}
-                                                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                             title="Annuler le contrat"
                                                         >
-                                                            <X size={18} />
+                                                            <X size={16} />
                                                         </button>
                                                     )}
                                                 </div>
@@ -1155,7 +1116,7 @@ const Clients = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">
+                                        <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
                                             Aucun client trouvé.
                                         </td>
                                     </tr>
@@ -1170,31 +1131,31 @@ const Clients = () => {
             {/* Payment Modal */}
             {
                 isPaymentModalOpen && selectedClient && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-emerald-50/30">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                                    <div className="hidden">
                                         <Banknote size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-800">{editingPaymentId ? 'Modifier le Paiement' : 'Enregistrer une Avance'}</h3>
-                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{selectedClient.nom} {selectedClient.prenom}</p>
+                                        <h3 className="font-semibold text-slate-800">{editingPaymentId ? 'Modifier le Paiement' : 'Enregistrer une Avance'}</h3>
+                                        <p className="text-xs text-slate-400 font-medium">{selectedClient.nom} {selectedClient.prenom}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setIsPaymentModalOpen(false)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                 >
-                                    <X size={20} />
+                                    <X size={16} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleSubmitPayment} className="flex-1 overflow-y-auto p-6 space-y-5">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wide">Montant du versement (DH)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Montant du versement (DH)</label>
                                     <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">DH</span>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">DH</span>
                                         <input
                                             type="text"
                                             required
@@ -1202,20 +1163,20 @@ const Clients = () => {
                                             value={paymentAmount}
                                             onChange={(e) => setPaymentAmount(formatNumber(e.target.value))}
                                             placeholder="0"
-                                            className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${fieldErrors.amount ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all font-bold text-lg text-gray-800`}
+                                            className={`w-full ${fieldErrors.amount ? '!border-red-500' : 'border-slate-200'} pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         />
-                                        {fieldErrors.amount && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.amount[0]}</p>}
+                                        {fieldErrors.amount && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.amount[0]}</p>}
                                     </div>
                                 </div>
 
                                 {selectedClient.biens && selectedClient.biens.length > 1 && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide text-emerald-600">Bien Concerné</label>
+                                    <div className="duration-200">
+                                        <label className="block text-xs font-medium mb-2 text-emerald-600 text-slate-600">Bien Concerné</label>
                                         <select
                                             required
                                             value={selectedBienId}
                                             onChange={(e) => setSelectedBienId(e.target.value)}
-                                            className={`w-full px-3 py-2.5 bg-emerald-50/50 border ${fieldErrors.bien_id ? 'border-red-500' : 'border-emerald-100'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold text-emerald-800`}
+                                            className={`w-full ${fieldErrors.bien_id ? '!border-red-500' : 'border-emerald-100'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         >
                                             <option value="">Sélectionnez le bien...</option>
                                             {selectedClient.biens.map(b => (
@@ -1224,31 +1185,31 @@ const Clients = () => {
                                                 </option>
                                             ))}
                                         </select>
-                                        {fieldErrors.bien_id && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.bien_id[0]}</p>}
+                                        {fieldErrors.bien_id && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.bien_id[0]}</p>}
                                     </div>
                                 )}
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Mode de paiement</label>
+                                        <label className="block text-xs font-medium mb-2 text-slate-600">Mode de paiement</label>
                                         <select
                                             value={paymentMethod}
                                             onChange={(e) => setPaymentMethod(e.target.value)}
-                                            className={`w-full px-3 py-2.5 bg-gray-50 border ${fieldErrors.method ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium text-gray-700`}
+                                            className={`w-full ${fieldErrors.method ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         >
                                             <option value="Espèces">💵 Espèces</option>
                                             <option value="Chèque">📋 Chèque</option>
                                             <option value="Virement">🏦 Virement</option>
                                             <option value="Effet">📑 Effet</option>
                                         </select>
-                                        {fieldErrors.method && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.method[0]}</p>}
+                                        {fieldErrors.method && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.method[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Type d'opération</label>
+                                        <label className="block text-xs font-medium mb-2 text-slate-600">Type</label>
                                         <select
                                             value={paymentType}
                                             onChange={(e) => setPaymentType(e.target.value)}
-                                            className={`w-full px-3 py-2.5 bg-gray-50 border ${fieldErrors.type ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium text-gray-700`}
+                                            className={`w-full ${fieldErrors.type ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         >
                                             <option value="Avance">Avance</option>
                                             <option value="Tranche">Tranche</option>
@@ -1256,87 +1217,40 @@ const Clients = () => {
                                             <option value="Caution">Caution</option>
                                             <option value="Reprise">Reprise</option>
                                         </select>
-                                        {fieldErrors.type && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.type[0]}</p>}
+                                        {fieldErrors.type && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.type[0]}</p>}
                                     </div>
                                 </div>
 
-                                {paymentMethod === 'Virement' && (
-                                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl space-y-4 animate-in slide-in-from-top-2 duration-300">
-                                        <div className="flex items-center gap-4">
-                                            <label className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="radio"
-                                                    name="virementType"
-                                                    checked={virementType === 'Transfert'}
-                                                    onChange={() => setVirementType('Transfert')}
-                                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                                                />
-                                                <span className="text-xs font-bold text-blue-900 uppercase tracking-tight group-hover:text-blue-700">Virement (Compte à Compte)</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer group">
-                                                <input
-                                                    type="radio"
-                                                    name="virementType"
-                                                    checked={virementType === 'Versement'}
-                                                    onChange={() => setVirementType('Versement')}
-                                                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                                                />
-                                                <span className="text-xs font-bold text-blue-900 uppercase tracking-tight group-hover:text-blue-700">Versement (Espèces)</span>
-                                            </label>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {(paymentMethod === 'Virement' || paymentMethod === 'Chèque' || paymentMethod === 'Effet') && (
-                                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
-                                        <div className="col-span-2">
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Banque de Destination (Notre Compte)</label>
-                                            <select
-                                                value={destinationBank}
-                                                onChange={(e) => setDestinationBank(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold text-slate-700"
-                                            >
-                                                <option value="">Sélectionnez la banque de destination...</option>
-                                                {MAROC_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
-                                            </select>
-                                        </div>
+                                {(paymentMethod === 'Chèque' || paymentMethod === 'Virement' || paymentMethod === 'Effet') && (
+                                    <div className="grid grid-cols-2 gap-4 duration-200">
                                         <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Banque Client</label>
-                                            <select
-                                                value={sourceBank}
-                                                onChange={(e) => setSourceBank(e.target.value)}
-                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold text-slate-700"
-                                            >
-                                                <option value="">D'où vient l'argent ?</option>
-                                                {MAROC_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Référence / N°</label>
+                                            <label className="block text-xs font-medium mb-2 text-slate-600">
+                                                {paymentMethod === 'Chèque' ? 'N° de Chèque' : paymentMethod === 'Virement' ? 'Référence' : 'N° d\'Effet'} <span className="text-[8px] opacity-50">(Facultatif)</span>
+                                            </label>
                                             <input
                                                 type="text"
                                                 value={paymentReference}
                                                 onChange={(e) => setPaymentReference(e.target.value)}
-                                                placeholder={paymentMethod === 'Chèque' ? 'N° Chèque' : 'Référence'}
-                                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                                                placeholder="Ex: CK-00123"
+                                                className={`w-full ${fieldErrors.reference_no ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                             />
+                                            {fieldErrors.reference_no && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.reference_no[0]}</p>}
                                         </div>
-
-                                        <div className="col-span-2 space-y-3 mt-2">
-                                            <div className="flex items-center justify-between px-2">
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net en compte (DH)</span>
-                                                <span className="text-lg font-black text-emerald-600 font-mono">
-                                                    {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })}
+                                        <div className="col-span-2 space-y-4">
+                                            <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                                <span className="text-xs font-semibold text-emerald-800 leading-none">Net en compte (DH)</span>
+                                                <span className="text-xl font-semibold text-emerald-600 font-mono">
+                                                    {(parseNumber(paymentAmount) - parseNumber(bankCommission)).toLocaleString('fr-MA', { minimumFractionDigits: 2 })} DH
                                                 </span>
                                             </div>
-                                            <div className="relative">
-                                                <label className="block text-[10px] font-bold text-emerald-500 uppercase mb-2 tracking-wide font-black">Commission Bancaire / Frais (DH)</label>
+                                            <div>
+                                                <label className="block text-xs font-medium text-emerald-500 mb-2 text-slate-600">Commission Bancaire (DH)</label>
                                                 <input
                                                     type="text"
                                                     value={bankCommission}
                                                     onChange={(e) => setBankCommission(formatNumber(e.target.value))}
                                                     placeholder="0 DH"
-                                                    className="w-full px-4 py-2.5 bg-emerald-50/50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-sm text-emerald-600"
+                                                    className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                                 />
                                             </div>
                                         </div>
@@ -1344,18 +1258,18 @@ const Clients = () => {
                                 )}
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Notes / Observations <span className="text-[8px] opacity-50">(Facultatif)</span></label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Notes / Observations <span className="text-[8px] opacity-50">(Facultatif)</span></label>
                                     <textarea
                                         value={paymentNotes}
                                         onChange={(e) => setPaymentNotes(e.target.value)}
                                         placeholder="Précisions sur le versement..."
-                                        className={`w-full px-4 py-2 bg-gray-50 border ${fieldErrors.notes ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm h-16 resize-none`}
+                                        className={`w-full ${fieldErrors.notes ? '!border-red-500' : 'border-slate-200'} resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                     />
-                                    {fieldErrors.notes && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.notes[0]}</p>}
+                                    {fieldErrors.notes && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.notes[0]}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Preuve de paiement (Image/PDF)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Preuve de paiement (Image/PDF)</label>
                                     <div className="relative">
                                         <input
                                             type="file"
@@ -1366,33 +1280,33 @@ const Clients = () => {
                                         />
                                         <label
                                             htmlFor="receipt-upload"
-                                            className={`w-full flex items-center gap-3 px-4 py-3 bg-gray-50 border border-dashed ${fieldErrors.receipt ? 'border-red-500' : 'border-gray-300'} rounded-xl hover:bg-gray-100 hover:border-emerald-400 cursor-pointer transition-all`}
+                                            className={`w-full flex items-center gap-3 px-4 py-3 bg-slate-50 border border-dashed ${fieldErrors.receipt ? '!border-red-500' : 'border-slate-300'} rounded-xl hover:bg-slate-100 hover:border-emerald-400 cursor-pointer transition`}
                                         >
-                                            <div className="p-2 bg-white shadow-sm border border-gray-100 rounded-lg text-emerald-600">
+                                            <div className="p-2 bg-white shadow-sm border border-slate-200 rounded-lg text-emerald-600">
                                                 <Upload size={16} />
                                             </div>
                                             <div className="flex-1 overflow-hidden">
-                                                <p className="text-sm font-bold text-gray-700 truncate">
+                                                <p className="text-sm font-semibold text-slate-700 truncate">
                                                     {paymentFile ? paymentFile.name : 'Choisir un fichier'}
                                                 </p>
-                                                <p className="text-[10px] text-gray-400">{paymentFile ? `${(paymentFile.size / 1024).toFixed(0)} KB` : 'Max 5MB (JPG, PNG, PDF)'}</p>
+                                                <p className="text-xs text-slate-400">{paymentFile ? `${(paymentFile.size / 1024).toFixed(0)} KB` : 'Max 5MB (JPG, PNG, PDF)'}</p>
                                             </div>
                                             {paymentFile && (
                                                 <button
                                                     type="button"
                                                     onClick={(e) => { e.preventDefault(); setPaymentFile(null); }}
-                                                    className="p-1 hover:bg-red-50 text-red-500 rounded-lg"
+                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                 >
                                                     <X size={14} />
                                                 </button>
                                             )}
                                         </label>
-                                        {fieldErrors.receipt && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.receipt[0]}</p>}
+                                        {fieldErrors.receipt && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.receipt[0]}</p>}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">Date de l'opération</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Date de l'opération</label>
                                     <div className="relative">
                                         <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" />
                                         <input
@@ -1400,10 +1314,10 @@ const Clients = () => {
                                             required
                                             value={paymentDate}
                                             onChange={(e) => setPaymentDate(e.target.value)}
-                                            className={`w-full pl-10 pr-4 py-2 bg-blue-50 border ${fieldErrors.payment_date ? 'border-red-500' : 'border-blue-100'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm text-blue-700 font-medium`}
+                                            className={`w-full ${fieldErrors.payment_date ? '!border-red-500' : 'border-blue-100'} pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                             placeholder="JJ/MM/AAAA"
                                         />
-                                        {fieldErrors.payment_date && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.payment_date[0]}</p>}
+                                        {fieldErrors.payment_date && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.payment_date[0]}</p>}
                                     </div>
                                 </div>
 
@@ -1411,14 +1325,14 @@ const Clients = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsPaymentModalOpen(false)}
-                                        className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                                        className="flex-1 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingPayment}
-                                        className="flex-[2] px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-xl shadow-lg shadow-emerald-200 transition-all font-bold text-sm flex items-center justify-center gap-2"
+                                        className="flex-[2] px-4 py-2 disabled:bg-emerald-400 text-white rounded-lg shadow-sm transition font-medium text-sm flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmittingPayment ? (
                                             <Loader2 size={18} className="animate-spin" />
@@ -1439,109 +1353,109 @@ const Clients = () => {
             {/* Edit Client Modal */}
             {
                 isEditModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/30">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                                    <div className="hidden">
                                         <Edit2 size={20} />
                                     </div>
-                                    <h3 className="font-bold text-gray-800">Modifier le Client</h3>
+                                    <h3 className="font-semibold text-slate-800">Modifier le Client</h3>
                                 </div>
-                                <button onClick={() => setIsEditModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
-                                    <X size={20} />
+                                <button onClick={() => setIsEditModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleUpdateClient} className="flex-1 overflow-y-auto p-6 space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nom</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Nom</label>
                                         <input
                                             type="text" required
                                             value={editFormData.nom || ''}
                                             onChange={e => setEditFormData({ ...editFormData, nom: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.nom ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.nom ? '!border-red-500' : 'border-slate-200'} `}
                                         />
-                                        {fieldErrors.nom && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.nom[0]}</p>}
+                                        {fieldErrors.nom && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nom[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Prénom</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Prénom</label>
                                         <input
                                             type="text" required
                                             value={editFormData.prenom || ''}
                                             onChange={e => setEditFormData({ ...editFormData, prenom: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.prenom ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.prenom ? '!border-red-500' : 'border-slate-200'} `}
                                         />
-                                        {fieldErrors.prenom && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.prenom[0]}</p>}
+                                        {fieldErrors.prenom && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.prenom[0]}</p>}
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Téléphone</label>
                                         <input
                                             type="text" required
                                             value={editFormData.tel || ''}
                                             onChange={e => setEditFormData({ ...editFormData, tel: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.tel ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.tel ? '!border-red-500' : 'border-slate-200'} `}
                                         />
-                                        {fieldErrors.tel && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel[0]}</p>}
+                                        {fieldErrors.tel && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.tel[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">CIN</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">CIN</label>
                                         <input
                                             type="text" required
                                             value={editFormData.cin || ''}
                                             onChange={e => setEditFormData({ ...editFormData, cin: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.cin ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase`}
+                                            className={`w-full ${fieldErrors.cin ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         />
-                                        {fieldErrors.cin && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.cin[0]}</p>}
+                                        {fieldErrors.cin && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.cin[0]}</p>}
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone Sec.</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Téléphone Sec.</label>
                                         <input
                                             type="text"
                                             value={editFormData.tel_2 || ''}
                                             onChange={e => setEditFormData({ ...editFormData, tel_2: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.tel_2 ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.tel_2 ? '!border-red-500' : 'border-slate-200'} `}
                                         />
-                                        {fieldErrors.tel_2 && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel_2[0]}</p>}
+                                        {fieldErrors.tel_2 && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.tel_2[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">E-mail (Optionnel)</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">E-mail (Optionnel)</label>
                                         <input
                                             type="email"
                                             value={editFormData.email || ''}
                                             onChange={e => setEditFormData({ ...editFormData, email: e.target.value })}
-                                            className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.email ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                            className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.email ? '!border-red-500' : 'border-slate-200'} `}
                                             placeholder="client@gmail.com"
                                         />
-                                        {fieldErrors.email && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.email[0]}</p>}
+                                        {fieldErrors.email && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.email[0]}</p>}
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse (Optionnel)</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Adresse (Optionnel)</label>
                                     <textarea
                                         value={editFormData.adresse || ''}
                                         onChange={e => setEditFormData({ ...editFormData, adresse: e.target.value })}
                                         dir="auto"
-                                        className={`w-full h-28 p-4 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
+                                        className={`w-full ${fieldErrors.adresse ? '!border-red-500' : 'border-slate-200'} resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         placeholder="123 Avenue Mohammed V..."
                                     />
-                                    {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
+                                    {fieldErrors.adresse && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.adresse[0]}</p>}
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Statut du Client</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Statut du Client</label>
                                     <select
                                         value={editFormData.statut || 'Actif'}
                                         onChange={e => setEditFormData({ ...editFormData, statut: e.target.value })}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold ${editFormData.statut === 'Annulé' ? 'text-rose-600 bg-rose-50' : 'text-slate-700'}`}
+                                        className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${editFormData.statut === 'Annulé' ? 'text-rose-600 bg-rose-50' : 'text-slate-700'}`}
                                     >
                                         <option value="Actif">Actif</option>
                                         <option value="Annulé">Annulé</option>
@@ -1550,22 +1464,22 @@ const Clients = () => {
 
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Observations / Notes</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Observations / Notes</label>
                                     <textarea
                                         value={editFormData.observation || ''}
                                         onChange={e => setEditFormData({ ...editFormData, observation: e.target.value })}
-                                        className={`w-full h-20 p-4 bg-gray-50 border ${fieldErrors.observation ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none`}
+                                        className={`w-full ${fieldErrors.observation ? '!border-red-500' : 'border-slate-200'} resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                         placeholder="Notes sur le client..."
                                     />
-                                    {fieldErrors.observation && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.observation[0]}</p>}
+                                    {fieldErrors.observation && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.observation[0]}</p>}
                                 </div>
 
                                 {editFormData.statut === 'Actif' && (
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bien Assigné</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Bien Assigné</label>
 
                                         <select
-                                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             value={editBienId}
                                             onChange={(e) => setEditBienId(e.target.value)}
                                         >
@@ -1597,9 +1511,9 @@ const Clients = () => {
 
 
                                 {editBienId && editFormData.statut === 'Actif' && (
-                                    <div className="grid grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
-                                        <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 flex flex-col gap-2">
-                                            <p className="text-[10px] font-bold text-indigo-900 uppercase">Finition</p>
+                                    <div className="grid grid-cols-3 gap-3 duration-300">
+                                        <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex flex-col gap-2">
+                                            <p className="text-xs font-medium text-blue-900">Finition</p>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1607,11 +1521,11 @@ const Clients = () => {
                                                     checked={editFormData.avec_finition || false}
                                                     onChange={e => setEditFormData({ ...editFormData, avec_finition: e.target.checked })}
                                                 />
-                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                             </label>
                                         </div>
                                         <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100 flex flex-col gap-2">
-                                            <p className="text-[10px] font-bold text-amber-900 uppercase">Contrat</p>
+                                            <p className="text-xs font-medium text-amber-900">Contrat</p>
                                             <label className="relative inline-flex items-center cursor-pointer">
                                                 <input
                                                     type="checkbox"
@@ -1623,11 +1537,11 @@ const Clients = () => {
                                             </label>
                                         </div>
                                         <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex flex-col gap-2">
-                                            <p className="text-[10px] font-bold text-emerald-900 uppercase">Choix</p>
+                                            <p className="text-xs font-medium text-emerald-900">Choix</p>
                                             <select
                                                 value={editFormData.statut_choix || 'SANS_CHOIX'}
                                                 onChange={e => setEditFormData({ ...editFormData, statut_choix: e.target.value as any })}
-                                                className="w-full bg-white border border-emerald-100 rounded-lg py-1 px-2 text-[10px] font-bold text-emerald-800 outline-none"
+                                                className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             >
                                                 <option value="SANS_CHOIX">S. Choix</option>
                                                 <option value="CHOIX_FAIT">Choix Fait</option>
@@ -1638,11 +1552,11 @@ const Clients = () => {
                                 )}
 
                                 {editBienId && editFormData.statut === 'Actif' && editFormData.avec_contrat && (
-                                    <div className="animate-in slide-in-from-top-2 duration-300 mt-4">
+                                    <div className="duration-300 mt-4">
                                         <div className="flex items-center justify-between mb-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contrat Scanné (PDF/Image)</label>
+                                            <label className="block text-xs font-medium text-slate-600">Contrat Scanné (PDF/Image)</label>
                                             {editFormData.scan_contrat && (
-                                                <button type="button" onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${editFormData.scan_contrat}`))} className="text-[10px] text-amber-600 font-bold hover:underline flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                                                <button type="button" onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${editFormData.scan_contrat}`))} className="text-xs text-amber-600 font-medium hover:underline flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                                     <FileText size={12} /> Voir actuel
                                                 </button>
                                             )}
@@ -1656,34 +1570,34 @@ const Clients = () => {
                                         />
                                         <label htmlFor="contract-upload" className="w-full flex items-center justify-center gap-2 p-3 bg-amber-50 border border-dashed border-amber-200 text-amber-700 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors">
                                             <Upload size={16} />
-                                            <span className="text-xs font-bold text-center">
+                                            <span className="text-xs font-medium text-center">
                                                 {contractFile ? contractFile.name : editFormData.scan_contrat ? 'Remplacer le contrat existant...' : 'Choisir le contrat scanné...'}
                                             </span>
                                         </label>
-                                        {fieldErrors.scan_contrat && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.scan_contrat[0]}</p>}
+                                        {fieldErrors.scan_contrat && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.scan_contrat[0]}</p>}
                                     </div>
                                 )}
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date Réservation (JJ/MM/AAAA)</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Date Réservation (JJ/MM/AAAA)</label>
                                     <input
                                         type="text"
                                         value={editFormData.date_reservation || ''}
                                         onChange={e => setEditFormData({ ...editFormData, date_reservation: e.target.value })}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border ${fieldErrors.date_reservation ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm`}
+                                        className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.date_reservation ? '!border-red-500' : 'border-slate-200'} `}
                                         placeholder="JJ/MM/AAAA"
                                     />
-                                    {fieldErrors.date_reservation && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.date_reservation[0]}</p>}
+                                    {fieldErrors.date_reservation && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.date_reservation[0]}</p>}
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
-                                    <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl">
+                                    <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingEdit}
-                                        className="flex-[2] px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+                                        className="flex-[2] px-4 py-2.5 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmittingEdit ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Mettre à jour</>}
                                     </button>
@@ -1697,29 +1611,29 @@ const Clients = () => {
             {/* Client Details Modal */}
             {
                 isDetailsModalOpen && detailClient && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                    <div className="hidden">
                                         <Info size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-gray-800">Dossier Client</h3>
-                                        <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Réf: #{detailClient.id}</p>
+                                        <h3 className="font-semibold text-slate-800">Dossier Client</h3>
+                                        <p className="text-xs text-slate-400 font-medium">Réf: #{detailClient.id}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setIsDetailsModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
-                                    <X size={20} />
+                                <button onClick={() => setIsDetailsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
 
-                            <div className="px-6 py-3 bg-indigo-600/5 border-b border-indigo-100 flex items-center justify-between">
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Assistant CRM Intelligent</span>
+                            <div className="px-6 py-3 bg-blue-600/5 border-b border-blue-100 flex items-center justify-between">
+                                <span className="text-xs font-semibold text-blue-400">Assistant CRM Intelligent</span>
                                 <button
                                     onClick={() => handleGenerateEmailWithAI(detailClient)}
                                     disabled={isAILoading}
-                                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-xl hover:bg-indigo-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50"
+                                    className="flex items-center gap-2 text-white px-4 py-1.5 rounded-lg transition font-medium text-sm shadow-sm active:scale-[0.98] disabled:opacity-50 bg-slate-900 hover:bg-slate-800"
                                 >
                                     {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Mail size={12} />}
                                     Générer Email Pro (AI)
@@ -1729,38 +1643,26 @@ const Clients = () => {
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Prix Global</p>
-                                        <p className="text-lg font-bold text-slate-700">
-                                            {formatNumber(detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0)} <span className="text-xs">DH</span>
+                                        <p className="text-xs font-medium text-slate-400 mb-1">Prix Global</p>
+                                        <p className="text-lg font-semibold text-slate-700">
+                                            {formatNumber(clientPrice(detailClient as any))} <span className="text-xs">DH</span>
                                         </p>
                                     </div>
                                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                                        <p className="text-[10px] font-bold text-emerald-500 uppercase mb-1">Total Versé</p>
-                                        <p className="text-lg font-bold text-emerald-600">
+                                        <p className="text-xs font-medium text-emerald-500 mb-1">Total Versé</p>
+                                        <p className="text-lg font-semibold text-emerald-600">
                                             {(() => {
-                                                const total = detailClient.payments?.reduce((acc, p) => {
-                                                    const amt = parseFloat(String(p.amount));
-                                                    const refund = parseFloat(String(p.refund_amount || 0));
-                                                    const commission = parseFloat(String(p.bank_commission || 0));
-                                                    if (p.type === 'Reprise') return acc - amt;
-                                                    return acc + (amt - refund - commission);
-                                                }, 0) || 0;
+                                                const total = clientPaid(detailClient as any);
                                                 return formatNumber(total);
                                             })()} <span className="text-xs">DH</span>
                                         </p>
                                     </div>
-                                    <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
-                                        <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Reste à payer</p>
-                                        <p className="text-lg font-bold text-rose-600">
+                                    <div className="p-4 bg-rose-50 rounded-xl border !border-rose-100">
+                                        <p className="text-xs font-medium text-rose-400 mb-1">Reste à payer</p>
+                                        <p className="text-lg font-semibold text-rose-600">
                                             {(() => {
-                                                const prix = detailClient.biens?.reduce((acc, b) => acc + (detailClient.avec_finition ? (b.prix_global_finition || 0) : (b.prix_global_non_finition || 0)), 0) || 0;
-                                                const paid = detailClient.payments?.reduce((acc, p) => {
-                                                    const amt = parseFloat(String(p.amount));
-                                                    const refund = parseFloat(String(p.refund_amount || 0));
-                                                    const commission = parseFloat(String(p.bank_commission || 0));
-                                                    if (p.type === 'Reprise') return acc - amt;
-                                                    return acc + (amt - refund - commission);
-                                                }, 0) || 0;
+                                                const prix = clientPrice(detailClient as any);
+                                                const paid = clientPaid(detailClient as any);
                                                 return formatNumber(Math.max(0, prix - paid));
                                             })()} <span className="text-xs">DH</span>
                                         </p>
@@ -1769,64 +1671,64 @@ const Clients = () => {
 
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Informations Personnelles</h4>
+                                        <h4 className="text-xs font-medium text-slate-400 border-b pb-2">Informations Personnelles</h4>
                                         <div className="space-y-3">
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-gray-400">Nom Complet:</span>
-                                                <span className="font-bold text-gray-700 capitalize">{detailClient.nom} {detailClient.prenom}</span>
+                                                <span className="text-slate-400">Nom Complet:</span>
+                                                <span className="font-semibold text-slate-700 capitalize">{detailClient.nom} {detailClient.prenom}</span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-gray-400">Téléphone:</span>
-                                                <span className="font-bold text-gray-700">{detailClient.tel}</span>
+                                                <span className="text-slate-400">Téléphone:</span>
+                                                <span className="font-semibold text-slate-700">{detailClient.tel}</span>
                                             </div>
                                             {detailClient.tel_2 && (
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-400">Tél Sec.:</span>
-                                                    <span className="font-bold text-gray-700">{detailClient.tel_2}</span>
+                                                    <span className="text-slate-400">Tél Sec.:</span>
+                                                    <span className="font-semibold text-slate-700">{detailClient.tel_2}</span>
                                                 </div>
                                             )}
                                             {detailClient.email && (
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-400">E-mail:</span>
-                                                    <span className="font-bold text-gray-700 truncate max-w-[200px]" title={detailClient.email}>{detailClient.email}</span>
+                                                    <span className="text-slate-400">E-mail:</span>
+                                                    <span className="font-semibold text-slate-700 truncate max-w-[200px]" title={detailClient.email}>{detailClient.email}</span>
                                                 </div>
                                             )}
                                             {detailClient.adresse && (
                                                 <div className="flex justify-between text-sm">
-                                                    <span className="text-gray-400">Adresse:</span>
-                                                    <span className="font-bold text-gray-700 truncate max-w-[200px]" title={detailClient.adresse}>{detailClient.adresse}</span>
+                                                    <span className="text-slate-400">Adresse:</span>
+                                                    <span className="font-semibold text-slate-700 truncate max-w-[200px]" title={detailClient.adresse}>{detailClient.adresse}</span>
                                                 </div>
                                             )}
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-gray-400">CIN:</span>
-                                                <span className="font-bold text-gray-700 uppercase"><MarkdownText text={detailClient.cin} /></span>
+                                                <span className="text-slate-400">CIN:</span>
+                                                <span className="font-semibold text-slate-700"><MarkdownText text={detailClient.cin} /></span>
                                             </div>
                                             <div className="flex justify-between text-sm">
-                                                <span className="text-gray-400">Date Réservation:</span>
-                                                <span className="font-bold text-gray-700">{detailClient.date_reservation || 'N/A'}</span>
+                                                <span className="text-slate-400">Date Réservation:</span>
+                                                <span className="font-semibold text-slate-700">{detailClient.date_reservation || 'N/A'}</span>
                                             </div>
                                             {detailClient.biens && detailClient.biens.length > 0 && detailClient.statut !== 'Annulé' && (
                                                 <>
-                                                    <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-50 mt-2">
-                                                        <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Statut Contrat:</span>
+                                                    <div className="flex justify-between items-center text-sm pt-2 border-t border-slate-50 mt-2">
+                                                        <span className="text-slate-400 font-medium text-xs">Statut Contrat:</span>
                                                         {detailClient.avec_contrat ? (
-                                                            <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-amber-200">Avec Contrat</span>
+                                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20">Avec Contrat</span>
                                                         ) : (
-                                                            <span className="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-gray-200">Sans Contrat</span>
+                                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">Sans Contrat</span>
                                                         )}
                                                     </div>
                                                     <div className="flex justify-between items-center text-sm pt-1">
-                                                        <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Choix Finition:</span>
+                                                        <span className="text-slate-400 font-medium text-xs">Choix Finition:</span>
                                                         {detailClient.avec_finition ? (
-                                                            <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-indigo-200">Options Incluses</span>
+                                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">Options Incluses</span>
                                                         ) : (
-                                                            <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border border-slate-200">Standard</span>
+                                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-600/20">Standard</span>
                                                         )}
                                                     </div>
                                                     {Boolean(detailClient.avec_contrat) && detailClient.scan_contrat && (
-                                                        <div className="flex justify-between items-center text-sm pt-2 mt-2 border-t border-gray-50">
-                                                            <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Contrat Attaché:</span>
-                                                            <button onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${detailClient.scan_contrat}`))} className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors border border-amber-100">
+                                                        <div className="flex justify-between items-center text-sm pt-2 mt-2 border-t border-slate-50">
+                                                            <span className="text-slate-400 font-medium text-xs">Contrat Attaché:</span>
+                                                            <button onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${detailClient.scan_contrat}`))} className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2 py-1 rounded text-xs font-semibold hover:bg-amber-100 transition-colors border border-amber-100">
                                                                 <FileText size={12} /> Voir
                                                             </button>
                                                         </div>
@@ -1834,11 +1736,11 @@ const Clients = () => {
                                                 </>
                                             )}
                                             {detailClient.observation && (
-                                                <div className={`mt-4 p-3 rounded-xl border ${detailClient.statut === 'Annulé' ? 'bg-rose-50 border-rose-100' : 'bg-blue-50/50 border-blue-100/50'}`}>
-                                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${detailClient.statut === 'Annulé' ? 'text-rose-400' : 'text-blue-400'}`}>
+                                                <div className={`mt-4 p-3 rounded-xl border ${detailClient.statut === 'Annulé' ? 'bg-rose-50 !border-rose-100' : 'bg-blue-50/50 border-blue-100/50'}`}>
+                                                    <p className={`text-xs font-semibold mb-1 ${detailClient.statut === 'Annulé' ? 'text-rose-400' : 'text-blue-400'}`}>
                                                         {detailClient.statut === 'Annulé' ? 'Motif de l\'Annulation' : 'Observations / Notes'}
                                                     </p>
-                                                    <p className="text-xs text-gray-600 leading-relaxed italic"><MarkdownText text={detailClient.observation} /></p>
+                                                    <p className="text-xs text-slate-600 leading-relaxed"><MarkdownText text={detailClient.observation} /></p>
                                                 </div>
                                             )}
                                         </div>
@@ -1847,27 +1749,27 @@ const Clients = () => {
 
 
                                     <div className="space-y-4">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest border-b pb-2">Détails des Biens</h4>
+                                        <h4 className="text-xs font-medium text-slate-400 border-b pb-2">Détails des Biens</h4>
                                         {detailClient.biens && detailClient.biens.length > 0 ? (
                                             <div className="space-y-4">
                                                 {detailClient.biens.map(b => (
-                                                    <div key={b.id} className="p-3 bg-gray-50 rounded-xl border border-gray-100 italic">
+                                                    <div key={b.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                                                         <div className="flex justify-between text-sm mb-1">
-                                                            <span className="text-gray-400">Type / Unité:</span>
-                                                            <span className="font-bold text-gray-700">{b.type_bien} {b.num_appartement ? <>Bloc #<MarkdownText text={b.num_appartement} /></> : ''}</span>
+                                                            <span className="text-slate-400">Type / Unité:</span>
+                                                            <span className="font-semibold text-slate-700">{b.type_bien} {b.num_appartement ? <>Bloc #<MarkdownText text={b.num_appartement} /></> : ''}</span>
                                                         </div>
                                                         <div className="flex justify-between text-sm mb-1">
-                                                            <span className="text-gray-400">Localisation:</span>
-                                                            <span className="font-bold text-gray-700"> {b.immeuble ? `Imm. ${b.immeuble}` : ''} {b.etage === 0 ? 'RDC' : b.etage ? `Étage ${b.etage}` : ''}</span>
+                                                            <span className="text-slate-400">Localisation:</span>
+                                                            <span className="font-semibold text-slate-700"> {b.immeuble ? `Imm. ${b.immeuble}` : ''} {b.etage === 0 ? 'RDC' : b.etage ? `Étage ${b.etage}` : ''}</span>
                                                         </div>
                                                         <div className="flex justify-between items-center text-sm">
                                                             <div className="flex flex-col">
-                                                                <span className="text-gray-400">Statut:</span>
-                                                                <span className={`font-bold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
+                                                                <span className="text-slate-400">Statut:</span>
+                                                                <span className={`font-semibold ${b.statut === 'Libre' ? 'text-green-600' : 'text-amber-600'}`}>{b.statut}</span>
                                                             </div>
                                                             <button
                                                                 onClick={() => navigate(`/edit-property/${b.id}`)}
-                                                                className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-black transition-all"
+                                                                className="flex items-center gap-2 px-3 py-1.5 text-white rounded-lg text-sm font-medium transition bg-slate-900 hover:bg-slate-800"
                                                                 title="Suivi de Réalisation"
                                                             >
                                                                 <Paintbrush size={12} />
@@ -1878,20 +1780,20 @@ const Clients = () => {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <p className="text-sm text-gray-400 italic">Aucun bien assigné.</p>
+                                            <p className="text-sm text-slate-400">Aucun bien assigné.</p>
                                         )}
                                     </div>
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b pb-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Documents Scannés</h4>
+                                        <h4 className="text-xs font-medium text-slate-400">Documents Scannés</h4>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{detailClient.scanned_docs?.length || 0} Fichiers</span>
+                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">{detailClient.scanned_docs?.length || 0} Fichiers</span>
                                             <button
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={isUploadingDoc}
-                                                className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 transition-all"
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                 title="Ajouter un document"
                                             >
                                                 {isUploadingDoc ? <Loader2 size={14} className="animate-spin" /> : <PlusCircle size={14} />}
@@ -1907,27 +1809,27 @@ const Clients = () => {
                                     {detailClient.scanned_docs && detailClient.scanned_docs.length > 0 ? (
                                         <div className="grid grid-cols-2 gap-3">
                                             {detailClient.scanned_docs.map((doc, idx) => (
-                                                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 group hover:border-indigo-200 transition-all">
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 group hover:border-blue-200 transition">
                                                     <div className="flex items-center gap-3 overflow-hidden">
-                                                        <div className="p-2 bg-white rounded-lg text-indigo-500 shadow-sm">
+                                                        <div className="p-2 bg-white rounded-lg text-blue-500 shadow-sm border border-slate-200">
                                                             <FileText size={16} />
                                                         </div>
                                                         <div className="overflow-hidden">
-                                                            <p className="text-xs font-bold text-gray-700 truncate" title={doc.name}>{doc.name}</p>
-                                                            <p className="text-[9px] text-gray-400 capitalize">{doc.created_at}</p>
+                                                            <p className="text-xs font-medium text-slate-700 truncate" title={doc.name}>{doc.name}</p>
+                                                            <p className="text-xs text-slate-400 capitalize">{doc.created_at}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="flex items-center transition-opacity justify-end gap-0.5">
                                                         <button
                                                             onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${doc.path}`))}
-                                                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                             title="Voir"
                                                         >
                                                             <Eye size={14} />
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteDocument(detailClient, idx)}
-                                                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
                                                             title="Supprimer"
                                                         >
                                                             <Trash2 size={14} />
@@ -1937,27 +1839,27 @@ const Clients = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-6 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            <p className="text-[10px] text-gray-400 italic">Aucun document numérisé.</p>
+                                        <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                            <p className="text-xs text-slate-400">Aucun document numérisé.</p>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between border-b pb-2">
-                                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Historique des Paiements</h4>
+                                        <h4 className="text-xs font-medium text-slate-400">Historique des Paiements</h4>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => {
                                                     handleOpenPaymentModal(detailClient);
                                                     setPaymentType('Reprise');
                                                 }}
-                                                className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1.5 rounded-xl hover:bg-orange-100 transition-all font-black text-[9px] uppercase tracking-widest border border-orange-100 shadow-sm active:scale-95"
+                                                className="flex items-center gap-1.5 bg-orange-50 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition font-medium text-sm border border-orange-100 shadow-sm active:scale-[0.98]"
                                             >
                                                 <TrendingDown size={12} />
                                                 Nouveau Reprise
                                             </button>
-                                            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{detailClient.payments?.length || 0} Opérations</span>
+                                            <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">{detailClient.payments?.length || 0} Opérations</span>
                                         </div>
                                     </div>
                                     {detailClient.payments && detailClient.payments.length > 0 ? (
@@ -1968,132 +1870,104 @@ const Clients = () => {
                                                 if (dateB !== dateA) return dateB - dateA;
                                                 return b.id - a.id;
                                             }).map((p) => (
-                                                <div key={p.id} className={`flex flex-col p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 border-red-100 opacity-75' : p.type === 'Reprise' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100 hover:border-indigo-200'}`}>
-                                                    <div className="flex items-center justify-between w-full">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`p-2 rounded-lg ${p.status === 'Cancelled' ? 'bg-red-100 text-red-600' : p.type === 'Caution' ? 'bg-amber-100 text-amber-600' : p.type === 'Reprise' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                                                {p.type === 'Reprise' ? <TrendingDown size={16} /> : <Banknote size={16} />}
-                                                            </div>
-                                                            <div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className="text-sm font-bold text-gray-800">{formatNumber(p.amount)} DH</p>
-                                                                    {p.status === 'Cancelled' && (
-                                                                        <span className="text-[9px] font-bold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase">Annulé (Remboursé: {formatNumber(p.refund_amount)} DH)</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex items-center gap-2 text-[10px] text-gray-400">
-                                                                    <span className="font-bold uppercase tracking-wider">{p.type}</span>
-                                                                    <span>•</span>
-                                                                    <span>{p.method}</span>
-                                                                    <span>•</span>
-                                                                    <span>{p.payment_date}</span>
-                                                                    {p.bank_commission > 0 && (
-                                                                        <div className="mt-1 flex items-center gap-2">
-                                                                            <span className="text-[9px] font-black bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-100">
-                                                                                COMMISSION: {formatNumber(p.bank_commission)} DH
-                                                                            </span>
-                                                                            <span className="text-[9px] font-black bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100">
-                                                                                NET: {formatNumber(parseFloat(String(p.amount)) - parseFloat(String(p.bank_commission)))} DH
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                {p.bien && (
-                                                                    <div className="text-[9px] text-indigo-500 font-bold mt-1">
-                                                                        {p.bien.type_bien} {p.bien.num_appartement ? <>Bloc #<MarkdownText text={p.bien.num_appartement} /></> : `ID #${p.bien.id}`}
-                                                                    </div>
-                                                                )}
-                                                                {(p.reference_no || p.bank_name || p.destination_bank) && (
-                                                                    <div className="mt-0.5 flex items-center gap-2 text-[9px] text-gray-400 font-medium">
-                                                                        {p.reference_no && <span>Réf: {p.reference_no}</span>}
-                                                                        {(p.destination_bank || p.bank_name) && <span>• {p.destination_bank || p.bank_name}</span>}
-                                                                    </div>
-                                                                )}
-                                                            </div>
+                                                <div key={p.id} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${p.status === 'Cancelled' ? 'bg-red-50 !border-red-100 opacity-75' : p.type === 'Reprise' ? 'bg-orange-50/50 border-orange-100' : 'bg-slate-50 border-slate-100 hover:border-blue-200'}`}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`hidden`}>
+                                                            {p.type === 'Reprise' ? <TrendingDown size={16} /> : <Banknote size={16} />}
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setPaymentViewId(paymentViewId === p.id ? null : p.id)}
-                                                                className={`p-2 rounded-lg border border-gray-100 shadow-sm transition-all ${paymentViewId === p.id ? 'bg-slate-800 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
-                                                                title="Détails"
-                                                            >
-                                                                <Eye size={14} />
-                                                            </button>
-                                                            {p.status !== 'Cancelled' && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setTargetPayment(p);
-                                                                            setRefundAmount(formatNumber(p.amount));
-                                                                            setIsCancelModalOpen(true);
-                                                                        }}
-                                                                        className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
-                                                                        title="Remboursement"
-                                                                    >
-                                                                        <X size={14} />
-                                                                    </button>
-                                                                </>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm font-semibold text-slate-800">{formatNumber(p.amount)} DH</p>
+                                                                {p.status === 'Cancelled' && (
+                                                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-red-600 text-white">Annulé (Remboursé: {formatNumber(p.refund_amount)} DH)</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                                                                <span className="font-semibold">{p.type}</span>
+                                                                <span>•</span>
+                                                                <span>{p.method}</span>
+                                                                <span>•</span>
+                                                                <span>{p.payment_date}</span>
+                                                                {p.bank_commission > 0 && (
+                                                                    <div className="mt-1 flex items-center gap-2">
+                                                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-rose-50 text-rose-700 !border-rose-100 ring-1 ring-inset ring-rose-600/20">
+                                                                            COMMISSION: {formatNumber(p.bank_commission)} DH
+                                                                        </span>
+                                                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                                                                            NET: {formatNumber(parseFloat(String(p.amount)) - parseFloat(String(p.bank_commission)))} DH
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            {p.bien && (
+                                                                <div className="text-xs text-blue-500 font-medium mt-1">
+                                                                    {p.bien.type_bien} {p.bien.num_appartement ? <>Bloc #<MarkdownText text={p.bien.num_appartement} /></> : `ID #${p.bien.id}`}
+                                                                </div>
                                                             )}
-                                                            <button
-                                                                onClick={() => handleOpenPaymentModal(detailClient, p)}
-                                                                className="p-2 bg-white text-blue-600 rounded-lg border border-gray-100 shadow-sm hover:bg-blue-50 transition-all"
-                                                                title="Modifier le paiement"
-                                                            >
-                                                                <Edit2 size={14} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeletePayment(p.id)}
-                                                                className="p-2 bg-white text-red-500 rounded-lg border border-gray-100 shadow-sm hover:bg-red-50 transition-all"
-                                                                title="Supprimer le paiement"
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </button>
-                                                            {p.receipt_path && (
-                                                                <button
-                                                                    onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${p.receipt_path}`))}
-                                                                    className="p-2 bg-white text-indigo-600 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
-                                                                    title="Voir le reçu"
-                                                                >
-                                                                    <FileText size={16} />
-                                                                </button>
+                                                            {(p.reference_no || p.bank_name) && (
+                                                                <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400 font-medium">
+                                                                    {p.reference_no && <span>Réf: {p.reference_no}</span>}
+                                                                    {p.bank_name && <span>• {p.bank_name}</span>}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
-                                                    {paymentViewId === p.id && (
-                                                        <div className="mt-4 pt-4 border-t border-gray-200/60 grid grid-cols-2 md:grid-cols-4 gap-4 animate-in slide-in-from-top-2">
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Banque Source (Client)</p>
-                                                                <p className="text-[11px] font-bold text-slate-800">{p.source_bank || 'N/A'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Banque Dest. (Compte)</p>
-                                                                <p className="text-[11px] font-bold text-slate-800">{p.destination_bank || p.bank_name || 'N/A'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Type Virement</p>
-                                                                <p className="text-[11px] font-bold text-blue-600">{p.virement_type || 'N/A'}</p>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">Notes / Observ.</p>
-                                                                <p className="text-[11px] font-medium text-slate-600 italic line-clamp-2">{p.notes || 'Aucune note'}</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    <div className="flex items-center gap-2">
+                                                        {p.status !== 'Cancelled' && (
+                                                            <>
+
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setTargetPayment(p);
+                                                                        setRefundAmount(formatNumber(p.amount));
+                                                                        setIsCancelModalOpen(true);
+                                                                    }}
+                                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
+                                                                    title="Remboursement"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleOpenPaymentModal(detailClient, p)}
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
+                                                            title="Modifier le paiement"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeletePayment(p.id)}
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
+                                                            title="Supprimer le paiement"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                        {p.receipt_path && (
+                                                            <button
+                                                                onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${p.receipt_path}`))}
+                                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
+                                                                title="Voir le reçu"
+                                                            >
+                                                                <FileText size={16} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                            <p className="text-sm text-gray-400 italic">Aucun versement enregistré pour le moment.</p>
+                                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                            <p className="text-sm text-slate-400">Aucun versement enregistré pour le moment.</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
                                 <button
                                     onClick={() => setIsDetailsModalOpen(false)}
-                                    className="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all"
+                                    className="px-4 py-2 text-white text-sm font-medium rounded-lg shadow-sm transition bg-slate-900 hover:bg-slate-800"
                                 >
                                     Fermer le Dossier
                                 </button>
@@ -2105,28 +1979,28 @@ const Clients = () => {
             {/* Cancel Payment Modal */}
             {
                 isCancelModalOpen && targetPayment && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/30">
-                                <h3 className="font-bold text-gray-800">Remboursement</h3>
-                                <button onClick={() => setIsCancelModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"><X size={20} /></button>
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-red-50/30">
+                                <h3 className="font-semibold text-slate-800">Remboursement</h3>
+                                <button onClick={() => setIsCancelModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"><X size={16} /></button>
                             </div>
                             <form onSubmit={handleCancelPayment} className="p-6 space-y-4">
-                                <p className="text-sm text-gray-500">Montant payé: <span className="font-bold text-gray-800">{formatNumber(targetPayment.amount)} DH</span></p>
+                                <p className="text-sm text-slate-500">Montant payé: <span className="font-semibold text-slate-800">{formatNumber(targetPayment.amount)} DH</span></p>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wide">Montant à rembourser (DH)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Montant à rembourser (DH)</label>
                                     <input
                                         type="text"
                                         required
                                         value={refundAmount}
                                         onChange={(e) => setRefundAmount(formatNumber(e.target.value))}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-lg"
+                                        className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                     />
-                                    <p className="text-[10px] text-gray-400 mt-1 italic">Vou pouvez rembourser tout ou partie du montant original.</p>
+                                    <p className="text-xs text-slate-400 mt-1">Vou pouvez rembourser tout ou partie du montant original.</p>
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setIsCancelModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Ignorer</button>
-                                    <button type="submit" disabled={isSubmittingCancel} className="flex-[2] px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-100">
+                                    <button type="button" onClick={() => setIsCancelModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Ignorer</button>
+                                    <button type="submit" disabled={isSubmittingCancel} className="flex-[2] px-4 py-2 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 shadow-sm bg-red-600 hover:bg-red-700">
                                         {isSubmittingCancel ? <Loader2 size={18} className="animate-spin" /> : <><Trash2 size={18} /> Confirmer le Remboursement</>}
                                     </button>
                                 </div>
@@ -2139,20 +2013,20 @@ const Clients = () => {
             {/* Associate Payment Modal */}
             {
                 isAssociateModalOpen && targetPayment && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/30">
-                                <h3 className="font-bold text-gray-800">Associer à un Bien</h3>
-                                <button onClick={() => setIsAssociateModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400"><X size={20} /></button>
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
+                                <h3 className="font-semibold text-slate-800">Associer à un Bien</h3>
+                                <button onClick={() => setIsAssociateModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"><X size={16} /></button>
                             </div>
                             <form onSubmit={handleAssociatePayment} className="p-6 space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wide">Choisir un bien pour ce montant</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Choisir un bien pour ce montant</label>
                                     <select
                                         required
                                         value={selectedBienId}
                                         onChange={(e) => setSelectedBienId(e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
+                                        className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                     >
                                         <option value="">Sélectionner un bien...</option>
                                         {availableBiens.filter(b => b.statut === 'Libre').map(b => (
@@ -2163,8 +2037,8 @@ const Clients = () => {
                                     </select>
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={() => setIsAssociateModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl">Annuler</button>
-                                    <button type="submit" disabled={isSubmittingAssociate} className="flex-[2] px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-100">
+                                    <button type="button" onClick={() => setIsAssociateModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg">Annuler</button>
+                                    <button type="submit" disabled={isSubmittingAssociate} className="flex-[2] px-4 py-2 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 shadow-sm bg-slate-900 hover:bg-slate-800">
                                         {isSubmittingAssociate ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer le bien</>}
                                     </button>
                                 </div>
@@ -2177,32 +2051,32 @@ const Clients = () => {
             {/* Client → Bien Association Modal */}
             {
                 isClientAssocModalOpen && assocTargetClient && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-amber-50/40">
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/40">
                                 <div>
-                                    <h3 className="font-black text-gray-800 text-base flex items-center gap-2">
+                                    <h3 className="font-semibold text-slate-800 text-base flex items-center gap-2">
                                         <Link size={16} className="text-amber-500" />
                                         Associer un Bien
                                     </h3>
-                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
+                                    <p className="text-xs font-medium text-amber-600 mt-0.5">
                                         CLIENT : <MarkdownText text={`${assocTargetClient.nom} ${assocTargetClient.prenom}`} />
                                     </p>
                                 </div>
-                                <button onClick={() => setIsClientAssocModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400">
-                                    <X size={20} />
+                                <button onClick={() => setIsClientAssocModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
                             <form onSubmit={handleClientAssociateBien} className="p-6 space-y-4">
                                 {/* Search field */}
                                 <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={14} />
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                     <input
                                         type="text"
                                         placeholder="N° bloc, étage, projet, ou tapez 'bloc'..."
                                         value={assocBienSearch}
                                         onChange={(e) => setAssocBienSearch(e.target.value)}
-                                        className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+                                        className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                     />
                                 </div>
 
@@ -2213,9 +2087,9 @@ const Clients = () => {
                                             key={t}
                                             type="button"
                                             onClick={() => setAssocBienTypeFilter(t)}
-                                            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienTypeFilter === t
-                                                ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-100'
-                                                : 'bg-white text-gray-500 border-gray-100 hover:border-amber-200'
+                                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition border ${assocBienTypeFilter === t
+                                                ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                                                : 'bg-white text-slate-500 border-slate-100 hover:border-amber-200'
                                                 }`}
                                         >
                                             {t === 'all' ? 'Tous les types' : t === 'Appartement' ? 'Blocs (Appart.)' : t}
@@ -2230,9 +2104,9 @@ const Clients = () => {
                                             key={floor}
                                             type="button"
                                             onClick={() => setAssocBienFloorFilter(floor)}
-                                            className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all border ${assocBienFloorFilter === floor
-                                                ? 'bg-blue-500 text-white border-blue-500 shadow-md shadow-blue-100'
-                                                : 'bg-white text-gray-400 border-gray-100 hover:border-blue-200'
+                                            className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition border ${assocBienFloorFilter === floor
+                                                ? 'bg-blue-500 text-white border-blue-500 shadow-sm'
+                                                : 'bg-white text-slate-400 border-slate-100 hover:border-blue-200'
                                                 }`}
                                         >
                                             {floor === 'all' ? 'Tous les étages' : floor === '0' ? 'RDC' : `Étage ${floor}`}
@@ -2270,9 +2144,9 @@ const Clients = () => {
                                         .map(b => (
                                             <label
                                                 key={b.id}
-                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all ${assocBienId === String(b.id)
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition ${assocBienId === String(b.id)
                                                     ? 'bg-amber-50 border-amber-400 shadow-sm'
-                                                    : 'bg-gray-50 border-gray-200 hover:border-amber-300 hover:bg-amber-50/40'
+                                                    : 'bg-slate-50 border-slate-200 hover:border-amber-300 hover:bg-amber-50/40'
                                                     }`}
                                             >
                                                 <input
@@ -2284,19 +2158,19 @@ const Clients = () => {
                                                     className="accent-amber-500"
                                                 />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-black text-gray-800 uppercase break-words">
+                                                    <p className="text-sm font-semibold text-slate-800 break-words">
                                                         <MarkdownText text={b.type_bien === 'Appartement' ? 'Bloc' : b.type_bien} />
                                                         {b.nom ? <> – <MarkdownText text={b.nom} /></> : ''}
                                                         {b.immeuble ? <> – Imm. <MarkdownText text={b.immeuble} /></> : ''}
                                                         {b.num_appartement ? <> – N° Appartement <MarkdownText text={b.num_appartement} /></> : ''}
                                                         {b.etage === 0 ? ' (RDC)' : b.etage ? ` (Étage ${b.etage})` : ''}
                                                     </p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                    <p className="text-xs text-slate-400 font-medium">
                                                         {b.terrain?.nom_projet || `Projet #${b.terrain_id}`}
                                                         {b.surface_m2 ? ` · ${b.surface_m2} m²` : ''}
                                                     </p>
                                                 </div>
-                                                <span className="text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 px-2 py-0.5 rounded-full shrink-0">Libre</span>
+                                                <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 shrink-0 ring-1 ring-inset ring-blue-600/20">Libre</span>
                                             </label>
                                         ))}
                                     {availableBiens.filter(b => b.statut === 'Libre' && (
@@ -2307,7 +2181,7 @@ const Clients = () => {
                                         b.terrain?.nom_projet?.toLowerCase().includes(assocBienSearch.toLowerCase()) ||
                                         String(b.id).includes(assocBienSearch)
                                     )).length === 0 && (
-                                            <div className="py-8 text-center text-gray-400 text-sm font-medium">
+                                            <div className="py-8 text-center text-slate-400 text-sm font-medium">
                                                 Aucun bien libre trouvé.
                                             </div>
                                         )}
@@ -2315,10 +2189,10 @@ const Clients = () => {
 
                                 {/* Avec finition toggle */}
                                 {assocBienId && (
-                                    <div className="flex items-center justify-between p-4 bg-indigo-50/60 border border-indigo-100 rounded-xl">
+                                    <div className="flex items-center justify-between p-4 bg-blue-50/60 border border-blue-100 rounded-xl">
                                         <div>
-                                            <p className="text-sm font-bold text-indigo-900">Avec Finition ?</p>
-                                            <p className="text-[10px] text-indigo-500">Le client souhaite-t-il la finition ?</p>
+                                            <p className="text-sm font-semibold text-blue-900">Avec Finition ?</p>
+                                            <p className="text-xs text-blue-500">Le client souhaite-t-il la finition ?</p>
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input
@@ -2327,19 +2201,19 @@ const Clients = () => {
                                                 onChange={e => setAssocAvecFinition(e.target.checked)}
                                                 className="sr-only peer"
                                             />
-                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                            <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
                                         </label>
                                     </div>
                                 )}
 
                                 <div className="flex gap-3 pt-1">
-                                    <button type="button" onClick={() => setIsClientAssocModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition">
+                                    <button type="button" onClick={() => setIsClientAssocModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition">
                                         Annuler
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingAssoc || !assocBienId}
-                                        className="flex-[2] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-amber-100 transition"
+                                        className="flex-[2] px-4 py-2 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 shadow-sm transition bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmittingAssoc ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Associer</>}
                                     </button>
@@ -2353,32 +2227,32 @@ const Clients = () => {
             {/* WhatsApp Language Modal */}
             {
                 isWhatsAppLangModalOpen && whatsappTargetClient && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
-                                <h3 className="font-bold text-gray-800">Choisir la Langue / اختر اللغة</h3>
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-emerald-50/30">
+                                <h3 className="font-semibold text-slate-800">Choisir la Langue / اختر اللغة</h3>
                                 <button
                                     onClick={() => setIsWhatsAppLangModalOpen(false)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                 >
-                                    <X size={20} />
+                                    <X size={16} />
                                 </button>
                             </div>
                             <div className="p-6 grid grid-cols-2 gap-4">
                                 <button
                                     onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'fr')}
-                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50 transition group"
                                 >
                                     <span className="text-3xl">🇫🇷</span>
-                                    <span className="font-bold text-gray-700 group-hover:text-emerald-700">Français</span>
+                                    <span className="font-semibold text-slate-700 group-hover:text-emerald-700">Français</span>
                                 </button>
 
                                 <button
                                     onClick={() => handleWhatsAppMessage(whatsappTargetClient, 'ar')}
-                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 border-gray-100 hover:border-emerald-500 hover:bg-emerald-50 transition-all group"
+                                    className="flex flex-col items-center justify-center gap-3 p-6 rounded-lg border-2 border-slate-100 hover:border-emerald-500 hover:bg-emerald-50 transition group"
                                 >
                                     <span className="text-3xl">🇲🇦</span>
-                                    <span className="font-bold text-gray-700 group-hover:text-emerald-700">العربية</span>
+                                    <span className="font-semibold text-slate-700 group-hover:text-emerald-700">العربية</span>
                                 </button>
                             </div>
                         </div>
@@ -2389,26 +2263,26 @@ const Clients = () => {
             {/* WhatsApp Editor Modal */}
             {
                 isWhatsAppEditorOpen && whatsappTargetClient && (
-                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-emerald-50/30">
-                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-emerald-50/30">
+                                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
                                     <MessageCircle size={18} className="text-emerald-600" />
                                     Modifier le Message
                                 </h3>
                                 <button
                                     onClick={() => setIsWhatsAppEditorOpen(false)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                 >
-                                    <X size={20} />
+                                    <X size={16} />
                                 </button>
                             </div>
                             <div className="px-6 py-2 bg-emerald-600/5 border-b border-emerald-100 flex items-center justify-between">
-                                <span className="text-xs font-bold text-emerald-600">Amélioration Premium</span>
+                                <span className="text-xs font-medium text-emerald-600">Amélioration Premium</span>
                                 <button
                                     onClick={handleImproveWithAI}
                                     disabled={isAILoading}
-                                    className="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-50 transition-all font-black text-[10px] uppercase tracking-widest shadow-sm active:scale-95 disabled:opacity-50"
+                                    className="flex items-center gap-2 bg-white text-emerald-600 border border-emerald-200 px-3 py-1 rounded-lg hover:bg-emerald-50 transition font-medium text-sm shadow-sm active:scale-[0.98] disabled:opacity-50"
                                 >
                                     {isAILoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                                     Améliorer avec l'IA ✨
@@ -2416,26 +2290,26 @@ const Clients = () => {
                             </div>
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 tracking-wide">
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">
                                         Contenu du message (Tapez *texte* pour le gras)
                                     </label>
                                     <textarea
                                         value={whatsappMessageContent}
                                         onChange={(e) => setWhatsappMessageContent(e.target.value)}
                                         rows={8}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm text-gray-700 resize-none font-mono"
+                                        className="w-full resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         dir="auto"
                                     />
                                 </div>
 
-                                <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
-                                    <label className="block text-[10px] font-black text-emerald-600 uppercase mb-3 tracking-widest">Aperçu WhatsApp</label>
-                                    <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                    <label className="block text-xs font-medium text-emerald-600 mb-3 text-slate-600">Aperçu WhatsApp</label>
+                                    <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                                         {whatsappMessageContent.split('\n').map((line, i) => (
                                             <div key={i} className="mb-1">
                                                 {line.split(/(\*.*?\*)/g).map((part, j) => {
                                                     if (part.startsWith('*') && part.endsWith('*')) {
-                                                        return <strong key={j} className="font-black text-gray-900">{part.slice(1, -1)}</strong>;
+                                                        return <strong key={j} className="font-semibold text-slate-900">{part.slice(1, -1)}</strong>;
                                                     }
                                                     return part;
                                                 })}
@@ -2447,13 +2321,13 @@ const Clients = () => {
                                 <div className="flex justify-end gap-3">
                                     <button
                                         onClick={() => setIsWhatsAppEditorOpen(false)}
-                                        className="px-4 py-2 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
+                                        className="px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
                                     >
                                         Annuler
                                     </button>
                                     <button
                                         onClick={handleSendWhatsApp}
-                                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-200 flex items-center gap-2 transition-colors"
+                                        className="px-4 py-2 text-white font-medium text-sm rounded-lg shadow-sm flex items-center gap-2 transition-colors bg-slate-900 hover:bg-slate-800"
                                     >
                                         <MessageCircle size={16} />
                                         Envoyer
@@ -2468,15 +2342,15 @@ const Clients = () => {
             {/* WhatsApp Phone Selection Modal */}
             {
                 isWhatsAppPhoneModalOpen && whatsappTargetClient && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-                            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
-                                <h3 className="font-bold text-gray-800">Sélectionner le Numéro</h3>
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
+                                <h3 className="font-semibold text-slate-800">Sélectionner le Numéro</h3>
                                 <button
                                     onClick={() => setIsWhatsAppPhoneModalOpen(false)}
-                                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                 >
-                                    <X size={20} />
+                                    <X size={16} />
                                 </button>
                             </div>
                             <div className="p-6 flex flex-col gap-4">
@@ -2486,10 +2360,10 @@ const Clients = () => {
                                         setIsWhatsAppPhoneModalOpen(false);
                                         setIsWhatsAppLangModalOpen(true);
                                     }}
-                                    className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                                    className="flex flex-col items-start gap-1 p-4 rounded-lg border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition text-left group"
                                 >
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Principal</span>
-                                    <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel}</span>
+                                    <span className="text-xs font-semibold text-slate-400 group-hover:text-blue-400">Numéro Principal</span>
+                                    <span className="font-semibold text-slate-700 group-hover:text-blue-700">{whatsappTargetClient.tel}</span>
                                 </button>
                                 <button
                                     onClick={() => {
@@ -2497,10 +2371,10 @@ const Clients = () => {
                                         setIsWhatsAppPhoneModalOpen(false);
                                         setIsWhatsAppLangModalOpen(true);
                                     }}
-                                    className="flex flex-col items-start gap-1 p-4 rounded-xl border-2 border-gray-100 hover:border-indigo-500 hover:bg-indigo-50 transition-all text-left group"
+                                    className="flex flex-col items-start gap-1 p-4 rounded-lg border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50 transition text-left group"
                                 >
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-indigo-400">Numéro Secondaire</span>
-                                    <span className="font-bold text-gray-700 group-hover:text-indigo-700">{whatsappTargetClient.tel_2}</span>
+                                    <span className="text-xs font-semibold text-slate-400 group-hover:text-blue-400">Numéro Secondaire</span>
+                                    <span className="font-semibold text-slate-700 group-hover:text-blue-700">{whatsappTargetClient.tel_2}</span>
                                 </button>
                             </div>
                         </div>
@@ -2510,72 +2384,66 @@ const Clients = () => {
             {/* Client Cancellation Modal */}
             {
                 isClientCancelModalOpen && clientToCancel && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-                        <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-white">
-                            <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-rose-50/50">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 duration-300 bg-slate-950/50 animate-fade-in">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col duration-300 ring-1 ring-slate-900/5 animate-dialog-in">
+                            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-rose-100 rounded-xl text-rose-600">
+                                    <div className="hidden">
                                         <X size={20} />
                                     </div>
                                     <div>
-                                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">Annuler le Contrat</h3>
-                                        <p className="text-[10px] text-rose-600/70 font-bold uppercase tracking-widest">Client: {clientToCancel.nom} {clientToCancel.prenom}</p>
+                                        <h3 className="text-lg font-semibold text-slate-900 tracking-tight">Annuler le Contrat</h3>
+                                        <p className="text-xs text-rose-600/70 font-medium">Client: {clientToCancel.nom} {clientToCancel.prenom}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setIsClientCancelModalOpen(false)}
-                                    className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm"
+                                    className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                 >
-                                    <X size={20} />
+                                    <X size={16} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleCancelClient} className="flex-1 overflow-y-auto p-8 space-y-6">
-                                <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3">
+                                <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex items-start gap-3">
                                     <div className="space-y-2 flex-1">
                                         <div className="flex items-center gap-2">
                                             <Info size={18} className="text-amber-600 shrink-0" />
-                                            <p className="text-xs text-amber-800 font-bold leading-relaxed uppercase tracking-tight">Résumé financier du client</p>
+                                            <p className="text-xs text-amber-800 font-medium leading-relaxed tracking-tight">Résumé financier du client</p>
                                         </div>
-                                        <div className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-200/50">
-                                            <span className="text-[10px] font-black text-amber-900/60 uppercase">Total Versé :</span>
-                                            <span className="text-sm font-black text-amber-900 font-mono">
-                                                {formatNumber(clientToCancel.payments?.reduce((acc, p) => {
-                                                    const amt = parseFloat(String(p.amount));
-                                                    const refund = parseFloat(String(p.refund_amount || 0));
-                                                    const commission = parseFloat(String(p.bank_commission || 0));
-                                                    if (p.type === 'Reprise') return acc - amt;
-                                                    return acc + (amt - refund - commission);
-                                                }, 0) || 0)} DH
+                                        <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-amber-200/50">
+                                            <span className="text-xs font-semibold text-amber-900/60">Total Versé :</span>
+                                            <span className="text-sm font-semibold text-amber-900 font-mono">
+                                                {formatNumber(clientPaid(clientToCancel as any))} DH
                                             </span>
                                         </div>
-                                        <p className="text-[10px] text-amber-700 font-medium leading-tight">
+                                        <p className="text-xs text-amber-700 font-medium leading-tight">
                                             L'annulation libérera automatiquement tous les biens réservés. Le statut passera à <span className="font-bold">Annulé</span>.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Montant du Remboursement (DH)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Montant du Remboursement (DH)</label>
                                     <div className="relative">
                                         <input
                                             type="text"
                                             value={clientRefundAmount}
                                             onChange={(e) => setClientRefundAmount(formatNumber(e.target.value))}
-                                            className="w-full h-14 pl-12 pr-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-lg outline-none"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="0.00"
                                         />
-                                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                                        <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                                     </div>
-                                    <p className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest italic">Laissez vide ou 0 si aucun remboursement n'est effectué.</p>
+                                    <p className="mt-2 text-xs text-slate-400 font-medium">Laissez vide ou 0 si aucun remboursement n'est effectué.</p>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Motif / Notes</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Motif / Notes</label>
                                     <textarea
                                         value={clientCancelNotes}
                                         onChange={(e) => setClientCancelNotes(e.target.value)}
-                                        className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:ring-2 focus:ring-rose-500 transition-all font-bold text-sm outline-none h-24 resize-none"
+                                        className="w-full resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Précisez le motif de l'annulation..."
                                     />
                                 </div>
@@ -2584,14 +2452,14 @@ const Clients = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsClientCancelModalOpen(false)}
-                                        className="flex-1 h-14 bg-gray-50 text-gray-500 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-all text-[11px]"
+                                        className="flex-1 h-14 bg-slate-50 text-slate-500 rounded-lg font-semibold hover:bg-slate-100 transition text-xs"
                                     >
                                         Fermer
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={isSubmittingClientCancel}
-                                        className="flex-[2] h-14 bg-rose-600 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-rose-700 transition-all shadow-xl shadow-rose-100 active:scale-95 flex items-center justify-center gap-2 text-[11px]"
+                                        className="flex-[2] h-11 text-white rounded-lg font-medium transition shadow-sm active:scale-[0.98] flex items-center justify-center gap-2 text-sm bg-slate-900 hover:bg-slate-800"
                                     >
                                         {isSubmittingClientCancel ? <Loader2 className="animate-spin" size={20} /> : "Confirmer l'Annulation"}
                                     </button>

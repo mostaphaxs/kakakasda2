@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserCircle, ArrowRight, Loader2, Home } from 'lucide-react';
+import { UserCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import toast from 'react-hot-toast';
 
@@ -36,52 +36,61 @@ const ClientLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white rounded-[32px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] border border-white overflow-hidden p-8 space-y-8 animate-in fade-in zoom-in-95 duration-500">
-                <div className="text-center space-y-2">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 mb-2">
-                        <Home size={32} />
+        <div className="min-h-screen grid lg:grid-cols-[1.1fr_1fr] bg-white">
+            <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-slate-950 text-white p-12">
+                <img src="/assets/hero.png" alt="" decoding="async" className="absolute inset-0 w-full h-full object-cover opacity-45" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-slate-950/30" />
+                <div className="relative flex items-center gap-3">
+                    <img src="/assets/logoLogin.png" alt="" className="h-10 w-auto rounded-md bg-white/90 p-1" />
+                    <div className="leading-tight">
+                        <p className="text-sm font-semibold">El Ouaha</p>
+                        <p className="text-xs text-white/60">Espace acquéreur</p>
                     </div>
-                    <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Espace Acquéreur</h1>
-                    <p className="text-sm font-medium text-slate-400"> Amical El Ouaha </p>
                 </div>
+                <div className="relative max-w-md">
+                    <h1 className="text-3xl xl:text-4xl font-semibold tracking-tight leading-tight">
+                        Suivez votre futur logement, <span className="text-brand-400">en toute transparence.</span>
+                    </h1>
+                    <p className="mt-4 text-sm text-white/75">Vos paiements, votre échéancier et l'avancement des travaux de votre bien, à tout moment.</p>
+                </div>
+                <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Amical El Ouaha</p>
+            </aside>
 
-                <form onSubmit={handleLogin} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Votre Identifiant (CIN)</label>
-                        <div className="relative group">
-                            <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-amber-500 transition-colors" size={20} />
-                            <input
-                                type="text"
-                                value={cin}
-                                onChange={(e) => setCin(e.target.value.toUpperCase())}
-                                placeholder="Tapez votre CIN ici..."
-                                required
-                                className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:bg-white focus:ring-4 focus:ring-amber-50 focus:border-amber-200 outline-none transition-all font-bold text-slate-700 tracking-wider"
-                            />
+            <main className="flex items-center justify-center p-6 sm:p-12">
+                <div className="w-full max-w-sm">
+                    <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Espace acquéreur</h2>
+                    <p className="mt-1.5 text-sm text-slate-500">Entrez le numéro de votre CIN pour accéder à votre dossier.</p>
+
+                    <form onSubmit={handleLogin} className="mt-8 space-y-5">
+                        <div>
+                            <label className="block text-xs font-medium text-slate-600 mb-1.5">Numéro de CIN</label>
+                            <div className="relative">
+                                <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                <input
+                                    type="text"
+                                    value={cin}
+                                    autoFocus
+                                    onChange={(e) => setCin(e.target.value.toUpperCase())}
+                                    placeholder="Ex : AB123456"
+                                    required
+                                    className="w-full pl-10 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 tracking-wide placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                                />
+                            </div>
                         </div>
-                    </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-60 transition-colors group"
+                        >
+                            {loading ? <Loader2 className="animate-spin" size={18} /> : <>Accéder à mon dossier <ArrowRight className="group-hover:translate-x-0.5 transition-transform" size={16} /></>}
+                        </button>
+                    </form>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-4 bg-slate-900 hover:bg-black text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-2 group disabled:opacity-50"
-                    >
-                        {loading ? (
-                            <Loader2 className="animate-spin" size={18} />
-                        ) : (
-                            <>
-                                Accéder à mon dossier
-                                <ArrowRight className="group-hover:translate-x-1 transition-transform" size={16} />
-                            </>
-                        )}
+                    <button type="button" onClick={() => navigate('/login')} className="mt-10 pt-6 w-full border-t border-slate-100 text-left text-sm text-slate-500 hover:text-slate-900">
+                        ← Espace administration
                     </button>
-                </form>
-
-                <div className="pt-8 border-t border-slate-50 text-center">
-                    <p className="text-[10px] text-slate-400 font-medium">© 2026 Amical El Ouaha </p>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

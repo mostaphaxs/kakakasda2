@@ -171,18 +171,7 @@ export const parseDate = (dateStr: string | null | undefined): Date => {
     return isNaN(d.getTime()) ? new Date() : d;
 };
 
-export const MAROC_BANKS = [
-    "Barid Bank",
-    "CIH Bank",
-    "Banque Populaire",
-    "BMCE Bank of Africa",
-    "Crédit du Maroc",
-    "Société Générale",
-    "BMCI",
-    "Attijariwafa Bank",
-    "Crédit Agricole du Maroc",
-    "CFG Bank",
-    "Arab Bank",
-    "Trésorerie Générale",
-    "Autre"
-];
+
+/** YYYY-MM-DD in local time (toISOString() is UTC and can shift the day). */
+export const localISODate = (d: Date = new Date()): string =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;

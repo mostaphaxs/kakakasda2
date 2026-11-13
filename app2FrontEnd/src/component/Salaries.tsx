@@ -10,6 +10,8 @@ import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber, parseDate } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
 
 interface Salarie {
     id: number;
@@ -62,7 +64,8 @@ interface Salarie {
 const Salaries: React.FC = () => {
     const [salaries, setSalaries] = useState<Salarie[]>([]);
     const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = usePersistedState('Salaries.search', '');
+    useUrlSearch(setSearch);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingSalarie, setEditingSalarie] = useState<Salarie | null>(null);
@@ -313,7 +316,7 @@ const Salaries: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce salarié ?')) return;
+        if (!await confirmDialog('Êtes-vous sûr de vouloir supprimer ce salarié ?')) return;
         try {
             await apiFetch(`/salaries/${id}`, { method: 'DELETE' });
             toast.success('Salarié supprimé');
@@ -332,77 +335,64 @@ const Salaries: React.FC = () => {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-                <Loader2 className="animate-spin text-indigo-600" size={40} />
-                <p className="text-sm font-black text-gray-400 uppercase tracking-widest animate-pulse">Chargement des salariés...</p>
+                <Loader2 className="animate-spin text-blue-600" size={40} />
+                <p className="text-sm font-semibold text-slate-400 animate-pulse">Chargement des salariés...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Header section with Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-1 flex flex-col justify-center space-y-1">
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                        Salariés
-                        <span className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full">{salaries.length}</span>
+        <div className="space-y-5 pb-10">
+            {/* Header */}
+            <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <UserCheck className="text-slate-400 flex-shrink-0" size={26} /> Salariés
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600 tabular-nums">{salaries.length}</span>
                     </h1>
-                    <p className="text-gray-400 font-bold text-xs uppercase tracking-widest ml-1">Gestion des Ressources Humaines</p>
+                    <p className="text-slate-500 text-sm mt-1">Gestion des ressources humaines et des bulletins.</p>
                 </div>
-
-                <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center gap-5 shadow-sm group hover:border-indigo-100 transition-all">
-                        <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:scale-110 transition-transform">
-                            <UserCheck size={24} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Masse Salariale</p>
-                            <p className="text-xl font-black text-slate-900 tabular-nums">
-                                {salaries.reduce((acc, s) => acc + Number(s.monthly_salary || 0), 0).toLocaleString('fr-MA')} <span className="text-[10px]">DH/mois</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 flex items-center gap-5 shadow-sm group hover:border-emerald-100 transition-all">
-                        <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:scale-110 transition-transform">
-                            <GraduationCap size={24} />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Niveau Moyen</p>
-                            <p className="text-xl font-black text-slate-900 italic">Cadre / Technicien</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center justify-end">
-                    <button
-                        onClick={() => handleOpenModal()}
-                        className="h-14 px-8 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase tracking-widest text-[11px] hover:bg-black transition-all shadow-xl shadow-slate-100 flex items-center gap-3 hover:-translate-y-1"
-                    >
-                        <Plus size={18} />
-                        Nouveau Salarié
-                    </button>
-                </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    className="px-4 py-2 text-white rounded-lg font-medium text-sm transition flex items-center gap-2 bg-slate-900 hover:bg-slate-800"
+                >
+                    <Plus size={16} /> Nouveau Salarié
+                </button>
             </div>
+
+            {/* Key figures */}
+            <section className="bg-white rounded-xl border border-slate-200 grid grid-cols-2">
+                <div className="p-5">
+                    <p className="text-sm text-slate-500">Masse salariale</p>
+                    <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">
+                        {salaries.reduce((acc, s) => acc + Number(s.monthly_salary || 0), 0).toLocaleString('fr-MA')}<span className="ml-1 text-sm font-medium text-slate-400">DH / mois</span>
+                    </p>
+                </div>
+                <div className="p-5 border-l border-slate-200">
+                    <p className="text-sm text-slate-500">Effectif</p>
+                    <p className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 tabular-nums">{salaries.length}<span className="ml-1 text-sm font-medium text-slate-400">salarié(s)</span></p>
+                </div>
+            </section>
 
             {/* Filters and Search */}
             <div
                 ref={headerRef}
-                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-[2.5rem] border border-white shadow-xl shadow-gray-200/50 flex flex-col md:flex-row gap-4 items-center justify-between mx-1"
+                className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between mx-1"
             >
                 <div className="relative w-full md:w-96 group">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-600 transition-colors" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher par nom, spécialité, cin..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-14 pr-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700 placeholder:text-gray-300"
+                        className="w-full pl-10 pr-6 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     />
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <button
                         onClick={() => exportToExcel(salaries, "Liste_Salaries")}
-                        className="flex-1 md:flex-none h-12 px-6 bg-emerald-50 text-emerald-600 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                        className="flex-1 md:flex-none h-12 px-6 bg-emerald-50 text-emerald-600 rounded-lg font-semibold text-xs hover:bg-emerald-100 transition flex items-center justify-center gap-2"
                     >
                         <Download size={16} />
                         Excel
@@ -411,39 +401,39 @@ const Salaries: React.FC = () => {
             </div>
 
             {/* List Table */}
-            <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl italic mb-12">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-12">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead
-                            className="sticky z-20 bg-white border-b border-gray-100 shadow-sm"
+                            className="sticky z-20 bg-white border-b border-slate-200"
                             style={{ top: `${stickyOffset}px` }}
                         >
-                            <tr className="bg-slate-50/50">
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Identité</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Spécialité & Grade</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Formation</th>
-                                <th className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Salaire Mensuel</th>
-                                <th className="px-8 py-6 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Actions</th>
+                            <tr className="">
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Identité</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Spécialité & Grade</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Formation</th>
+                                <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Salaire Mensuel</th>
+                                <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-slate-50">
                             {filteredSalaries.map((salarie) => (
-                                <tr key={salarie.id} className="hover:bg-slate-50/50 transition-colors group">
-                                    <td className="px-8 py-6">
+                                <tr key={salarie.id} className="hover:bg-slate-50 transition-colors group">
+                                    <td className="px-4 py-3">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 font-black text-lg">
+                                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 font-semibold text-lg">
                                                 {salarie.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="font-black text-slate-800 uppercase tracking-tight">{salarie.name}</p>
+                                                <p className="font-semibold text-slate-800 tracking-tight">{salarie.name}</p>
                                                 <div className="flex items-center gap-3 mt-1">
-                                                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase">
-                                                        <ShieldCheck size={12} className="text-indigo-400" />
+                                                    <span className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                                                        <ShieldCheck size={12} className="text-blue-400" />
                                                         {salarie.cin || 'N/A'}
                                                     </span>
                                                     {salarie.phone && (
-                                                        <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase border-l border-gray-200 pl-3">
-                                                            <Phone size={12} className="text-gray-400" />
+                                                        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-400 border-l border-slate-200 pl-3">
+                                                            <Phone size={12} className="text-slate-400" />
                                                             {salarie.phone}
                                                         </span>
                                                     )}
@@ -451,59 +441,59 @@ const Salaries: React.FC = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6">
-                                        <span className="px-3 py-1 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg">
+                                    <td className="px-4 py-3">
+                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-slate-900 text-white">
                                             {salarie.speciality}
                                         </span>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5 ml-1">
-                                            Grade: <span className="text-indigo-600">{salarie.grade || 'Non spécifié'}</span>
+                                        <p className="text-xs font-medium text-slate-400 mt-1.5 ml-1">
+                                            Grade: <span className="text-blue-600">{salarie.grade || 'Non spécifié'}</span>
                                         </p>
                                     </td>
-                                    <td className="px-8 py-6 text-center">
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 font-black text-[9px] uppercase">
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-100 font-semibold text-xs">
                                             <GraduationCap size={12} />
                                             {salarie.education || 'N/A'}
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6 text-center">
-                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-700 font-black text-xs tabular-nums shadow-sm">
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-100 bg-blue-50 text-blue-700 font-semibold text-xs tabular-nums shadow-sm">
                                             {Number(salarie.monthly_salary).toLocaleString('fr-MA')} <span className="text-[9px]">DH</span>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6 text-center">
+                                    <td className="px-4 py-3 text-center">
                                         {salarie.scan_contrat ? (
                                             <button
                                                 onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${salarie.scan_contrat}`))}
-                                                className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 font-black text-[9px] uppercase hover:bg-blue-100 transition-all"
+                                                className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-600 rounded-lg border border-blue-100 font-medium text-sm hover:bg-blue-100 transition"
                                             >
                                                 <FileText size={12} />
                                                 Contrat
                                             </button>
                                         ) : (
-                                            <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest italic">Aucun scan</span>
+                                            <span className="text-xs font-medium text-slate-300">Aucun scan</span>
                                         )}
                                     </td>
-                                    <td className="px-8 py-6 text-right">
-                                        <div className="flex items-center justify-end gap-2">
+                                    <td className="px-4 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-0.5">
                                             <button
                                                 onClick={() => {
                                                     setSelectedSalarie(salarie);
                                                     setIsDetailsModalOpen(true);
                                                 }}
-                                                className="p-2 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all group"
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                 title="Details"
                                             >
                                                 <Eye size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleOpenModal(salarie)}
-                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-all"
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                             >
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(salarie.id)}
-                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-50 rounded-lg transition-all"
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
@@ -518,72 +508,72 @@ const Salaries: React.FC = () => {
 
             {/* Upsert Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-y-auto">
-                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh]">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-300 overflow-y-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col duration-300 max-h-[90vh] ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100">
+                                <div className="hidden">
                                     {editingSalarie ? <Edit2 size={20} /> : <Plus size={20} />}
                                 </div>
-                                <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest">
+                                <h3 className="font-semibold text-slate-800 text-sm">
                                     {editingSalarie ? 'Modifier le Salarié' : 'Nouveau Salarié'}
                                 </h3>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-full text-gray-400 transition-colors shadow-sm border border-transparent hover:border-gray-100">
-                                <X size={20} />
+                            <button onClick={() => setIsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1 custom-scrollbar">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Nom Complet</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Nom Complet</label>
                                     <div className="relative">
-                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             required
                                             value={form.name}
                                             onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Nom et prénom"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">CIN</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">CIN</label>
                                     <div className="relative">
-                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.cin}
                                             onChange={(e) => setForm({ ...form, cin: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Carte d'identité"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Date de Naissance</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Date de Naissance</label>
                                     <div className="relative">
                                         <input
                                             type="date"
                                             value={form.birth_date}
                                             onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
-                                            className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Situation Familiale</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Situation Familiale</label>
                                     <div className="relative">
                                         <select
                                             value={form.marital_status}
                                             onChange={(e) => setForm({ ...form, marital_status: e.target.value })}
-                                            className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer"
+                                            className="w-full appearance-none cursor-pointer pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         >
                                             <option value="">Sélectionner...</option>
                                             <option value="Célibataire">Célibataire</option>
@@ -595,25 +585,25 @@ const Salaries: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Téléphone</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Téléphone</label>
                                     <div className="relative">
-                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.phone}
                                             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="06..."
                                         />
                                     </div>
                                 </div>
 
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Adresse</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Adresse</label>
                                     <textarea
                                         value={form.address}
                                         onChange={(e) => setForm({ ...form, address: e.target.value })}
-                                        className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700 resize-none h-24"
+                                        className="w-full resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Ex: 84, Rue Prince Moulay Abdellah, Casablanca"
                                     ></textarea>
                                 </div>
@@ -621,91 +611,91 @@ const Salaries: React.FC = () => {
                                 {/* Professional Details Header */}
                                 <div className="col-span-full mt-4">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent"></div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Informations Professionnelles</span>
-                                        <div className="flex-1 h-px bg-gradient-to-l from-gray-100 to-transparent"></div>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-slate-100 to-transparent"></div>
+                                        <span className="text-xs font-semibold text-slate-400 px-2">Informations Professionnelles</span>
+                                        <div className="flex-1 h-px bg-gradient-to-l from-slate-100 to-transparent"></div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Matricule</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Matricule</label>
                                     <div className="relative">
-                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.matricule}
                                             onChange={(e) => setForm({ ...form, matricule: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Ex: 63"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">N° CNSS</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">N° CNSS</label>
                                     <div className="relative">
-                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.cnss_number}
                                             onChange={(e) => setForm({ ...form, cnss_number: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Ex: 188944609"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Spécialité / Département</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Spécialité / Département</label>
                                     <div className="relative">
-                                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             required
                                             value={form.speciality}
                                             onChange={(e) => setForm({ ...form, speciality: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Ex: Comptabilité, Ingénierie..."
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Fonction (Détail)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Fonction (Détail)</label>
                                     <div className="relative">
-                                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.fonction}
                                             onChange={(e) => setForm({ ...form, fonction: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Ex: Stagiaire, Assistant..."
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Grade</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Grade</label>
                                     <div className="relative">
-                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <input
                                             type="text"
                                             value={form.grade}
                                             onChange={(e) => setForm({ ...form, grade: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="Ex: Senior, Junior, Chef"
                                         />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Formation / Niveau</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Formation / Niveau</label>
                                     <div className="relative">
-                                        <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                                        <GraduationCap className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
                                         <select
                                             value={form.education}
                                             onChange={(e) => setForm({ ...form, education: e.target.value })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700 appearance-none cursor-pointer"
+                                            className="w-full appearance-none cursor-pointer pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         >
                                             <option value="">Sélectionner un niveau...</option>
                                             {GRADUATIONS.map(g => (
@@ -717,29 +707,29 @@ const Salaries: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Salaire Mensuel (DH)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Salaire Mensuel (DH)</label>
                                     <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 font-black text-xs uppercase">DH</span>
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-semibold text-xs">DH</span>
                                         <input
                                             type="text"
                                             required
                                             value={form.monthly_salary}
                                             onChange={(e) => setForm({ ...form, monthly_salary: formatNumber(e.target.value) })}
-                                            className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-black text-lg text-emerald-600"
+                                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="0"
                                         />
                                     </div>
                                 </div>
 
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1 flex items-center">
+                                    <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
                                         <Banknote size={14} className="mr-2" /> Informations Bancaires / RIB
                                     </label>
                                     <input
                                         type="text"
                                         value={form.bank_info}
                                         onChange={(e) => setForm({ ...form, bank_info: e.target.value })}
-                                        className="w-full px-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono text-sm tracking-wider"
+                                        className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         placeholder="Banque, Agence, RIB..."
                                     />
                                 </div>
@@ -747,14 +737,14 @@ const Salaries: React.FC = () => {
                                 {/* ── BULLETIN DE PAIE ──────────────────────────── */}
                                 <div className="col-span-full">
                                     <div className="flex items-center gap-3 mb-4 mt-2">
-                                        <div className="flex-1 h-px bg-gradient-to-r from-indigo-200 to-transparent"></div>
-                                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] px-2">Bulletin de Paie</span>
-                                        <div className="flex-1 h-px bg-gradient-to-l from-indigo-200 to-transparent"></div>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-blue-200 to-transparent"></div>
+                                        <span className="text-xs font-semibold text-blue-500 px-2">Bulletin de Paie</span>
+                                        <div className="flex-1 h-px bg-gradient-to-l from-blue-200 to-transparent"></div>
                                     </div>
 
-                                    <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+                                    <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                                         {/* Header */}
-                                        <div className="grid grid-cols-6 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest text-center">
+                                        <div className="grid grid-cols-6 bg-slate-800 text-white text-xs font-semibold text-center">
                                             <div className="px-4 py-2.5 col-span-2 text-left">Désignation</div>
                                             <div className="px-4 py-2.5">Base</div>
                                             <div className="px-4 py-2.5">Taux</div>
@@ -764,99 +754,99 @@ const Salaries: React.FC = () => {
 
                                         {/* Salaire de base */}
                                         <div className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                            <div className="px-4 py-2 text-[10px] font-black text-slate-700 uppercase col-span-2">Salaire de Base</div>
+                                            <div className="px-4 py-2 text-xs font-semibold text-slate-700 col-span-2">Salaire de Base</div>
                                             <div className="px-2 py-2">
                                                 <div className="flex items-center gap-1">
-                                                    <input type="number" step="0.01" value={form.jours_travail} onChange={e => setForm({ ...form, jours_travail: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-center outline-none focus:border-indigo-400" />
-                                                    <span className="text-[9px] text-gray-400 font-bold whitespace-nowrap">J</span>
+                                                    <input type="number" step="0.01" value={form.jours_travail} onChange={e => setForm({ ...form, jours_travail: e.target.value })} className="w-full text-center pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
+                                                    <span className="text-xs text-slate-400 font-medium whitespace-nowrap">J</span>
                                                 </div>
                                             </div>
-                                            <div className="px-2 py-2 text-[9px] text-gray-400 text-center font-bold">—</div>
+                                            <div className="px-2 py-2 text-xs text-slate-400 text-center font-medium">—</div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.salaire_base} onChange={e => setForm({ ...form, salaire_base: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-right outline-none focus:border-indigo-400" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.salaire_base} onChange={e => setForm({ ...form, salaire_base: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                             <div className="px-2 py-2"></div>
                                         </div>
 
                                         {/* Ancienneté */}
                                         <div className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                            <div className="px-4 py-2 text-[10px] font-black text-slate-700 uppercase col-span-2 pl-4">Ancienneté</div>
-                                            <div className="px-2 py-2 text-[9px] text-gray-400 text-center font-bold">—</div>
+                                            <div className="px-4 py-2 text-xs font-semibold text-slate-700 col-span-2 pl-4">Ancienneté</div>
+                                            <div className="px-2 py-2 text-xs text-slate-400 text-center font-medium">—</div>
                                             <div className="px-2 py-2">
                                                 <div className="flex items-center gap-1">
-                                                    <input type="number" step="0.01" value={form.taux_anciennete} onChange={e => setForm({ ...form, taux_anciennete: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-center outline-none focus:border-indigo-400" />
-                                                    <span className="text-[9px] text-gray-400 font-bold">%</span>
+                                                    <input type="number" step="0.01" value={form.taux_anciennete} onChange={e => setForm({ ...form, taux_anciennete: e.target.value })} className="w-full text-center pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
+                                                    <span className="text-xs text-slate-400 font-medium">%</span>
                                                 </div>
                                             </div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.montant_anciennete} onChange={e => setForm({ ...form, montant_anciennete: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-right outline-none focus:border-indigo-400" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.montant_anciennete} onChange={e => setForm({ ...form, montant_anciennete: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                             <div className="px-2 py-2"></div>
                                         </div>
 
                                         {/* Salaire brut global */}
-                                        <div className="grid grid-cols-6 border-b border-slate-200 items-center bg-indigo-50/50">
-                                            <div className="px-4 py-2 text-[10px] font-black text-indigo-700 uppercase col-span-2">Salaire Brut Global</div>
+                                        <div className="grid grid-cols-6 border-b border-slate-200 items-center bg-blue-50/50">
+                                            <div className="px-4 py-2 text-xs font-semibold text-blue-700 col-span-2">Salaire Brut Global</div>
                                             <div className="px-2 py-2 col-span-2"></div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.salaire_brut} onChange={e => setForm({ ...form, salaire_brut: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-indigo-200 text-xs font-black text-right outline-none focus:border-indigo-500 text-indigo-700" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.salaire_brut} onChange={e => setForm({ ...form, salaire_brut: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                             <div className="px-2 py-2"></div>
                                         </div>
 
                                         {/* Sécurité Sociale */}
-                                        <div className="px-4 py-1.5 bg-slate-100/80 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] border-b border-slate-200">Sécurité Sociale</div>
+                                        <div className="px-4 py-1.5 bg-slate-100/80 text-xs font-semibold text-slate-500 border-b border-slate-200">Sécurité Sociale</div>
                                         {/* CNSS */}
                                         <div className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                            <div className="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase col-span-2 pl-8">CNSS</div>
+                                            <div className="px-4 py-2 text-xs font-medium text-slate-600 col-span-2 pl-8">CNSS</div>
                                             <div className="px-2 py-2 text-center text-xs font-medium text-slate-400">########</div>
                                             <div className="px-2 py-2">
                                                 <div className="flex items-center gap-1">
-                                                    <input type="number" step="0.01" value={form.taux_cnss} onChange={e => setForm({ ...form, taux_cnss: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-center outline-none focus:border-indigo-400" />
-                                                    <span className="text-[9px] text-gray-400 font-bold">%</span>
+                                                    <input type="number" step="0.01" value={form.taux_cnss} onChange={e => setForm({ ...form, taux_cnss: e.target.value })} className="w-full text-center pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
+                                                    <span className="text-xs text-slate-400 font-medium">%</span>
                                                 </div>
                                             </div>
                                             <div className="px-2 py-2"></div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.retenue_cnss} onChange={e => setForm({ ...form, retenue_cnss: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-red-50 border border-red-100 text-xs font-bold text-right outline-none focus:border-red-400 text-red-600" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.retenue_cnss} onChange={e => setForm({ ...form, retenue_cnss: e.target.value })} className="w-full !border-red-100 text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                         </div>
                                         {/* AMO */}
                                         <div className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                            <div className="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase col-span-2 pl-8">AMO</div>
+                                            <div className="px-4 py-2 text-xs font-medium text-slate-600 col-span-2 pl-8">AMO</div>
                                             <div className="px-2 py-2 text-center text-xs font-medium text-slate-400">########</div>
                                             <div className="px-2 py-2">
                                                 <div className="flex items-center gap-1">
-                                                    <input type="number" step="0.01" value={form.taux_amo} onChange={e => setForm({ ...form, taux_amo: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-center outline-none focus:border-indigo-400" />
-                                                    <span className="text-[9px] text-gray-400 font-bold">%</span>
+                                                    <input type="number" step="0.01" value={form.taux_amo} onChange={e => setForm({ ...form, taux_amo: e.target.value })} className="w-full text-center pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
+                                                    <span className="text-xs text-slate-400 font-medium">%</span>
                                                 </div>
                                             </div>
                                             <div className="px-2 py-2"></div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.retenue_amo} onChange={e => setForm({ ...form, retenue_amo: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-red-50 border border-red-100 text-xs font-bold text-right outline-none focus:border-red-400 text-red-600" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.retenue_amo} onChange={e => setForm({ ...form, retenue_amo: e.target.value })} className="w-full !border-red-100 text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                         </div>
 
                                         {/* Impôts et Taxes */}
-                                        <div className="px-4 py-1.5 bg-slate-100/80 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] border-b border-slate-200">Impôts et Taxes</div>
+                                        <div className="px-4 py-1.5 bg-slate-100/80 text-xs font-semibold text-slate-500 border-b border-slate-200">Impôts et Taxes</div>
                                         {/* IR */}
                                         <div className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                            <div className="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase col-span-2 pl-8">I.R.</div>
-                                            <div className="px-2 py-2 text-[9px] text-gray-400 text-center font-bold">—</div>
+                                            <div className="px-4 py-2 text-xs font-medium text-slate-600 col-span-2 pl-8">I.R.</div>
+                                            <div className="px-2 py-2 text-xs text-slate-400 text-center font-medium">—</div>
                                             <div className="px-2 py-2">
                                                 <div className="flex items-center gap-1">
-                                                    <input type="number" step="0.01" value={form.taux_ir} onChange={e => setForm({ ...form, taux_ir: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-center outline-none focus:border-indigo-400" />
-                                                    <span className="text-[9px] text-gray-400 font-bold">%</span>
+                                                    <input type="number" step="0.01" value={form.taux_ir} onChange={e => setForm({ ...form, taux_ir: e.target.value })} className="w-full text-center pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
+                                                    <span className="text-xs text-slate-400 font-medium">%</span>
                                                 </div>
                                             </div>
                                             <div className="px-2 py-2"></div>
                                             <div className="px-2 py-2">
-                                                <input type="number" step="0.01" value={form.retenue_ir} onChange={e => setForm({ ...form, retenue_ir: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-red-50 border border-red-100 text-xs font-bold text-right outline-none focus:border-red-400 text-red-600" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.retenue_ir} onChange={e => setForm({ ...form, retenue_ir: e.target.value })} className="w-full !border-red-100 text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                         </div>
 
                                         {/* Primes et Indemnités */}
-                                        <div className="px-4 py-1.5 bg-slate-100/80 text-[9px] font-black text-slate-500 uppercase tracking-[0.15em] border-b border-slate-200">Primes et Indemnités</div>
+                                        <div className="px-4 py-1.5 bg-slate-100/80 text-xs font-semibold text-slate-500 border-b border-slate-200">Primes et Indemnités</div>
                                         {[
                                             { label: 'Indemnité de Transport', key: 'indemnite_transport' },
                                             { label: 'Prime de Panier', key: 'prime_panier' },
@@ -864,10 +854,10 @@ const Salaries: React.FC = () => {
                                             { label: 'Arrondis', key: 'arrondis' },
                                         ].map(({ label, key }) => (
                                             <div key={key} className="grid grid-cols-6 border-b border-slate-200 items-center hover:bg-white transition-colors">
-                                                <div className="px-4 py-2 text-[10px] font-bold text-slate-600 uppercase col-span-2 pl-8">{label}</div>
+                                                <div className="px-4 py-2 text-xs font-medium text-slate-600 col-span-2 pl-8">{label}</div>
                                                 <div className="px-2 py-2 col-span-2"></div>
                                                 <div className="px-2 py-2">
-                                                    <input type="number" step="0.01" value={(form as any)[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-right outline-none focus:border-indigo-400" placeholder="0.00" />
+                                                    <input type="number" step="0.01" value={(form as any)[key]} onChange={e => setForm({ ...form, [key]: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                                 </div>
                                                 <div className="px-2 py-2"></div>
                                             </div>
@@ -875,22 +865,22 @@ const Salaries: React.FC = () => {
 
                                         {/* Totals */}
                                         <div className="grid grid-cols-6 border-b border-slate-300 items-center bg-slate-100/80">
-                                            <div className="px-4 py-3 text-[10px] font-black text-slate-800 uppercase col-span-2">TOTAL des Gains / Retenues</div>
+                                            <div className="px-4 py-3 text-xs font-semibold text-slate-800 col-span-2">TOTAL des Gains / Retenues</div>
                                             <div className="px-2 py-3 col-span-2"></div>
                                             <div className="px-2 py-3">
-                                                <input type="number" step="0.01" value={form.total_gains} onChange={e => setForm({ ...form, total_gains: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-300 text-xs font-black text-right outline-none focus:border-indigo-500 text-slate-800" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.total_gains} onChange={e => setForm({ ...form, total_gains: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                             <div className="px-2 py-3">
-                                                <input type="number" step="0.01" value={form.total_retenues} onChange={e => setForm({ ...form, total_retenues: e.target.value })} className="w-full h-8 px-2 rounded-lg bg-white border border-slate-300 text-xs font-black text-right outline-none focus:border-red-500 text-red-600" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.total_retenues} onChange={e => setForm({ ...form, total_retenues: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                         </div>
 
                                         {/* Net à payer */}
                                         <div className="grid grid-cols-6 items-center bg-emerald-600 text-white">
-                                            <div className="px-4 py-3 text-[11px] font-black uppercase tracking-widest col-span-2">Net à Payer</div>
-                                            <div className="px-2 py-3 col-span-2 text-right text-[10px] font-bold text-emerald-200">Total Net DH</div>
+                                            <div className="px-4 py-3 text-xs font-semibold col-span-2">Net à Payer</div>
+                                            <div className="px-2 py-3 col-span-2 text-right text-xs font-medium text-emerald-200">Total Net DH</div>
                                             <div className="px-2 py-3 col-span-2">
-                                                <input type="number" step="0.01" value={form.net_a_payer} onChange={e => setForm({ ...form, net_a_payer: e.target.value })} className="w-full h-10 px-3 rounded-lg bg-emerald-700/50 border border-emerald-500/50 text-base font-black text-right text-white placeholder:text-white/60 outline-none focus:bg-emerald-700/80" placeholder="0.00" />
+                                                <input type="number" step="0.01" value={form.net_a_payer} onChange={e => setForm({ ...form, net_a_payer: e.target.value })} className="w-full text-right pl-3 pr-3 py-2 tabular-nums bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0.00" />
                                             </div>
                                         </div>
                                     </div>
@@ -898,22 +888,22 @@ const Salaries: React.FC = () => {
                                     {/* Payment details for bulletin */}
                                     <div className="mt-4 grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Mode de Paiement & RIB</label>
+                                            <label className="block text-xs font-medium mb-2 text-slate-600">Mode de Paiement & RIB</label>
                                             <div className="flex gap-2">
-                                                <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="w-1/3 px-3 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-xs text-gray-700">
+                                                <select value={form.payment_method} onChange={e => setForm({ ...form, payment_method: e.target.value })} className="w-1/3 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500">
                                                     <option value="">Sélectionner</option>
                                                     <option value="Virement bancaire">Virement bancaire</option>
                                                     <option value="Espèces">Espèces</option>
                                                     <option value="Chèque">Chèque</option>
                                                 </select>
-                                                <input type="text" value={form.rib} onChange={e => setForm({ ...form, rib: e.target.value })} className="w-2/3 px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-mono text-xs text-gray-700" placeholder="N° RIB / Chèque..." />
+                                                <input type="text" value={form.rib} onChange={e => setForm({ ...form, rib: e.target.value })} className="w-2/3 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="N° RIB / Chèque..." />
                                             </div>
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Début de Paie / Prochain Paiement</label>
-                                            <input type="date" value={form.payment_date} onChange={e => setForm({ ...form, payment_date: e.target.value })} className="w-full px-4 py-3 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold text-gray-700" />
+                                            <label className="block text-xs font-medium mb-2 text-slate-600">Début de Paie / Prochain Paiement</label>
+                                            <input type="date" value={form.payment_date} onChange={e => setForm({ ...form, payment_date: e.target.value })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" />
                                             {form.payment_date && (
-                                                <p className="text-[9px] font-bold text-indigo-400 mt-2 ml-1 italic">
+                                                <p className="text-xs font-medium text-blue-400 mt-2 ml-1">
                                                     Cycle mensuel : le prochain sera vers le {new Date(parseDate(form.payment_date).setMonth(parseDate(form.payment_date).getMonth() + 1)).toLocaleDateString('fr-MA')}
                                                 </p>
                                             )}
@@ -922,7 +912,7 @@ const Salaries: React.FC = () => {
                                 </div>
 
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 tracking-widest ml-1">Scan du Contrat (PDF, Image)</label>
+                                    <label className="block text-xs font-medium mb-2 text-slate-600">Scan du Contrat (PDF, Image)</label>
                                     <div className="relative group/file">
                                         <input
                                             type="file"
@@ -933,20 +923,20 @@ const Salaries: React.FC = () => {
                                         />
                                         <label
                                             htmlFor="contract-upload"
-                                            className="flex flex-col items-center justify-center w-full min-h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem] cursor-pointer hover:bg-white hover:border-indigo-400 transition-all group-hover/file:shadow-inner"
+                                            className="flex flex-col items-center justify-center w-full min-h-[120px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:bg-white hover:border-blue-400 transition group-hover/file:shadow-inner"
                                         >
                                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <div className="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-indigo-600 transition-colors mb-3">
+                                                <div className="p-3 bg-white rounded-full shadow-sm text-slate-400 group-hover:text-blue-600 transition-colors mb-3 border border-slate-200">
                                                     <Download size={24} />
                                                 </div>
-                                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-relaxed">
+                                                <p className="text-xs font-semibold text-slate-500 leading-relaxed">
                                                     {form.scan_contrat ? (
-                                                        <span className="text-indigo-600">✓ {form.scan_contrat.name}</span>
+                                                        <span className="text-blue-600">✓ {form.scan_contrat.name}</span>
                                                     ) : (
                                                         "Cliquer pour uploader le scan"
                                                     )}
                                                 </p>
-                                                <p className="text-[8px] font-bold text-gray-300 uppercase tracking-tighter mt-1 italic">PDF, PNG, JPG (Max 5Mo)</p>
+                                                <p className="text-[8px] font-semibold text-slate-300 tracking-tight mt-1">PDF, PNG, JPG (Max 5Mo)</p>
                                             </div>
                                         </label>
                                     </div>
@@ -956,7 +946,7 @@ const Salaries: React.FC = () => {
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-slate-100 flex items-center justify-center gap-3 disabled:opacity-50"
+                                className="w-full h-11 text-white rounded-lg font-medium transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 text-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <><UserCheck size={20} /> <span>Enregistrer</span></>}
                             </button>
@@ -967,91 +957,91 @@ const Salaries: React.FC = () => {
 
             {/* Details Modal */}
             {isDetailsModalOpen && selectedSalarie && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 overflow-y-auto">
-                    <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300 overflow-y-auto max-h-[90vh]">
-                        <div className="px-10 py-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-300 overflow-y-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden duration-300 overflow-y-auto max-h-[90vh] ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div>
-                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight leading-none mb-1">{selectedSalarie.name}</h3>
+                                <h3 className="text-xl font-semibold text-slate-900 tracking-tight leading-none mb-1">{selectedSalarie.name}</h3>
                                 <div className="flex items-center gap-3">
-                                    <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100 italic">
+                                    <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20">
                                         {selectedSalarie.speciality}
                                     </span>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    <p className="text-xs font-medium text-slate-400">
                                         Fiche Salarié #{selectedSalarie.id} • CIN: {selectedSalarie.cin || 'N/A'}
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="p-3 bg-white text-gray-400 rounded-2xl border border-gray-100 hover:bg-gray-50 transition-all">
-                                <X size={24} />
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <div className="p-10 space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Salaire Mensuel</p>
-                                    <p className="text-2xl font-black text-slate-800">{Number(selectedSalarie.monthly_salary).toLocaleString('fr-MA')} <span className="text-sm">DH</span></p>
+                                <div className="p-6 bg-slate-50 rounded-xl border border-slate-100">
+                                    <p className="text-xs font-semibold text-slate-400 mb-2">Salaire Mensuel</p>
+                                    <p className="text-2xl font-bold text-slate-800">{Number(selectedSalarie.monthly_salary).toLocaleString('fr-MA')} <span className="text-sm">DH</span></p>
                                 </div>
-                                <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
-                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Niveau Études</p>
-                                    <p className="text-2xl font-black text-indigo-600 italic">{selectedSalarie.education || 'N/A'}</p>
+                                <div className="p-6 bg-blue-50 rounded-xl border border-blue-100">
+                                    <p className="text-xs font-semibold text-blue-400 mb-2">Niveau Études</p>
+                                    <p className="text-2xl font-bold text-blue-600">{selectedSalarie.education || 'N/A'}</p>
                                 </div>
-                                <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100">
-                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">Statut</p>
-                                    <p className="text-2xl font-black text-emerald-600 uppercase italic">Actif</p>
+                                <div className="p-6 bg-emerald-50 rounded-xl border border-emerald-100">
+                                    <p className="text-xs font-semibold text-emerald-400 mb-2">Statut</p>
+                                    <p className="text-2xl font-bold text-emerald-600">Actif</p>
                                 </div>
                             </div>
 
-                            <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                            <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl">
+                                    <div className="hidden">
                                         <Info size={20} />
                                     </div>
-                                    <h4 className="font-black text-slate-800 text-sm uppercase tracking-widest">Informations Détaillées</h4>
+                                    <h4 className="font-semibold text-slate-800 text-sm">Informations Détaillées</h4>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fonction & Grade</p>
-                                        <p className="font-bold text-gray-800 text-sm uppercase italic">
+                                        <p className="text-xs font-semibold text-slate-400">Fonction & Grade</p>
+                                        <p className="font-semibold text-slate-800 text-sm">
                                             {selectedSalarie.fonction || selectedSalarie.speciality}
                                             {selectedSalarie.grade ? ` - ${selectedSalarie.grade}` : ''}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Matricule & CNSS</p>
-                                        <p className="font-bold text-gray-800 text-sm">
-                                            MAT: <span className="text-indigo-600">{selectedSalarie.matricule || 'N/A'}</span> / CNSS: <span className="text-indigo-600">{selectedSalarie.cnss_number || 'N/A'}</span>
+                                        <p className="text-xs font-semibold text-slate-400">Matricule & CNSS</p>
+                                        <p className="font-semibold text-slate-800 text-sm">
+                                            MAT: <span className="text-blue-600">{selectedSalarie.matricule || 'N/A'}</span> / CNSS: <span className="text-blue-600">{selectedSalarie.cnss_number || 'N/A'}</span>
                                         </p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Naissance & Statut</p>
-                                        <p className="font-bold text-gray-800 text-sm">
+                                        <p className="text-xs font-semibold text-slate-400">Naissance & Statut</p>
+                                        <p className="font-semibold text-slate-800 text-sm">
                                             {selectedSalarie.birth_date ? parseDate(selectedSalarie.birth_date).toLocaleDateString() : 'N/A'}
                                             {selectedSalarie.marital_status ? ` • ${selectedSalarie.marital_status}` : ''}
                                         </p>
                                     </div>
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Téléphone</p>
-                                        <p className="font-bold text-gray-800 text-sm">{selectedSalarie.phone || 'N/A'}</p>
+                                        <p className="text-xs font-semibold text-slate-400">Téléphone</p>
+                                        <p className="font-semibold text-slate-800 text-sm">{selectedSalarie.phone || 'N/A'}</p>
                                     </div>
                                     <div className="space-y-1 col-span-full">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Adresse Complète</p>
-                                        <p className="font-medium text-gray-700 text-sm">{selectedSalarie.address || 'Aucune adresse renseignée'}</p>
+                                        <p className="text-xs font-semibold text-slate-400">Adresse Complète</p>
+                                        <p className="font-medium text-slate-700 text-sm">{selectedSalarie.address || 'Aucune adresse renseignée'}</p>
                                     </div>
                                     <div className="space-y-1 col-span-full">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Informations de Paiement & Cycle</p>
+                                        <p className="text-xs font-semibold text-slate-400">Informations de Paiement & Cycle</p>
                                         <div className="flex flex-col md:flex-row gap-4 mt-2">
                                             <div className="flex-1 bg-emerald-50 border border-emerald-100 rounded-xl p-4">
-                                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Mode & Cycle</p>
-                                                <p className="font-bold text-gray-800 text-sm">
+                                                <p className="text-xs font-semibold text-emerald-500 mb-1">Mode & Cycle</p>
+                                                <p className="font-semibold text-slate-800 text-sm">
                                                     {selectedSalarie.payment_method || 'Mode de paiement non spécifié'}
                                                     {selectedSalarie.payment_date && ` • Début: ${parseDate(selectedSalarie.payment_date).toLocaleDateString('fr-MA')}`}
                                                 </p>
                                             </div>
-                                            <div className="flex-1 bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                                                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Coordonnées Bancaires</p>
-                                                <p className="font-bold text-gray-800 text-sm font-mono tracking-wider">
+                                            <div className="flex-1 bg-blue-50 border border-blue-100 rounded-xl p-4">
+                                                <p className="text-xs font-semibold text-blue-500 mb-1">Coordonnées Bancaires</p>
+                                                <p className="font-semibold text-slate-800 text-sm font-mono">
                                                     {selectedSalarie.rib || selectedSalarie.bank_info || 'Aucun RIB renseigné'}
                                                 </p>
                                             </div>
@@ -1060,34 +1050,34 @@ const Salaries: React.FC = () => {
 
                                     {selectedSalarie.scan_contrat && (
                                         <div className="space-y-2 col-span-full">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Document Contractuel</p>
+                                            <p className="text-xs font-semibold text-slate-400">Document Contractuel</p>
                                             <button
                                                 onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedSalarie.scan_contrat}`))}
-                                                className="w-full flex items-center gap-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl hover:bg-blue-100 transition-all"
+                                                className="w-full flex items-center gap-4 p-4 bg-blue-50 border border-blue-100 rounded-lg hover:bg-blue-100 transition"
                                             >
-                                                <div className="p-3 bg-white text-blue-600 rounded-xl shadow-sm">
+                                                <div className="p-3 bg-white text-blue-600 rounded-xl shadow-sm border border-slate-200">
                                                     <FileText size={20} />
                                                 </div>
                                                 <div className="text-left">
-                                                    <p className="text-xs font-black text-blue-900 uppercase">Voir le scan du contrat</p>
-                                                    <p className="text-[8px] font-bold text-blue-400 uppercase tracking-widest italic">Ouvrir dans la visionneuse</p>
+                                                    <p className="text-xs font-semibold text-blue-900">Voir le scan du contrat</p>
+                                                    <p className="text-[8px] font-semibold text-blue-400">Ouvrir dans la visionneuse</p>
                                                 </div>
                                             </button>
                                         </div>
                                     )}
-                                    <div className="flex items-center justify-between p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100/50">
+                                    <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-xl border border-blue-100/50">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-indigo-600 text-white rounded-xl">
+                                            <div className="hidden">
                                                 <FileText size={16} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-gray-800 uppercase">Bulletin de Paie Mensuel</p>
-                                                <p className="text-[9px] font-bold text-gray-400 capitalize">Détails des cotisations et primes</p>
+                                                <p className="text-xs font-semibold text-slate-800">Bulletin de Paie Mensuel</p>
+                                                <p className="text-xs font-medium text-slate-400 capitalize">Détails des cotisations et primes</p>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => handlePrintBulletin(selectedSalarie)}
-                                            className="px-4 py-2 bg-white text-indigo-600 rounded-xl border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all shadow-sm font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+                                            className="px-4 py-2 bg-white text-blue-600 rounded-lg border border-blue-100 hover:bg-blue-600 hover:text-white transition shadow-sm font-medium text-sm flex items-center gap-2"
                                         >
                                             <Printer size={14} /> Aperçu & Imprimer
                                         </button>
@@ -1100,101 +1090,101 @@ const Salaries: React.FC = () => {
             )}
             {/* Bulletin de Paie Modal (Printable) */}
             {isBulletinModalOpen && selectedSalarie && (
-                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="px-8 py-4 border-b border-gray-100 flex items-center justify-between no-print">
-                            <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest">Aperçu du Bulletin de Paie</h3>
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 duration-300 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl overflow-hidden duration-300 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-8 py-4 border-b border-slate-100 flex items-center justify-between no-print">
+                            <h3 className="font-semibold text-slate-800 text-xs">Aperçu du Bulletin de Paie</h3>
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => window.print()}
-                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                                    className="flex items-center gap-2 px-4 py-2 text-white rounded-lg font-medium text-sm transition shadow-sm bg-slate-900 hover:bg-slate-800"
                                     type="button"
                                 >
                                     <Printer size={16} /> Imprimer Bulletin
                                 </button>
-                                <button onClick={() => setIsBulletinModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors" type="button">
-                                    <X size={20} />
+                                <button onClick={() => setIsBulletinModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" type="button">
+                                    <X size={16} />
                                 </button>
                             </div>
                         </div>
 
                         <div className="p-8 bg-white overflow-y-auto max-h-[80vh] custom-scrollbar-white print:max-h-none print:p-0" id="bulletin-content">
                             {/* Professional Payslip Template */}
-                            <div className="border-[1px] border-gray-900 p-8 relative min-h-[1000px] flex flex-col">
+                            <div className="border-[1px] border-slate-900 p-8 relative min-h-[1000px] flex flex-col">
                                 {/* Header / Company Details */}
                                 <div className="flex justify-between items-start mb-10">
                                     <div>
-                                        <h1 className="text-xl font-black text-gray-900 uppercase mb-1">BULLETIN DE PAIE</h1>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Période : {selectedSalarie.payment_date ? new Date(parseDate(selectedSalarie.payment_date)).toLocaleDateString('fr-MA', { month: 'long', year: 'numeric' }) : 'N/A'}</p>
+                                        <h1 className="text-xl font-semibold text-slate-900 mb-1">BULLETIN DE PAIE</h1>
+                                        <p className="text-xs font-medium text-slate-500">Période : {selectedSalarie.payment_date ? new Date(parseDate(selectedSalarie.payment_date)).toLocaleDateString('fr-MA', { month: 'long', year: 'numeric' }) : 'N/A'}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-black text-sm uppercase">Référence : BDP-{selectedSalarie.id}-{new Date().getFullYear()}</p>
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 italic">Confidentiel</p>
+                                        <p className="font-semibold text-sm">Référence : BDP-{selectedSalarie.id}-{new Date().getFullYear()}</p>
+                                        <p className="text-xs font-medium text-slate-400 mt-1">Confidentiel</p>
                                     </div>
                                 </div>
 
                                 {/* Employee & Employment Info */}
-                                <div className="grid grid-cols-2 gap-8 mb-10 border-y border-gray-100 py-6">
+                                <div className="grid grid-cols-2 gap-8 mb-10 border-y border-slate-100 py-6">
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Nom & Prénom :</span>
-                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.name}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Nom & Prénom :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.name}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Matricule :</span>
-                                            <span className="font-black text-gray-900">{selectedSalarie.id.toString().padStart(5, '0')}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Matricule :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.id.toString().padStart(5, '0')}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">CIN :</span>
-                                            <span className="font-black text-gray-900">{selectedSalarie.cin || 'N/A'}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">CIN :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.cin || 'N/A'}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Fonction :</span>
-                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.speciality}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Fonction :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.speciality}</span>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Date d'embauche :</span>
-                                            <span className="font-black text-gray-900">{selectedSalarie.hiring_date || 'N/A'}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Date d'embauche :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.hiring_date || 'N/A'}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Ancienneté :</span>
-                                            <span className="font-black text-gray-900">{selectedSalarie.taux_anciennete || 0}%</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Ancienneté :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.taux_anciennete || 0}%</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">N° CNSS :</span>
-                                            <span className="font-black text-gray-900">{selectedSalarie.cnss_number || '#######'}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">N° CNSS :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.cnss_number || '#######'}</span>
                                         </div>
-                                        <div className="flex justify-between text-[10px] border-b border-gray-50 pb-1">
-                                            <span className="font-bold text-gray-400 uppercase">Mode de Paie :</span>
-                                            <span className="font-black text-gray-900 uppercase">{selectedSalarie.payment_method || 'N/A'}</span>
+                                        <div className="flex justify-between text-xs border-b border-slate-50 pb-1">
+                                            <span className="font-semibold text-slate-400">Mode de Paie :</span>
+                                            <span className="font-semibold text-slate-900">{selectedSalarie.payment_method || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Salary Details Table */}
                                 <div className="flex-1">
-                                    <table className="w-full text-[10px]">
+                                    <table className="w-full text-xs">
                                         <thead>
-                                            <tr className="bg-gray-50 text-gray-400 font-black uppercase tracking-widest border-b border-gray-200">
-                                                <th className="py-2 px-4 text-left">Désignation</th>
-                                                <th className="py-2 px-2 text-center">Nombre/Base</th>
-                                                <th className="py-2 px-2 text-center">Taux</th>
-                                                <th className="py-2 px-4 text-right">Gains</th>
-                                                <th className="py-2 px-4 text-right">Retenues</th>
+                                            <tr className="">
+                                                <th className="text-left whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Désignation</th>
+                                                <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Nombre/Base</th>
+                                                <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Taux</th>
+                                                <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Gains</th>
+                                                <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Retenues</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="font-medium text-gray-700">
-                                            <tr className="border-b border-gray-50">
-                                                <td className="py-3 px-4 font-black">Salaire de base</td>
+                                        <tbody className="font-medium text-slate-700">
+                                            <tr className="border-b border-slate-50">
+                                                <td className="py-3 px-4 font-semibold">Salaire de base</td>
                                                 <td className="py-3 px-2 text-center">{selectedSalarie.jours_travail || 26}</td>
                                                 <td className="py-3 px-2 text-center">{(Number(selectedSalarie.monthly_salary) / 26).toFixed(2)}</td>
                                                 <td className="py-3 px-4 text-right">{Number(selectedSalarie.monthly_salary).toLocaleString('fr-MA')}</td>
                                                 <td className="py-3 px-4 text-right"></td>
                                             </tr>
                                             {selectedSalarie.montant_anciennete && selectedSalarie.montant_anciennete > 0 && (
-                                                <tr className="border-b border-gray-50">
+                                                <tr className="border-b border-slate-50">
                                                     <td className="py-2 px-4">Prime d'ancienneté</td>
                                                     <td className="py-2 px-2 text-center"></td>
                                                     <td className="py-2 px-2 text-center">{selectedSalarie.taux_anciennete}%</td>
@@ -1203,21 +1193,21 @@ const Salaries: React.FC = () => {
                                                 </tr>
                                             )}
                                             {/* Cotisations */}
-                                            <tr className="border-b border-gray-50">
+                                            <tr className="border-b border-slate-50">
                                                 <td className="py-2 px-4 pl-8">Cotisation CNSS</td>
                                                 <td className="py-2 px-2 text-center">6000.00</td>
                                                 <td className="py-2 px-2 text-center">{selectedSalarie.taux_cnss || 4.48}%</td>
                                                 <td className="py-2 px-4 text-right"></td>
                                                 <td className="py-2 px-4 text-right text-red-600">{(selectedSalarie.retenue_cnss || 0).toLocaleString('fr-MA')}</td>
                                             </tr>
-                                            <tr className="border-b border-gray-50">
+                                            <tr className="border-b border-slate-50">
                                                 <td className="py-2 px-4 pl-8">Cotisation AMO</td>
                                                 <td className="py-2 px-2 text-center">{selectedSalarie.salaire_brut?.toLocaleString('fr-MA')}</td>
                                                 <td className="py-2 px-2 text-center">{selectedSalarie.taux_amo || 2.26}%</td>
                                                 <td className="py-2 px-4 text-right"></td>
                                                 <td className="py-2 px-4 text-right text-red-600">{(selectedSalarie.retenue_amo || 0).toLocaleString('fr-MA')}</td>
                                             </tr>
-                                            <tr className="border-b border-gray-50">
+                                            <tr className="border-b border-slate-50">
                                                 <td className="py-2 px-4 pl-8">Impôt sur le Revenu (I.R)</td>
                                                 <td className="py-2 px-2 text-center"></td>
                                                 <td className="py-2 px-2 text-center">{selectedSalarie.taux_ir || 0}%</td>
@@ -1226,7 +1216,7 @@ const Salaries: React.FC = () => {
                                             </tr>
                                             {/* Primes */}
                                             {selectedSalarie.indemnite_transport && selectedSalarie.indemnite_transport > 0 && (
-                                                <tr className="border-b border-gray-50 text-gray-500 italic">
+                                                <tr className="border-b border-slate-50 text-slate-500">
                                                     <td className="py-2 px-4">Indemnité de Transport</td>
                                                     <td className="py-2 px-2" colSpan={2}></td>
                                                     <td className="py-2 px-4 text-right">{selectedSalarie.indemnite_transport.toLocaleString('fr-MA')}</td>
@@ -1234,7 +1224,7 @@ const Salaries: React.FC = () => {
                                                 </tr>
                                             )}
                                             {selectedSalarie.prime_panier && selectedSalarie.prime_panier > 0 && (
-                                                <tr className="border-b border-gray-50 text-gray-500 italic">
+                                                <tr className="border-b border-slate-50 text-slate-500">
                                                     <td className="py-2 px-4">Prime de Panier</td>
                                                     <td className="py-2 px-2" colSpan={2}></td>
                                                     <td className="py-2 px-4 text-right">{selectedSalarie.prime_panier.toLocaleString('fr-MA')}</td>
@@ -1242,7 +1232,7 @@ const Salaries: React.FC = () => {
                                                 </tr>
                                             )}
                                             {selectedSalarie.prime_rendement && selectedSalarie.prime_rendement > 0 && (
-                                                <tr className="border-b border-gray-50">
+                                                <tr className="border-b border-slate-50">
                                                     <td className="py-2 px-4">Prime de Rendement</td>
                                                     <td className="py-2 px-2" colSpan={2}></td>
                                                     <td className="py-2 px-4 text-right">{selectedSalarie.prime_rendement.toLocaleString('fr-MA')}</td>
@@ -1251,7 +1241,7 @@ const Salaries: React.FC = () => {
                                             )}
                                         </tbody>
                                         <tfoot>
-                                            <tr className="bg-gray-900 text-white font-black uppercase text-[11px]">
+                                            <tr className="bg-slate-900 text-white font-semibold text-xs">
                                                 <td className="py-3 px-4" colSpan={3}>NET À PAYER (DH)</td>
                                                 <td className="py-3 px-4 text-right" colSpan={2}>{(selectedSalarie.net_a_payer || 0).toLocaleString('fr-MA')} DH</td>
                                             </tr>
@@ -1260,14 +1250,14 @@ const Salaries: React.FC = () => {
                                 </div>
 
                                 {/* Footer Signatures */}
-                                <div className="mt-12 grid grid-cols-2 gap-20 pt-10 border-t border-gray-100">
+                                <div className="mt-12 grid grid-cols-2 gap-20 pt-10 border-t border-slate-100">
                                     <div className="text-center">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-12">L'employeur</p>
-                                        <div className="text-[8px] font-bold text-gray-300 italic">Cachet et Signature</div>
+                                        <p className="text-xs font-semibold text-slate-400 mb-12">L'employeur</p>
+                                        <div className="text-[8px] font-semibold text-slate-300">Cachet et Signature</div>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-12">Le Salarié</p>
-                                        <div className="text-[8px] font-bold text-gray-300 italic">Précédé de la mention "Lu et approuvé"</div>
+                                        <p className="text-xs font-semibold text-slate-400 mb-12">Le Salarié</p>
+                                        <div className="text-[8px] font-semibold text-slate-300">Précédé de la mention "Lu et approuvé"</div>
                                     </div>
                                 </div>
 

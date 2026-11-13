@@ -59,15 +59,14 @@ const FieldWrapper = ({ label, error, fieldError, children }: { label: string; e
     <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
         {children}
-        {fieldError && <p className="mt-1 text-[10px] text-red-500 font-bold">{fieldError[0]}</p>}
+        {fieldError && <p className="mt-1 text-xs text-red-500 font-medium">{fieldError[0]}</p>}
         {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
     </div>
 );
 
 const inputCls = (hasError?: boolean) =>
-    `w-full px-3 py-1.5 rounded-lg border text-sm text-slate-800 bg-white placeholder-slate-400
-   focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition
-   ${hasError ? 'border-red-400 focus:ring-red-400' : 'border-slate-300'}`;
+    `w-full placeholder-slate-400 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500
+   ${hasError ? '!border-red-400 focus:ring-red-400' : 'border-slate-300'}`;
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
@@ -214,38 +213,38 @@ const AddProperty: React.FC = () => {
     const pageLoading = isEdit && loadingBien;
     if (pageLoading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 space-y-4">
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 space-y-4">
                 <Loader2 className="animate-spin text-blue-600" size={48} />
-                <p className="text-sm font-bold tracking-widest uppercase text-gray-400">Chargement des données...</p>
+                <p className="text-sm font-semibold text-slate-400">Chargement des données...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-4 px-4">
+        <div className="min-h-screen bg-slate-50 py-4 px-4">
             <div className="max-w-2xl mx-auto">
 
                 {/* ── Page Header ── */}
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center mb-4 justify-end gap-0.5">
                     <button
                         onClick={() => navigate('/properties')}
-                        className="p-1.5 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                         title="Retour"
                     >
-                        <ArrowLeft size={18} />
+                        <ArrowLeft size={16} />
                     </button>
                     <div className="flex items-center gap-2">
-                        <Building2 className="text-blue-600" size={22} />
+                        <Building2 className="text-slate-400" size={22} />
                         <div>
-                            <h1 className="text-lg font-bold text-gray-800">{isEdit ? 'Modifier' : 'Nouveau Bien'}</h1>
-                            <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{isEdit ? `Bloc ${watch('num_appartement')}` : 'Enregistrer une propriété'}</p>
+                            <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Modifier' : 'Nouveau Bien'}</h1>
+                            <p className="text-xs text-slate-400 font-medium">{isEdit ? `Bloc ${watch('num_appartement')}` : 'Enregistrer une propriété'}</p>
                         </div>
                     </div>
                 </div>
 
                 {/* ── Server error banner ── */}
                 {serverError && (
-                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border border-red-200">
+                    <div className="mb-5 flex items-start gap-2 p-4 text-sm text-red-700 bg-red-50 rounded-xl border !border-red-200">
                         <span className="mt-0.5">⚠️</span>
                         <span>{serverError}</span>
                     </div>
@@ -253,11 +252,11 @@ const AddProperty: React.FC = () => {
 
                 {/* ── Form Card ── */}
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
 
                         {/* ──── Section: Localisation ──── */}
-                        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/60">
-                            <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">1 – Localisation</h2>
+                        <div className="px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+                            <h2 className="text-xs font-semibold text-slate-500">1 – Localisation</h2>
                         </div>
                         <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
 
@@ -265,7 +264,7 @@ const AddProperty: React.FC = () => {
                             <div className="sm:col-span-2">
                                 <FieldWrapper label="Projet *" error={errors.terrain_id?.message} fieldError={fieldErrors.terrain_id}>
                                     {loadingTerrains ? (
-                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-400 text-[10px] font-bold uppercase">
+                                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-400 text-xs font-medium">
                                             <Loader2 size={12} className="animate-spin" /> Synchronisation…
                                         </div>
                                     ) : (
@@ -366,8 +365,8 @@ const AddProperty: React.FC = () => {
                         </div>
 
                         {/* ──── Section: Caractéristiques ──── */}
-                        <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                            <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">2 – Caractéristiques</h2>
+                        <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                            <h2 className="text-sm font-semibold text-slate-600">2 – Caractéristiques</h2>
                         </div>
                         <div className="px-6 py-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
 
@@ -396,7 +395,7 @@ const AddProperty: React.FC = () => {
                                             className={inputCls(!!errors.nom)}
                                             placeholder={(type_bien === 'Villa' || type_bien === 'Lot Villa') ? `Ex: ${type_bien} X2323 ou ${type_bien} Mohammed` : "Ex: Nom du local..."}
                                         />
-                                        <p className="mt-1 text-[10px] text-slate-400 italic">Donnez un nom unique à ce bien pour le distinguer plus facilement.</p>
+                                        <p className="mt-1 text-xs text-slate-400">Donnez un nom unique à ce bien pour le distinguer plus facilement.</p>
                                     </FieldWrapper>
                                 </div>
                             )}
@@ -409,7 +408,7 @@ const AddProperty: React.FC = () => {
                                         required: 'Requis.',
                                         onChange: (e) => setValue('surface_m2', formatNumber(e.target.value) as any)
                                     })}
-                                    className={`${inputCls(!!errors.surface_m2)} font-bold text-indigo-700`}
+                                    className={`${inputCls(!!errors.surface_m2)} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                     placeholder="0.00"
                                 />
                             </FieldWrapper>
@@ -439,32 +438,32 @@ const AddProperty: React.FC = () => {
                         {/* ──── Section: État d'Avancement Réel ──── */}
                         {!isLotVilla && (
                             <>
-                                <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                                    <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">3 – État d'Avancement Réel</h2>
+                                <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                                    <h2 className="text-sm font-semibold text-slate-600">3 – État d'Avancement Réel</h2>
                                 </div>
                                 <div className="px-6 py-6 space-y-8">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         {/* Gros Œuvre Binary Status */}
-                                        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+                                        <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
                                             <div className="flex items-center justify-between">
-                                                <label className="text-xs font-bold text-gray-700 uppercase tracking-widest">Gros Œuvre</label>
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                <label className="text-xs font-medium text-slate-600">Gros Œuvre</label>
+                                                <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
                                                     {watch('gros_oeuvre_pourcentage') === 100 ? 'Terminé' : 'En cours'}
                                                 </span>
                                             </div>
 
-                                            <div className="flex border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                                            <div className="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('gros_oeuvre_pourcentage', 0)}
-                                                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all ${watch('gros_oeuvre_pourcentage') !== 100 ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+                                                    className={`flex-1 py-2.5 text-xs font-semibold transition ${watch('gros_oeuvre_pourcentage') !== 100 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
                                                 >
                                                     En cours
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => setValue('gros_oeuvre_pourcentage', 100)}
-                                                    className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'}`}
+                                                    className={`flex-1 py-2.5 text-xs font-semibold transition ${watch('gros_oeuvre_pourcentage') === 100 ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
                                                 >
                                                     Terminé
                                                 </button>
@@ -472,38 +471,38 @@ const AddProperty: React.FC = () => {
                                         </div>
 
                                         {/* Finition Quick Checklist */}
-                                        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-                                            <label className="text-xs font-bold text-gray-700 uppercase tracking-widest block">Checklist Finition</label>
+                                        <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+                                            <label className="text-xs font-medium block text-slate-600">Checklist Finition</label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 {fields.map((field, idx) => {
                                                     const isDefault = DEFAULT_FINITION_ITEMS.some(d => d.element === (field as any).element);
                                                     const label = DEFAULT_FINITION_ITEMS.find(d => d.element === (field as any).element)?.label;
                                                     return isDefault ? (
-                                                        <label key={field.id} className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-white border border-gray-100 rounded-lg cursor-pointer transition-all group">
+                                                        <label key={field.id} className="flex items-center gap-2 p-2 bg-slate-50 hover:bg-white border border-slate-100 rounded-lg cursor-pointer transition group">
                                                             <input
                                                                 type="checkbox"
                                                                 {...register(`suivi_finition.${idx}.checked` as any)}
-                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
                                                             />
-                                                            <span className="text-[10px] font-bold text-gray-600 group-hover:text-gray-900 transition-colors uppercase">{label}</span>
+                                                            <span className="text-xs font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{label}</span>
                                                         </label>
                                                     ) : (
                                                         <div key={field.id} className="col-span-2 flex items-center gap-2 p-2 bg-blue-50/50 border border-blue-100 rounded-lg">
                                                             <input
                                                                 type="checkbox"
                                                                 {...register(`suivi_finition.${idx}.checked` as any)}
-                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300 shrink-0"
+                                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 shrink-0"
                                                             />
                                                             <input
                                                                 type="text"
                                                                 {...register(`suivi_finition.${idx}.label_custom` as any)}
                                                                 placeholder="Nom de l’élément..."
-                                                                className="flex-1 text-[11px] font-bold bg-transparent border-none outline-none text-gray-700 placeholder-gray-400"
+                                                                className="flex-1 placeholder-slate-400 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                                             />
                                                             <button
                                                                 type="button"
                                                                 onClick={() => remove(idx)}
-                                                                className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50"
                                                             >
                                                                 <Trash2 size={14} />
                                                             </button>
@@ -518,7 +517,7 @@ const AddProperty: React.FC = () => {
                                                     const newKey = `autre_${Date.now()}`;
                                                     append({ element: newKey, label_custom: '', checked: false });
                                                 }}
-                                                className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-gray-200 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-all bg-gray-50/30"
+                                                className="w-full flex items-center justify-center gap-2 py-2 border border-dashed border-slate-200 rounded-lg text-xs font-medium text-slate-400 hover:border-slate-400 hover:text-slate-600 transition bg-slate-50/30"
                                             >
                                                 <Plus size={14} />
                                                 Ajouter un élément
@@ -533,8 +532,8 @@ const AddProperty: React.FC = () => {
 
                         {/* ──── Galerie Photos & Documents ──── */}
                         <>
-                            <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Galerie Photos Chantier</h2>
+                            <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                                <h2 className="text-sm font-semibold text-slate-600">Galerie Photos Chantier</h2>
                             </div>
                             <div className="px-6 py-4">
                                 <MediaManager
@@ -545,8 +544,8 @@ const AddProperty: React.FC = () => {
                                 />
                             </div>
 
-                            <div className="px-6 py-4 border-y border-gray-100 bg-gray-50/60">
-                                <h2 className="text-sm font-bold text-gray-600 uppercase tracking-wider">Documents &amp; Plans</h2>
+                            <div className="px-6 py-4 border-y border-slate-100 bg-slate-50/60">
+                                <h2 className="text-sm font-semibold text-slate-600">Documents &amp; Plans</h2>
                             </div>
                             <div className="px-6 py-4">
                                 <MediaManager
@@ -559,18 +558,18 @@ const AddProperty: React.FC = () => {
                         </>
 
                         {/* ──── Footer Actions ──── */}
-                        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60 flex flex-col-reverse sm:flex-row justify-end gap-2">
+                        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/60 flex flex-col-reverse sm:flex-row justify-end gap-2">
                             <button
                                 type="button"
                                 onClick={() => navigate('/properties')}
-                                className="px-4 py-1.5 rounded-lg border border-gray-300 text-gray-600 text-xs font-medium hover:bg-gray-100 transition"
+                                className="px-4 py-1.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-50 transition"
                             >
                                 Annuler
                             </button>
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="flex items-center justify-center gap-2 px-5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:bg-blue-300 transition shadow-md hover:shadow-lg"
+                                className="flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-white text-sm font-medium disabled:bg-blue-300 transition shadow-sm hover:shadow-md bg-slate-900 hover:bg-slate-800"
                             >
                                 {isSubmitting ? (
                                     <>

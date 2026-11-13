@@ -6,10 +6,11 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../lib/api';
 import { toast } from 'react-hot-toast';
-import { parseDate } from '../lib/utils';
+import { formatNumber, parseDate } from '../lib/utils';
 import { exportToExcel } from '../lib/excel';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
 
 interface Transaction {
     id: string;
@@ -24,19 +25,18 @@ interface Transaction {
     method: string;
     project: string;
     notes: string;
-    source_bank?: string;
-    virement_type?: string;
 }
 
 const Transactions: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState<'ALL' | 'IN' | 'OUT'>('ALL');
-    const [filterMode, setFilterMode] = useState<'ALL' | 'CASH' | 'ENGAGEMENT'>('ALL');
-    const [filterProject, setFilterProject] = useState('ALL');
-    const [filterCategory, setFilterCategory] = useState('ALL');
+    const [searchTerm, setSearchTerm] = usePersistedState('Transactions.searchTerm', '');
+    useUrlSearch(setSearchTerm);
+    const [filterType, setFilterType] = usePersistedState<'ALL' | 'IN' | 'OUT'>('Transactions.filterType', 'ALL');
+    const [filterMode, setFilterMode] = usePersistedState<'ALL' | 'CASH' | 'ENGAGEMENT'>('Transactions.filterMode', 'ALL');
+    const [filterProject, setFilterProject] = usePersistedState('Transactions.filterProject', 'ALL');
+    const [filterCategory, setFilterCategory] = usePersistedState('Transactions.filterCategory', 'ALL');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
     const [showExportMenu, setShowExportMenu] = useState(false);
@@ -95,7 +95,6 @@ const Transactions: React.FC = () => {
             const matchesSearch =
                 tx.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.bank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (tx as any).source_bank?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 tx.id.toLowerCase().includes(searchTerm.toLowerCase());
@@ -250,37 +249,37 @@ const Transactions: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 duration-500">
             {/* Header section */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                        <History className="text-amber-500" size={32} />
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
+                        <History className="text-slate-400 flex-shrink-0" size={26} />
                         Livre de Caisse 360°
                     </h1>
-                    <p className="text-slate-500 font-medium mt-1">Gérez vos flux de trésorerie avec précision</p>
+                    <p className="text-slate-500 text-sm mt-1">Toutes les entrées et sorties d’argent, en un seul journal.</p>
                 </div>
                 <div className="flex items-center gap-2 relative">
                     <div className="relative">
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-extrabold text-slate-700 hover:bg-slate-50 shadow-sm transition-all active:scale-95"
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-[0.98]"
                         >
-                            <Download size={18} className="text-amber-500" />
+                            <Download size={16} />
                             Exporter
                             <ChevronDown size={14} className={`transition-transform duration-300 ${showExportMenu ? 'rotate-180' : ''}`} />
                         </button>
 
                         {showExportMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden duration-200">
                                 <button
                                     onClick={handleExportExcel}
                                     className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50 text-slate-700 transition-colors border-b border-slate-50"
                                 >
                                     <FileSpreadsheet size={18} className="text-emerald-600" />
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-black">Format Excel</span>
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase">Tableau de données</span>
+                                        <span className="text-xs font-semibold">Format Excel</span>
+                                        <span className="text-xs text-slate-400 font-medium">Tableau de données</span>
                                     </div>
                                 </button>
                                 <button
@@ -290,52 +289,48 @@ const Transactions: React.FC = () => {
                                 >
                                     <FileIcon size={18} className="text-blue-600" />
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-black">{isExporting ? 'Génération...' : 'Format Word'}</span>
-                                        <span className="text-[10px] text-slate-400 font-bold uppercase">Rapport Officiel</span>
+                                        <span className="text-xs font-semibold">{isExporting ? 'Génération...' : 'Format Word'}</span>
+                                        <span className="text-xs text-slate-400 font-medium">Rapport Officiel</span>
                                     </div>
                                 </button>
                             </div>
                         )}
                     </div>
 
-                    <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shadow-lg">
-                        <span className="text-[10px] font-black text-white/50 uppercase block text-center tracking-tighter">Budget Cash</span>
-                        <span className="text-sm font-black text-white">{formatCurrency(stats.balance)}</span>
+                    <div className="bg-slate-900 px-4 py-2 rounded-xl border border-slate-800 shadow-sm">
+                        <span className="text-xs font-medium text-white/50 block text-center tracking-tight text-slate-600">Budget Cash</span>
+                        <span className="text-sm font-semibold text-white">{formatCurrency(stats.balance)}</span>
                     </div>
                 </div>
             </div>
 
             {/* Metrics cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-bl-[80px] -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="relative">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Entrées</p>
-                        <h2 className="text-xl font-black text-slate-800">{formatCurrency(stats.income)}</h2>
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Total Entrées</p>
+                        <h2 className="text-xl font-semibold text-slate-800">{formatCurrency(stats.income)}</h2>
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-rose-50 rounded-bl-[80px] -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="relative">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Sorties</p>
-                        <h2 className="text-xl font-black text-slate-800">{formatCurrency(stats.expense)}</h2>
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Total Sorties</p>
+                        <h2 className="text-xl font-semibold text-slate-800">{formatCurrency(stats.expense)}</h2>
                     </div>
                 </div>
 
-                <div className="bg-amber-50 p-5 rounded-[24px] border border-amber-100 shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-amber-100/50 rounded-bl-[80px] -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
                     <div className="relative">
-                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Engagements (Non Payés)</p>
-                        <h2 className="text-xl font-black text-amber-700">{formatCurrency(stats.commitments)}</h2>
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Engagements (non payés)</p>
+                        <h2 className="text-xl font-semibold text-amber-700">{formatCurrency(stats.commitments)}</h2>
                     </div>
                 </div>
 
-                <div className="bg-slate-900 p-5 rounded-[24px] shadow-xl relative overflow-hidden group border border-slate-800">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-bl-[80px] -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
-                    <div className="relative text-white">
-                        <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Situation Net (Cash)</p>
-                        <h2 className="text-xl font-black">{formatCurrency(stats.balance)}</h2>
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div className="relative">
+                        <p className="text-xs font-semibold text-slate-400 mb-1">Situation nette (cash)</p>
+                        <h2 className={`text-xl font-semibold ${stats.balance < 0 ? 'text-red-600' : 'text-slate-900'}`}>{formatCurrency(stats.balance)}</h2>
                     </div>
                 </div>
             </div>
@@ -343,14 +338,14 @@ const Transactions: React.FC = () => {
             {/* Filters Bar */}
             <div
                 ref={headerRef}
-                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-4 rounded-[24px] border border-white shadow-xl shadow-gray-200/50 flex flex-wrap items-center gap-3 mx-1"
+                className="sticky top-4 z-30 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center gap-3 mx-1"
             >
                 <div className="relative flex-grow min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher entité, banque, référence..."
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-sm font-medium focus:ring-2 focus:ring-amber-500/20 transition-all"
+                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -359,35 +354,35 @@ const Transactions: React.FC = () => {
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                     <button
                         onClick={() => setFilterType('ALL')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterType === 'ALL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterType === 'ALL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
                     >TOUT</button>
                     <button
                         onClick={() => setFilterType('IN')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterType === 'IN' ? 'bg-emerald-500 text-white' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterType === 'IN' ? 'bg-emerald-500 text-white' : 'text-slate-500'}`}
                     >RECETTES</button>
                     <button
                         onClick={() => setFilterType('OUT')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterType === 'OUT' ? 'bg-rose-500 text-white' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterType === 'OUT' ? 'bg-rose-500 text-white' : 'text-slate-500'}`}
                     >DÉPENSES</button>
                 </div>
 
                 <div className="flex bg-slate-100 p-1 rounded-xl">
                     <button
                         onClick={() => setFilterMode('ALL')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterMode === 'ALL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterMode === 'ALL' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}
                     >TOUT MODE</button>
                     <button
                         onClick={() => setFilterMode('CASH')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterMode === 'CASH' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterMode === 'CASH' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
                     >CASH</button>
                     <button
                         onClick={() => setFilterMode('ENGAGEMENT')}
-                        className={`px-3 py-1.5 text-[10px] font-black rounded-lg transition-all ${filterMode === 'ENGAGEMENT' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${filterMode === 'ENGAGEMENT' ? 'bg-slate-800 text-white' : 'text-slate-500'}`}
                     >ENGAGEM.</button>
                 </div>
 
                 <select
-                    className="bg-slate-100 border-none rounded-xl text-[10px] font-black px-4 py-2 outline-none"
+                    className="pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     value={filterProject}
                     onChange={(e) => setFilterProject(e.target.value)}
                 >
@@ -398,7 +393,7 @@ const Transactions: React.FC = () => {
                 </select>
 
                 <select
-                    className="bg-slate-100 border-none rounded-xl text-[10px] font-black px-4 py-2 outline-none"
+                    className="pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
                 >
@@ -411,13 +406,13 @@ const Transactions: React.FC = () => {
                 <div className="flex items-center gap-1">
                     <input
                         type="date"
-                        className="bg-slate-100 border-none rounded-xl text-[9px] font-black px-2 py-2 text-slate-600"
+                        className="pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         value={dateRange.start}
                         onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
                     />
                     <input
                         type="date"
-                        className="bg-slate-100 border-none rounded-xl text-[9px] font-black px-2 py-2 text-slate-600"
+                        className="pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         value={dateRange.end}
                         onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
                     />
@@ -425,81 +420,81 @@ const Transactions: React.FC = () => {
             </div>
 
             {/* Main Table */}
-            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm min-h-[400px]">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm min-h-[400px]">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead
-                            className="sticky z-20 bg-white border-b border-slate-100 shadow-sm"
+                            className="sticky z-20 bg-white border-b border-slate-200"
                             style={{ top: `${stickyOffset}px` }}
                         >
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Flux / Mode</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date / ID</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Entité / Projet</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Catégorie</th>
-                                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Montant</th>
-                                <th className="px-6 py-4 text-center"></th>
+                            <tr className="">
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Flux / Mode</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Date / ID</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Entité / Projet</th>
+                                <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Catégorie</th>
+                                <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Montant</th>
+                                <th className="text-center whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500"></th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {filteredTransactions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-10 text-center text-slate-400 font-bold italic">
+                                    <td colSpan={6} className="px-4 py-10 text-center text-slate-400 font-semibold">
                                         {isLoading ? 'Chargement...' : 'Aucune donnée trouvée.'}
                                     </td>
                                 </tr>
                             ) : (
                                 filteredTransactions.map((tx) => (
-                                    <tr key={tx.id} className="hover:bg-slate-50/80 transition-colors group">
-                                        <td className="px-6 py-4">
+                                    <tr key={tx.id} className="hover:bg-slate-50 transition-colors group">
+                                        <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-1.5 rounded-lg ${tx.flow === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                <div className={`inline-flex flex-shrink-0 text-slate-400`}>
                                                     {tx.flow === 'IN' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                                                 </div>
                                                 {tx.is_cash ? (
-                                                    <div className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md text-[9px] font-black">CASH</div>
+                                                    <div className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md text-xs font-semibold">CASH</div>
                                                 ) : (
-                                                    <div className="px-2 py-1 bg-amber-50 text-amber-700 rounded-md text-[9px] font-black tracking-tight">ENGAGEM.</div>
+                                                    <div className="px-2 py-1 bg-amber-50 text-amber-700 rounded-md text-xs font-semibold tracking-tight">ENGAGEM.</div>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-black text-slate-800">{parseDate(tx.date).toLocaleDateString('fr-MA')}</span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">{tx.id}</span>
+                                                <span className="text-sm font-semibold text-slate-800">{parseDate(tx.date).toLocaleDateString('fr-MA')}</span>
+                                                <span className="text-xs font-medium text-slate-400 tracking-tight">{tx.id}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-900 group-hover:text-amber-600 transition-colors">{tx.entity}</span>
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium italic">
+                                                <span className="text-sm font-semibold text-slate-900 group-hover:text-amber-600 transition-colors">{tx.entity}</span>
+                                                <div className="flex items-center gap-1 text-xs text-slate-500 font-medium">
                                                     <MapPin size={10} />
                                                     {tx.project}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-2">
                                                     {tx.category === 'Achat (Matériaux)' && <Receipt size={12} className="text-amber-500" />}
                                                     {tx.category.includes('Mission') && <Construction size={12} className="text-amber-500" />}
                                                     {tx.category.includes('Personnel') && <Briefcase size={12} className="text-blue-500" />}
-                                                    <span className="text-[10px] font-black uppercase text-slate-700 tracking-tight">{tx.category}</span>
+                                                    <span className="text-xs font-semibold text-slate-700 tracking-tight">{tx.category}</span>
                                                 </div>
-                                                <span className="text-[10px] text-slate-400 font-medium line-clamp-1 italic">{tx.notes}</span>
+                                                <span className="text-xs text-slate-400 font-medium line-clamp-1">{tx.notes}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className={`text-sm font-black ${tx.flow === 'IN' ? 'text-emerald-600' : (tx.is_cash ? 'text-slate-900' : 'text-amber-600')}`}>
+                                        <td className="px-4 py-3 text-right">
+                                            <span className={`text-sm font-semibold ${tx.flow === 'IN' ? 'text-emerald-600' : (tx.is_cash ? 'text-slate-900' : 'text-amber-600')}`}>
                                                 {formatCurrency(tx.amount)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-4 py-3 text-center">
                                             <button
                                                 onClick={() => setSelectedTx(tx)}
-                                                className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-amber-600 transition-all"
+                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                             >
-                                                <Eye size={18} />
+                                                <Eye size={16} />
                                             </button>
                                         </td>
                                     </tr>
@@ -512,19 +507,19 @@ const Transactions: React.FC = () => {
 
             {/* Detail Modal */}
             {selectedTx && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 pointer-events-auto">
-                    <div className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-300 pointer-events-auto bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl overflow-hidden duration-300 ring-1 ring-slate-900/5 animate-dialog-in">
                         {/* Modal Header */}
                         <div className={`p-6 text-white flex justify-between items-start ${selectedTx.flow === 'IN' ? 'bg-emerald-600' : 'bg-slate-900'}`}>
                             <div>
-                                <h3 className="text-2xl font-black tracking-tight">{selectedTx.flow === 'IN' ? 'Encaissement' : 'Décaissement'}</h3>
-                                <p className="text-white/70 text-sm font-bold uppercase tracking-widest mt-1">{selectedTx.id}</p>
+                                <h3 className="text-2xl font-bold tracking-tight">{selectedTx.flow === 'IN' ? 'Encaissement' : 'Décaissement'}</h3>
+                                <p className="text-white/70 text-sm font-semibold mt-1">{selectedTx.id}</p>
                             </div>
                             <button
                                 onClick={() => setSelectedTx(null)}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                             >
-                                <X size={24} />
+                                <X size={16} />
                             </button>
                         </div>
 
@@ -532,76 +527,61 @@ const Transactions: React.FC = () => {
                         <div className="p-8 space-y-8">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Montant Total</p>
-                                    <p className={`text-3xl font-black ${selectedTx.flow === 'IN' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                    <p className="text-xs font-semibold text-slate-400">Montant Total</p>
+                                    <p className={`text-2xl font-bold ${selectedTx.flow === 'IN' ? 'text-emerald-600' : 'text-slate-900'}`}>
                                         {formatCurrency(selectedTx.amount)}
                                     </p>
                                 </div>
                                 <div className="text-right space-y-1">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</p>
-                                    <p className="text-lg font-black text-slate-800 flex items-center justify-end gap-2">
+                                    <p className="text-xs font-semibold text-slate-400">Date</p>
+                                    <p className="text-lg font-semibold text-slate-800 flex items-center justify-end gap-2">
                                         <Calendar size={18} className="text-slate-400" />
                                         {parseDate(selectedTx.date).toLocaleDateString('fr-MA', { day: 'numeric', month: 'long', year: 'numeric' })}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                            <div className="grid grid-cols-2 gap-6 bg-slate-50 p-6 rounded-xl border border-slate-100">
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <p className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                                         <Info size={12} /> Entité
                                     </p>
-                                    <p className="text-sm font-black text-slate-800">{selectedTx.entity}</p>
+                                    <p className="text-sm font-semibold text-slate-800">{selectedTx.entity}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <p className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                                         <MapPin size={12} /> Projet
                                     </p>
-                                    <p className="text-sm font-black text-slate-800">{selectedTx.project}</p>
+                                    <p className="text-sm font-semibold text-slate-800">{selectedTx.project}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <p className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                                         <CreditCard size={12} /> Mode
                                     </p>
-                                    <p className="text-sm font-black text-slate-800">{selectedTx.method}</p>
+                                    <p className="text-sm font-semibold text-slate-800">{selectedTx.method}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                    <p className="text-xs font-semibold text-slate-400 flex items-center gap-1">
                                         <History size={12} /> Référence
                                     </p>
-                                    <p className="text-sm font-black text-slate-800 uppercase tracking-tighter">{selectedTx.reference || 'N/A'}</p>
+                                    <p className="text-sm font-semibold text-slate-800 tracking-tight">{selectedTx.reference || 'N/A'}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                                    <div className="p-3 bg-amber-500 rounded-xl text-white">
+                                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                    <div className="hidden">
                                         <Building2 size={24} />
                                     </div>
                                     <div className="flex-grow">
-                                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Compte de Destination (Notre Banque)</p>
-                                        <p className="text-sm font-black text-slate-800">{selectedTx.bank || 'Caisse Centrale - Espèces'}</p>
+                                        <p className="text-xs font-semibold text-amber-600">Origine / Banque / RIB</p>
+                                        <p className="text-sm font-semibold text-slate-800">{selectedTx.bank || 'Caisse Centrale - Espèces'}</p>
                                     </div>
                                 </div>
 
-                                {(selectedTx as any).source_bank && (
-                                    <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                                        <div className="p-3 bg-blue-500 rounded-xl text-white">
-                                            <Briefcase size={24} />
-                                        </div>
-                                        <div className="flex-grow">
-                                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Banque du Client (Source)</p>
-                                            <p className="text-sm font-black text-slate-800">{(selectedTx as any).source_bank}</p>
-                                            {(selectedTx as any).virement_type && (
-                                                <p className="text-[10px] text-blue-400 font-bold uppercase mt-1">{(selectedTx as any).virement_type}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-
                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Notes & Observations</p>
-                                    <div className="p-4 bg-slate-50 rounded-2xl text-sm font-medium text-slate-600 italic border-l-4 border-slate-300">
+                                    <p className="text-xs font-semibold text-slate-400 ml-1">Notes & Observations</p>
+                                    <div className="p-4 bg-slate-50 rounded-xl text-sm font-medium text-slate-600 border-l-4 border-slate-300">
                                         "{selectedTx.notes || 'Aucune observation enregistrée.'}"
                                     </div>
                                 </div>
@@ -611,7 +591,7 @@ const Transactions: React.FC = () => {
                         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
                             <button
                                 onClick={() => setSelectedTx(null)}
-                                className="px-8 py-3 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                                className="px-4 py-2 text-white font-medium rounded-lg transition shadow-sm active:scale-[0.98] text-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 Fermer
                             </button>

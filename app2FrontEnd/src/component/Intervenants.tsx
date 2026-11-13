@@ -6,6 +6,8 @@ import { apiFetch, STORAGE_BASE } from '../lib/api';
 import { exportToExcel } from '../lib/excel';
 import { formatNumber, parseNumber } from '../lib/utils';
 import { openExternal } from '../lib/tauri';
+import { confirmDialog } from './common/ConfirmDialog';
+import { usePersistedState, useUrlSearch } from '../lib/usePersistedState';
 
 interface Payment {
     id: number;
@@ -39,9 +41,10 @@ const Intervenants = () => {
     const [intervenants, setIntervenants] = useState<Intervenant[]>([]);
     const [terrains, setTerrains] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCategorie, setFilterCategorie] = useState('all');
-    const [filterTerrain, setFilterTerrain] = useState('all');
+    const [searchTerm, setSearchTerm] = usePersistedState('Intervenants.searchTerm', '');
+    useUrlSearch(setSearchTerm);
+    const [filterCategorie, setFilterCategorie] = usePersistedState('Intervenants.filterCategorie', 'all');
+    const [filterTerrain, setFilterTerrain] = usePersistedState('Intervenants.filterTerrain', 'all');
     const [isMainModalOpen, setIsMainModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -278,7 +281,7 @@ const Intervenants = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm('Supprimer cet intervenant ?')) return;
+        if (!await confirmDialog('Supprimer cet intervenant ?')) return;
         try {
             await apiFetch(`/intervenants/${id}`, { method: 'DELETE' });
             toast.success('Intervenant supprimé');
@@ -362,7 +365,7 @@ const Intervenants = () => {
     };
 
     const handleDeletePayment = async (paymentId: number) => {
-        if (!window.confirm('Supprimer cet avancement ?')) return;
+        if (!await confirmDialog('Supprimer cet avancement ?')) return;
         try {
             await apiFetch(`/contractor-payments/${paymentId}`, { method: 'DELETE' });
             toast.success('Avancement supprimé');
@@ -376,21 +379,21 @@ const Intervenants = () => {
         <div className="space-y-6">
             <div
                 ref={headerRef}
-                className="sticky top-4 z-30 bg-white/80 backdrop-blur-xl p-6 rounded-2xl border border-white shadow-xl shadow-gray-200/50 space-y-4 mx-1"
+                className="sticky top-4 z-30 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4 mx-1"
             >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 uppercase tracking-tight">
-                            <Briefcase className="text-indigo-600" />
+                        <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2 tracking-tight">
+                            <Briefcase className="text-slate-400 flex-shrink-0" size={26} />
                             Répertoire des Intervenants
                         </h2>
-                        <p className="text-gray-500 text-sm">Gérez vos prestataires, bureaux d'études et notaires.</p>
+                        <p className="text-slate-500 text-sm">Gérez vos prestataires, bureaux d'études et notaires.</p>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <button
                             onClick={handleExport}
-                            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-xl border border-emerald-100 hover:bg-emerald-100 transition font-bold"
+                            className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition font-medium"
                             title="Exporter la liste actuelle"
                         >
                             <Download size={18} />
@@ -398,7 +401,7 @@ const Intervenants = () => {
                         </button>
                         <button
                             onClick={() => handleOpenModal()}
-                            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition font-bold shadow-lg shadow-indigo-100"
+                            className="flex items-center gap-2 text-white px-4 py-2.5 rounded-lg transition font-medium shadow-sm text-sm bg-slate-900 hover:bg-slate-800"
                         >
                             <Plus size={18} />
                             <span>Nouvel Intervenant</span>
@@ -407,22 +410,22 @@ const Intervenants = () => {
                 </div>
 
                 {/* Filter Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-4 border-t border-gray-50">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-4 border-t border-slate-50">
                     <div className="relative md:col-span-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold" size={16} />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-semibold" size={16} />
                         <input
                             type="text"
                             placeholder="Rechercher (Nom, Gérant, Tél...)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all placeholder:text-gray-300"
+                            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                     </div>
 
                     <select
                         value={filterCategorie}
                         onChange={(e) => setFilterCategorie(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                        className="cursor-pointer pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Catégorie: Toutes</option>
                         {PREDEFINED_CATEGORIES.map(cat => (
@@ -433,7 +436,7 @@ const Intervenants = () => {
                     <select
                         value={filterTerrain}
                         onChange={(e) => setFilterTerrain(e.target.value)}
-                        className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer"
+                        className="cursor-pointer pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                     >
                         <option value="all">Projet lié: Tous</option>
                         {terrains.map(t => (
@@ -445,7 +448,7 @@ const Intervenants = () => {
 
                     <button
                         onClick={resetFilters}
-                        className="flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-600 font-bold text-xs transition-colors border border-gray-50 rounded-xl py-2"
+                        className="flex items-center justify-center gap-2 text-slate-400 hover:text-blue-600 font-medium text-xs transition-colors border border-slate-50 rounded-lg py-2"
                     >
                         <X size={16} />
                         Réinitialiser
@@ -453,27 +456,27 @@ const Intervenants = () => {
                 </div>
             </div>
 
-            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
                 <table className="w-full text-sm text-left">
                     <thead
-                        className="sticky z-20 bg-gray-50 text-gray-500 text-[10px] font-black uppercase tracking-widest shadow-sm"
+                        className="sticky z-20 bg-white border-b border-slate-200"
                         style={{ top: `${stickyOffset}px` }}
                     >
                         <tr>
-                            <th className="px-6 py-4 rounded-tl-xl whitespace-nowrap">Société / Intervenant</th>
-                            <th className="px-6 py-4 whitespace-nowrap">Gérant / Contact</th>
-                            <th className="px-6 py-4 text-right whitespace-nowrap">Montant Global</th>
-                            <th className="px-6 py-4 text-right whitespace-nowrap">Total Versé</th>
-                            <th className="px-6 py-4 text-right whitespace-nowrap">Reste à Payer</th>
-                            <th className="px-6 py-4 rounded-tr-xl text-right whitespace-nowrap">Actions</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Société / Intervenant</th>
+                            <th className="whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Gérant / Contact</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Montant Global</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Total Versé</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500">Reste à Payer</th>
+                            <th className="text-right whitespace-nowrap px-4 py-2.5 text-xs font-medium text-slate-500 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                         {loading ? (
                             <tr>
                                 <td colSpan={6} className="py-20 text-center">
-                                    <Loader2 className="animate-spin inline-block mb-2 text-gray-300" size={32} />
-                                    <p className="text-gray-400 italic">Chargement...</p>
+                                    <Loader2 className="animate-spin inline-block mb-2 text-slate-300" size={32} />
+                                    <p className="text-slate-400">Chargement...</p>
                                 </td>
                             </tr>
                         ) : filteredIntervenants.length > 0 ? (
@@ -481,47 +484,47 @@ const Intervenants = () => {
                                 const totalPaid = i.payments.reduce((acc, p) => acc + Number(p.amount), 0);
                                 const remaining = i.montant_global - totalPaid;
                                 return (
-                                    <tr key={i.id} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="px-6 py-4">
+                                    <tr key={i.id} className="hover:bg-slate-50 transition-colors group">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-gray-800">{i.nom_societe}</span>
+                                                <span className="font-semibold text-slate-800">{i.nom_societe}</span>
                                                 <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{i.categorie}</span>
+                                                    <span className="text-xs text-slate-400 font-medium">{i.categorie}</span>
                                                     {i.terrain && (
-                                                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase">
+                                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium text-blue-700 bg-blue-50 ring-1 ring-inset ring-blue-600/20">
                                                             Projet: {i.terrain.nom_projet}
                                                         </span>
                                                     )}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 py-3">
                                             <div className="flex flex-col">
-                                                <span className="text-xs text-gray-600 font-bold flex items-center gap-1"><User size={12} className="text-gray-400" /> {i.nom_gerant}</span>
-                                                <span className="text-[10px] text-gray-400 flex items-center gap-1 mt-1"><Phone size={12} className="text-gray-400" /> {i.tel}</span>
+                                                <span className="text-xs text-slate-600 font-medium flex items-center gap-1"><User size={12} className="text-slate-400" /> {i.nom_gerant}</span>
+                                                <span className="text-xs text-slate-400 flex items-center gap-1 mt-1"><Phone size={12} className="text-slate-400" /> {i.tel}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-right font-black text-gray-800">
+                                        <td className="px-4 py-3 text-right font-semibold text-slate-800">
                                             {formatNumber(i.montant_global)} DH
                                         </td>
-                                        <td className="px-6 py-4 text-right font-black text-emerald-600">
+                                        <td className="px-4 py-3 text-right font-semibold text-emerald-600">
                                             {formatNumber(totalPaid)} DH
                                         </td>
-                                        <td className="px-6 py-4 text-right font-black text-rose-500">
+                                        <td className="px-4 py-3 text-right font-semibold text-rose-500">
                                             {formatNumber(remaining)} DH
                                         </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => handleOpenDetails(i)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Détails">
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center transition-opacity justify-end gap-0.5">
+                                                <button onClick={() => handleOpenDetails(i)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Détails">
                                                     <FileText size={16} />
                                                 </button>
-                                                <button onClick={() => handleOpenPaymentModal(i)} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-100 transition-colors" title="Nouvelle Avance">
+                                                <button onClick={() => handleOpenPaymentModal(i)} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-semibold hover:bg-emerald-100 transition-colors" title="Nouvelle Avance">
                                                     <Plus size={12} /> Avance
                                                 </button>
-                                                <button onClick={() => handleOpenModal(i)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg" title="Modifier">
+                                                <button onClick={() => handleOpenModal(i)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
                                                     <Edit2 size={16} />
                                                 </button>
-                                                <button onClick={() => handleDelete(i.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="Supprimer">
+                                                <button onClick={() => handleDelete(i.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50" title="Supprimer">
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>
@@ -531,7 +534,7 @@ const Intervenants = () => {
                             })
                         ) : (
                             <tr>
-                                <td colSpan={6} className="py-20 text-center text-gray-400 italic">Aucun intervenant enregistré pour le moment.</td>
+                                <td colSpan={6} className="py-20 text-center text-slate-400">Aucun intervenant enregistré pour le moment.</td>
                             </tr>
                         )}
                     </tbody>
@@ -540,21 +543,21 @@ const Intervenants = () => {
 
             {/* Main Modal (Add/Edit) */}
             {isMainModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-indigo-50/30">
-                            <h3 className="font-black text-gray-800 text-base uppercase tracking-widest">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/30">
+                            <h3 className="font-semibold text-slate-800 text-base">
                                 {editingIntervenant ? 'Modifier Intervenant' : 'Nouvel Intervenant'}
                             </h3>
-                            <button onClick={() => setIsMainModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={20} />
+                            <button onClick={() => setIsMainModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Catégorie</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Catégorie</label>
                                     <select
                                         value={formData.categorie}
                                         onChange={e => {
@@ -566,7 +569,7 @@ const Intervenants = () => {
                                                 setCustomCategory('');
                                             }
                                         }}
-                                        className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.categorie ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700`}
+                                        className={`w-full ${fieldErrors.categorie ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                     >
                                         <option value="Architecture">Architecture</option>
                                         <option value="Bureau de contrôle">Bureau de contrôle</option>
@@ -584,17 +587,17 @@ const Intervenants = () => {
                                             required
                                             value={customCategory}
                                             onChange={e => setCustomCategory(e.target.value)}
-                                            className="w-full mt-2 px-3 py-2 bg-white border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs"
+                                            className="w-full mt-2 pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                         />
                                     )}
-                                    {fieldErrors.categorie && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.categorie[0]}</p>}
+                                    {fieldErrors.categorie && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.categorie[0]}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Projet lié</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Projet lié</label>
                                     <select
                                         value={formData.terrain_id}
                                         onChange={e => setFormData({ ...formData, terrain_id: e.target.value })}
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700"
+                                        className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                     >
                                         <option value="">Aucun projet spécifique</option>
                                         {terrains.map(t => (
@@ -603,86 +606,86 @@ const Intervenants = () => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Société / Cabinet</label>
-                                    <input type="text" required value={formData.nom_societe} onChange={e => setFormData({ ...formData, nom_societe: e.target.value })} className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.nom_societe ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm`} />
-                                    {fieldErrors.nom_societe && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.nom_societe[0]}</p>}
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Société / Cabinet</label>
+                                    <input type="text" required value={formData.nom_societe} onChange={e => setFormData({ ...formData, nom_societe: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.nom_societe ? '!border-red-500' : 'border-slate-200'} `} />
+                                    {fieldErrors.nom_societe && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nom_societe[0]}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Responsable</label>
-                                    <input type="text" required value={formData.nom_gerant} onChange={e => setFormData({ ...formData, nom_gerant: e.target.value })} className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.nom_gerant ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm`} />
-                                    {fieldErrors.nom_gerant && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.nom_gerant[0]}</p>}
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Responsable</label>
+                                    <input type="text" required value={formData.nom_gerant} onChange={e => setFormData({ ...formData, nom_gerant: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.nom_gerant ? '!border-red-500' : 'border-slate-200'} `} />
+                                    {fieldErrors.nom_gerant && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nom_gerant[0]}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Téléphone</label>
-                                    <input type="text" required value={formData.tel} onChange={e => setFormData({ ...formData, tel: e.target.value })} className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.tel ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm`} />
-                                    {fieldErrors.tel && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.tel[0]}</p>}
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Téléphone</label>
+                                    <input type="text" required value={formData.tel} onChange={e => setFormData({ ...formData, tel: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.tel ? '!border-red-500' : 'border-slate-200'} `} />
+                                    {fieldErrors.tel && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.tel[0]}</p>}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Adresse</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Adresse</label>
                                     <textarea
                                         required
                                         value={formData.adresse}
                                         onChange={e => setFormData({ ...formData, adresse: e.target.value })}
                                         dir="auto"
-                                        className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.adresse ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none h-32 resize-none text-sm`}
+                                        className={`w-full ${fieldErrors.adresse ? '!border-red-500' : 'border-slate-200'} resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                     />
-                                    {fieldErrors.adresse && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.adresse[0]}</p>}
+                                    {fieldErrors.adresse && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.adresse[0]}</p>}
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Description / Notes</label>
-                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className={`w-full px-3 py-2 bg-gray-50 border ${fieldErrors.description ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none h-16 resize-none text-sm`} placeholder="Notes particulières..." />
-                                    {fieldErrors.description && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.description[0]}</p>}
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Description / Notes</label>
+                                    <textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className={`w-full ${fieldErrors.description ? '!border-red-500' : 'border-slate-200'} resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`} placeholder="Notes particulières..." />
+                                    {fieldErrors.description && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.description[0]}</p>}
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-4">
                                     <div className="md:col-span-2">
-                                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 flex items-center">
+                                        <label className="block text-xs font-medium mb-2 flex items-center text-slate-600">
                                             <Banknote size={12} className="mr-2" /> RIB (Compte Bancaire)
                                         </label>
                                         <input
                                             type="text"
                                             value={formData.rib}
                                             onChange={e => setFormData({ ...formData, rib: e.target.value })}
-                                            className={`w-full h-11 px-4 bg-gray-50 border ${fieldErrors.rib ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-xs tracking-wider`}
+                                            className={`w-full ${fieldErrors.rib ? '!border-red-500' : 'border-slate-200'} pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`}
                                             placeholder="RIB"
                                         />
-                                        {fieldErrors.rib && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.rib[0]}</p>}
+                                        {fieldErrors.rib && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.rib[0]}</p>}
                                     </div>
 
                                     <div className="grid grid-cols-3 gap-2">
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.F</label>
-                                            <input type="text" value={formData.if} onChange={e => setFormData({ ...formData, if: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.if ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                            {fieldErrors.if && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.if[0]}</p>}
+                                            <label className="block text-xs font-medium mb-1 text-slate-600">I.F</label>
+                                            <input type="text" value={formData.if} onChange={e => setFormData({ ...formData, if: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.if ? '!border-red-500' : 'border-slate-200'} `} />
+                                            {fieldErrors.if && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.if[0]}</p>}
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">I.C.E</label>
-                                            <input type="text" value={formData.ice} onChange={e => setFormData({ ...formData, ice: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.ice ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                            {fieldErrors.ice && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.ice[0]}</p>}
+                                            <label className="block text-xs font-medium mb-1 text-slate-600">I.C.E</label>
+                                            <input type="text" value={formData.ice} onChange={e => setFormData({ ...formData, ice: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.ice ? '!border-red-500' : 'border-slate-200'} `} />
+                                            {fieldErrors.ice && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.ice[0]}</p>}
                                         </div>
                                         <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">R.C</label>
-                                            <input type="text" value={formData.rc} onChange={e => setFormData({ ...formData, rc: e.target.value })} className={`w-full h-11 px-3 bg-gray-50 border ${fieldErrors.rc ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-[10px]`} />
-                                            {fieldErrors.rc && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.rc[0]}</p>}
+                                            <label className="block text-xs font-medium mb-1 text-slate-600">R.C</label>
+                                            <input type="text" value={formData.rc} onChange={e => setFormData({ ...formData, rc: e.target.value })} className={`w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500 ${fieldErrors.rc ? '!border-red-500' : 'border-slate-200'} `} />
+                                            {fieldErrors.rc && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.rc[0]}</p>}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Montant (DH)</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Montant (DH)</label>
                                         <div className="relative">
-                                            <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-indigo-500" size={14} />
-                                            <input type="text" required value={formData.montant_global} onChange={e => setFormData({ ...formData, montant_global: formatNumber(e.target.value) })} className={`w-full pl-7 pr-2 py-2 bg-gray-50 border ${fieldErrors.montant_global ? 'border-red-500' : 'border-gray-200'} rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-gray-800 text-lg`} />
+                                            <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 text-blue-500" size={14} />
+                                            <input type="text" required value={formData.montant_global} onChange={e => setFormData({ ...formData, montant_global: formatNumber(e.target.value) })} className={`w-full ${fieldErrors.montant_global ? '!border-red-500' : 'border-slate-200'} pl-7 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500`} />
                                         </div>
-                                        {fieldErrors.montant_global && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.montant_global[0]}</p>}
+                                        {fieldErrors.montant_global && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.montant_global[0]}</p>}
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Scan Contrat</label>
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Scan Contrat</label>
                                         <input
                                             type="file"
                                             accept="image/*,application/pdf"
@@ -692,24 +695,24 @@ const Intervenants = () => {
                                         />
                                         <label
                                             htmlFor="contract-upload"
-                                            className={`w-full flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-dashed ${fieldErrors.scan_contrat ? 'border-red-500' : 'border-blue-200'} rounded-xl hover:bg-blue-100 hover:border-blue-400 cursor-pointer transition-all`}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 bg-blue-50/50 border border-dashed ${fieldErrors.scan_contrat ? '!border-red-500' : 'border-blue-200'} rounded-xl hover:bg-blue-100 hover:border-blue-400 cursor-pointer transition`}
                                         >
                                             <Upload size={14} className="text-blue-500" />
-                                            <span className="text-[10px] font-bold text-blue-700 truncate">{contractFile ? contractFile.name : 'Uploader'}</span>
+                                            <span className="text-xs font-medium text-blue-700 truncate">{contractFile ? contractFile.name : 'Uploader'}</span>
                                         </label>
-                                        {fieldErrors.scan_contrat && <p className="text-[9px] text-red-500 mt-1 font-bold">{fieldErrors.scan_contrat[0]}</p>}
+                                        {fieldErrors.scan_contrat && <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.scan_contrat[0]}</p>}
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex gap-4 pt-2">
-                                <button type="button" onClick={() => setIsMainModalOpen(false)} className="flex-1 px-6 py-2.5 text-xs font-black text-gray-400 uppercase tracking-widest hover:bg-gray-100 rounded-2xl transition-colors">
+                                <button type="button" onClick={() => setIsMainModalOpen(false)} className="flex-1 px-6 py-2.5 text-xs font-semibold text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
                                     Annuler
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="flex-[2] px-6 py-2.5 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100"
+                                    className="flex-[2] px-4 py-2.5 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition shadow-sm bg-slate-900 hover:bg-slate-800"
                                 >
                                     {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> Enregistrer</>}
                                 </button>
@@ -721,45 +724,45 @@ const Intervenants = () => {
 
             {/* Payment Modal (Add Advance) */}
             {isPaymentModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-emerald-50/50">
                             <div>
-                                <h3 className="font-black text-gray-800 text-xs uppercase tracking-widest">{editingPaymentId ? 'Modifier l\'Avancement' : 'Nouvel Avancement'}</h3>
-                                <p className="text-[10px] text-gray-500 mt-0.5">Pour: {selectedIntervenant?.nom_societe}</p>
+                                <h3 className="font-semibold text-slate-800 text-xs">{editingPaymentId ? 'Modifier l\'Avancement' : 'Nouvel Avancement'}</h3>
+                                <p className="text-xs text-slate-500 mt-0.5">Pour: {selectedIntervenant?.nom_societe}</p>
                             </div>
-                            <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                <X size={18} />
+                            <button onClick={() => setIsPaymentModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                <X size={16} />
                             </button>
                         </div>
 
                         <form onSubmit={handleAddPayment} className="p-6 space-y-5">
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Montant Avance (DH)</label>
+                                <label className="block text-xs font-medium mb-1 text-slate-600">Montant Avance (DH)</label>
                                 <div className="relative">
                                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500" size={16} />
-                                    <input type="text" required value={paymentData.amount} onChange={e => setPaymentData({ ...paymentData, amount: formatNumber(e.target.value) })} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-gray-800 text-lg" placeholder="0" />
+                                    <input type="text" required value={paymentData.amount} onChange={e => setPaymentData({ ...paymentData, amount: formatNumber(e.target.value) })} className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="0" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Date Règlement</label>
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Date Règlement</label>
                                     <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                                         <input
                                             type="text"
                                             required
                                             value={paymentData.payment_date}
                                             onChange={e => setPaymentData({ ...paymentData, payment_date: e.target.value })}
-                                            className="w-full pl-9 pr-2 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold"
+                                            className="w-full pl-9 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500"
                                             placeholder="JJ/MM/AAAA"
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Mode de Paiement</label>
-                                    <select value={paymentData.method} onChange={e => setPaymentData({ ...paymentData, method: e.target.value })} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold">
+                                    <label className="block text-xs font-medium mb-1 text-slate-600">Mode de Paiement</label>
+                                    <select value={paymentData.method} onChange={e => setPaymentData({ ...paymentData, method: e.target.value })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500">
                                         <option value="Chèque">Chèque</option>
                                         <option value="Virement">Virement</option>
                                         <option value="Espèce">Espèce</option>
@@ -769,20 +772,20 @@ const Intervenants = () => {
                             </div>
 
                             {paymentData.method !== 'Espèce' && (
-                                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-200">
+                                <div className="grid grid-cols-2 gap-4 duration-200">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">N° Référence</label>
-                                        <input type="text" value={paymentData.reference_no} onChange={e => setPaymentData({ ...paymentData, reference_no: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold" placeholder="N° Chèque/Virement" />
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">N° Référence</label>
+                                        <input type="text" value={paymentData.reference_no} onChange={e => setPaymentData({ ...paymentData, reference_no: e.target.value })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="N° Chèque/Virement" />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Banque</label>
-                                        <input type="text" value={paymentData.bank_name} onChange={e => setPaymentData({ ...paymentData, bank_name: e.target.value })} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs font-bold" placeholder="Nom de la banque" />
+                                        <label className="block text-xs font-medium mb-1 text-slate-600">Banque</label>
+                                        <input type="text" value={paymentData.bank_name} onChange={e => setPaymentData({ ...paymentData, bank_name: e.target.value })} className="w-full pl-3 pr-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="Nom de la banque" />
                                     </div>
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Justificatif / Reçu (Image ou PDF)</label>
+                                <label className="block text-xs font-medium mb-1 text-slate-600">Justificatif / Reçu (Image ou PDF)</label>
                                 <input
                                     type="file"
                                     accept="image/*,application/pdf"
@@ -792,22 +795,22 @@ const Intervenants = () => {
                                 />
                                 <label
                                     htmlFor="payment-upload"
-                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50/30 border border-dashed border-emerald-200 rounded-xl hover:bg-emerald-50 cursor-pointer transition-all group"
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50/30 border border-dashed border-emerald-200 rounded-xl hover:bg-emerald-50 cursor-pointer transition group"
                                 >
-                                    <Upload size={16} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-bold text-emerald-700 truncate">{paymentFile ? paymentFile.name : 'Choisir un fichier'}</span>
+                                    <Upload size={16} className="text-emerald-500 transition-transform" />
+                                    <span className="text-xs font-medium text-emerald-700 truncate">{paymentFile ? paymentFile.name : 'Choisir un fichier'}</span>
                                 </label>
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Observations / Notes</label>
-                                <textarea value={paymentData.notes} onChange={e => setPaymentData({ ...paymentData, notes: e.target.value })} className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-xs h-16 resize-none" placeholder="Notes complémentaires..." />
+                                <label className="block text-xs font-medium mb-1 text-slate-600">Observations / Notes</label>
+                                <textarea value={paymentData.notes} onChange={e => setPaymentData({ ...paymentData, notes: e.target.value })} className="w-full resize-none pl-3 pr-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:bg-slate-50 disabled:text-slate-500" placeholder="Notes complémentaires..." />
                             </div>
 
                             <button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="w-full py-3 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100"
+                                className="w-full py-2.5 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition shadow-sm bg-slate-900 hover:bg-slate-800"
                             >
                                 {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : 'Valider l\'avancement'}
                             </button>
@@ -817,26 +820,26 @@ const Intervenants = () => {
             )}
             {/* Details Modal */}
             {isDetailsModalOpen && selectedIntervenant && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 duration-200 bg-slate-950/50 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden duration-200 ring-1 ring-slate-900/5 animate-dialog-in">
+                        <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div>
-                                <h3 className="font-black text-gray-800 text-lg uppercase tracking-widest leading-none mb-1">{selectedIntervenant.nom_societe}</h3>
+                                <h3 className="font-semibold text-slate-800 text-lg leading-none mb-1">{selectedIntervenant.nom_societe}</h3>
                                 <div className="flex items-center gap-2">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Fiche Intervenant #{selectedIntervenant.id} • {selectedIntervenant.categorie}</p>
+                                    <p className="text-xs font-medium text-slate-400">Fiche Intervenant #{selectedIntervenant.id} • {selectedIntervenant.categorie}</p>
                                     {selectedIntervenant.terrain && (
-                                        <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 uppercase">
+                                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium text-blue-700 bg-blue-50 ring-1 ring-inset ring-blue-600/20">
                                             Projet: {selectedIntervenant.terrain.nom_projet}
                                         </span>
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => { setIsDetailsModalOpen(false); handleOpenModal(selectedIntervenant); }} className="p-2 hover:bg-blue-50 text-blue-600 rounded-full transition-colors" title="Modifier">
-                                    <Edit2 size={18} />
+                            <div className="flex items-center justify-end gap-0.5">
+                                <button onClick={() => { setIsDetailsModalOpen(false); handleOpenModal(selectedIntervenant); }} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
+                                    <Edit2 size={16} />
                                 </button>
-                                <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                                    <X size={20} />
+                                <button onClick={() => setIsDetailsModalOpen(false)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100">
+                                    <X size={16} />
                                 </button>
                             </div>
                         </div>
@@ -844,19 +847,19 @@ const Intervenants = () => {
                         <div className="p-8 space-y-8 overflow-y-auto max-h-[70vh]">
                             {/* Stats Grid */}
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Montant Global</p>
-                                    <p className="text-lg font-black text-indigo-700">{formatNumber(selectedIntervenant.montant_global)} DH</p>
+                                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                                    <p className="text-xs font-medium text-blue-400 mb-1">Montant Global</p>
+                                    <p className="text-lg font-semibold text-blue-700">{formatNumber(selectedIntervenant.montant_global)} DH</p>
                                 </div>
-                                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase mb-1">Total Versé</p>
-                                    <p className="text-lg font-black text-emerald-700">
+                                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                    <p className="text-xs font-medium text-emerald-400 mb-1">Total Versé</p>
+                                    <p className="text-lg font-semibold text-emerald-700">
                                         {formatNumber(selectedIntervenant.payments.reduce((acc, p) => acc + Number(p.amount), 0))} DH
                                     </p>
                                 </div>
-                                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-rose-400 uppercase mb-1">Reste à Payer</p>
-                                    <p className="text-lg font-black text-rose-700">
+                                <div className="p-4 bg-rose-50 border !border-rose-100 rounded-xl">
+                                    <p className="text-xs font-medium text-rose-400 mb-1">Reste à Payer</p>
+                                    <p className="text-lg font-semibold text-rose-700">
                                         {formatNumber(selectedIntervenant.montant_global - selectedIntervenant.payments.reduce((acc, p) => acc + Number(p.amount), 0))} DH
                                     </p>
                                 </div>
@@ -865,32 +868,32 @@ const Intervenants = () => {
                             <div className="grid grid-cols-2 gap-8">
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Informations de Contact</label>
+                                        <label className="text-xs font-medium block mb-1 text-slate-600">Informations de Contact</label>
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 text-sm">
-                                                <User size={14} className="text-gray-400" />
-                                                <span className="text-gray-600">Gérant: <span className="font-bold">{selectedIntervenant.nom_gerant}</span></span>
+                                                <User size={14} className="text-slate-400" />
+                                                <span className="text-slate-600">Gérant: <span className="font-bold">{selectedIntervenant.nom_gerant}</span></span>
                                             </div>
                                             <div className="flex items-center gap-2 text-sm">
-                                                <Phone size={14} className="text-gray-400" />
-                                                <span className="text-gray-600 font-bold">{selectedIntervenant.tel}</span>
+                                                <Phone size={14} className="text-slate-400" />
+                                                <span className="text-slate-600 font-semibold">{selectedIntervenant.tel}</span>
                                             </div>
                                             <div className="flex items-start gap-2 text-sm">
-                                                <MapPin size={14} className="text-gray-400 mt-1" />
-                                                <span className="text-gray-600">{selectedIntervenant.adresse}</span>
+                                                <MapPin size={14} className="text-slate-400 mt-1" />
+                                                <span className="text-slate-600">{selectedIntervenant.adresse}</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Identifiants Fiscaux & Bancaires</label>
-                                        <div className="p-3 bg-gray-50 rounded-xl space-y-1">
-                                            <p className="text-xs font-bold text-gray-600 flex justify-between"><span>I.F:</span> <span className="text-indigo-600">{selectedIntervenant.if || '—'}</span></p>
-                                            <p className="text-xs font-bold text-gray-600 flex justify-between"><span>I.C.E:</span> <span className="text-indigo-600">{selectedIntervenant.ice || '—'}</span></p>
-                                            <p className="text-xs font-bold text-gray-600 flex justify-between"><span>R.C:</span> <span className="text-indigo-600">{selectedIntervenant.rc || '—'}</span></p>
-                                            <p className="text-[10px] font-bold text-gray-500 flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm transition-all hover:border-emerald-200 group">
-                                                <span className="flex items-center gap-2"><Banknote size={12} className="text-gray-400 group-hover:text-emerald-500" /> RIB:</span>
-                                                <span className="text-emerald-600 font-mono text-[11px] font-black tracking-wider">{selectedIntervenant.rib || '—'}</span>
+                                        <label className="text-xs font-medium block mb-1 text-slate-600">Identifiants Fiscaux & Bancaires</label>
+                                        <div className="p-3 bg-slate-50 rounded-xl space-y-1">
+                                            <p className="text-xs font-medium text-slate-600 flex justify-between"><span>I.F:</span> <span className="text-blue-600">{selectedIntervenant.if || '—'}</span></p>
+                                            <p className="text-xs font-medium text-slate-600 flex justify-between"><span>I.C.E:</span> <span className="text-blue-600">{selectedIntervenant.ice || '—'}</span></p>
+                                            <p className="text-xs font-medium text-slate-600 flex justify-between"><span>R.C:</span> <span className="text-blue-600">{selectedIntervenant.rc || '—'}</span></p>
+                                            <p className="text-xs font-medium text-slate-500 flex justify-between items-center bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm transition hover:border-emerald-200 group">
+                                                <span className="flex items-center gap-2"><Banknote size={12} className="text-slate-400 group-hover:text-emerald-500" /> RIB:</span>
+                                                <span className="text-emerald-600 font-mono text-xs font-semibold">{selectedIntervenant.rib || '—'}</span>
                                             </p>
                                         </div>
                                     </div>
@@ -898,20 +901,20 @@ const Intervenants = () => {
 
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-[10px] font-black text-gray-400 uppercase block mb-1">Documents & Notes</label>
+                                        <label className="text-xs font-medium block mb-1 text-slate-600">Documents & Notes</label>
                                         <div className="space-y-2">
                                             {selectedIntervenant.scan_contrat && (
                                                 <button
                                                     onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${selectedIntervenant.scan_contrat}`))}
-                                                    className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors w-full"
+                                                    className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors w-full"
                                                 >
                                                     <FileText size={16} />
-                                                    <span className="text-xs font-black uppercase tracking-widest">Voir le Contrat</span>
+                                                    <span className="text-xs font-semibold">Voir le Contrat</span>
                                                 </button>
                                             )}
-                                            <div className="p-3 bg-gray-50 rounded-xl">
-                                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Description</p>
-                                                <p className="text-xs text-gray-600 italic leading-relaxed">{selectedIntervenant.description || 'Aucune description fournie.'}</p>
+                                            <div className="p-3 bg-slate-50 rounded-xl">
+                                                <p className="text-xs font-medium text-slate-400 mb-1">Description</p>
+                                                <p className="text-xs text-slate-600 leading-relaxed">{selectedIntervenant.description || 'Aucune description fournie.'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -921,40 +924,40 @@ const Intervenants = () => {
                             {/* Payment History */}
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between border-b pb-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase">Historique des Avancements</label>
-                                    <button onClick={() => handleOpenPaymentModal(selectedIntervenant)} className="text-[10px] font-black text-emerald-600 uppercase hover:underline">
+                                    <label className="text-xs font-medium text-slate-600">Historique des Avancements</label>
+                                    <button onClick={() => handleOpenPaymentModal(selectedIntervenant)} className="text-xs font-semibold text-emerald-600 hover:underline">
                                         + Ajouter Avance
                                     </button>
                                 </div>
                                 <div className="space-y-2">
                                     {selectedIntervenant.payments && selectedIntervenant.payments.length > 0 ? (
                                         selectedIntervenant.payments.map(p => (
-                                            <div key={p.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl group/pay">
+                                            <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl group/pay">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="p-2 bg-white rounded-lg text-emerald-600 shadow-sm">
+                                                    <div className="p-2 bg-white rounded-lg text-emerald-600 shadow-sm border border-slate-200">
                                                         <DollarSign size={16} />
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-black text-gray-800">{formatNumber(p.amount)} DH</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase">{p.payment_date} — {p.method}</p>
+                                                        <p className="text-sm font-semibold text-slate-800">{formatNumber(p.amount)} DH</p>
+                                                        <p className="text-xs text-slate-400 font-medium">{p.payment_date} — {p.method}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    {p.notes && <span className="text-[10px] text-gray-400 italic px-2 py-1 bg-white rounded-md">{p.notes}</span>}
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover/pay:opacity-100 transition-opacity">
+                                                    {p.notes && <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium text-slate-700 bg-white ring-1 ring-inset ring-slate-600/20">{p.notes}</span>}
+                                                    <div className="flex items-center opacity-0 group-hover/pay:opacity-100 transition-opacity justify-end gap-0.5">
                                                         {p.scan_path && (
                                                             <button
                                                                 onClick={() => openExternal(encodeURI(`${STORAGE_BASE}/${p.scan_path}`))}
-                                                                className="p-1.5 text-blue-500 hover:bg-white rounded-lg shadow-sm bg-white"
+                                                                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100"
                                                                 title="Voir le scan"
                                                             >
                                                                 <FileText size={14} />
                                                             </button>
                                                         )}
-                                                        <button onClick={() => handleOpenPaymentModal(selectedIntervenant, p)} className="p-1.5 text-blue-500 hover:bg-white rounded-lg shadow-sm bg-white" title="Modifier">
+                                                        <button onClick={() => handleOpenPaymentModal(selectedIntervenant, p)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-slate-900 hover:bg-slate-100" title="Modifier">
                                                             <Edit2 size={14} />
                                                         </button>
-                                                        <button onClick={() => handleDeletePayment(p.id)} className="p-1.5 text-red-400 hover:bg-rose-50 rounded-lg shadow-sm bg-white hover:text-red-600">
+                                                        <button onClick={() => handleDeletePayment(p.id)} className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-400 transition-colors hover:text-red-600 hover:bg-red-50">
                                                             <Trash2 size={14} />
                                                         </button>
                                                     </div>
@@ -962,14 +965,14 @@ const Intervenants = () => {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-center text-gray-400 italic text-xs py-4">Aucun avancement enregistré.</p>
+                                        <p className="text-center text-slate-400 text-xs py-4">Aucun avancement enregistré.</p>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex gap-4">
-                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-gray-100 transition-colors shadow-sm">
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex gap-4">
+                            <button onClick={() => setIsDetailsModalOpen(false)} className="flex-1 py-2 bg-white border border-slate-200 text-slate-500 rounded-lg font-medium text-sm hover:bg-slate-50 transition-colors shadow-sm">
                                 Fermer
                             </button>
                         </div>
