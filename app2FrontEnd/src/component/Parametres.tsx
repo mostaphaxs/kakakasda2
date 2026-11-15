@@ -457,7 +457,16 @@ function DataTab() {
 
     return (
         <div className="space-y-5">
-            {isDesktop && <NetworkSection />}
+            {isDesktop ? <NetworkSection /> : (
+                <Section title="Accès réseau" desc="Utiliser l'application depuis un téléphone ou un autre PC du bureau, dans un navigateur.">
+                    <p className="text-sm text-slate-600">
+                        Vous utilisez l'application dans un navigateur. L'accès réseau s'active ou se désactive uniquement depuis
+                        l'application de bureau installée sur le poste principal : Paramètres → Données → Accès réseau.
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500">Adresse utilisée actuellement</p>
+                    <code className="mt-1 block px-3 py-2 rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-200 text-xs text-slate-700 break-all">{window.location.origin}</code>
+                </Section>
+            )}
             <Section title="Sauvegarde" desc="Exportez une copie complète de vos données (clients, paiements, projets…). Gardez-la sur une clé USB ou dans le cloud.">
                 <div className="space-y-3">
                     <p className="text-xs text-slate-500">Emplacement actuel</p>
