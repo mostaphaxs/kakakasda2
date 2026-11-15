@@ -47,6 +47,7 @@ export async function openExternal(url: string): Promise<void> {
 
     // 3. Fallback: Open in system browser
     if (import.meta.env.DEV) console.log('[tauri] Opening external URL:', url);
+    if (!(window as any).__TAURI_INTERNALS__) { window.open(url, '_blank'); return; } // plain browser
     try {
         await invoke('open_url', { url });
     } catch (err) {

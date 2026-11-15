@@ -1,0 +1,5 @@
+# built web app copied here by scripts/sync-web.mjs
+/index.html
+/assets/
+/vite.svg
+/Facture/

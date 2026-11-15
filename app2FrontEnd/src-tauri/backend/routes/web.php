@@ -4,6 +4,12 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
 Route::get('/', function () {
+    // "Accès réseau": the built web app (copied into public/ at build time) is
+    // served to browsers on the office network — admin app and client portal.
+    $app = public_path('index.html');
+    if (is_file($app)) {
+        return response()->file($app, ['Content-Type' => 'text/html; charset=UTF-8', 'Cache-Control' => 'no-cache']);
+    }
     return view('welcome');
 });
 

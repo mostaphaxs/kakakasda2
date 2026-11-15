@@ -369,6 +369,64 @@ function AiTab({ initial }: { initial: AppSettings }) {
 }
 
 // ── Données ───────────────────────────────────────────────────────────────────
+// ── Accès réseau: use the app from a phone or another PC of the office, in a browser ──
+function NetworkSection() {
+    const [info, setInfo] = useState<{ wanted: boolean; active: boolean; ip: string | null; port: number } | null>(null);
+    const load = () => invoke<typeof info>('get_network_info').then(setInfo).catch(() => setInfo(null));
+    useEffect(() => { load(); }, []);
+    if (!info) return null;
+
+    const toggle = async (enabled: boolean) => {
+        try {
+            await invoke('set_network_access', { enabled });
+            await load();
+            toast.success(enabled ? "Accès réseau activé — redémarrez l'application" : "Accès réseau désactivé — redémarrez l'application", { duration: 6000 });
+        } catch (e: any) { toast.error(String(e)); }
+    };
+    const url = info.ip ? `http://${info.ip}:${info.port}` : null;
+    const copy = (t: string) => navigator.clipboard?.writeText(t).then(() => toast.success('Copié'), () => { /* ignore */ });
+    const firewall = `netsh advfirewall firewall add rule name="Gestion immobiliere" dir=in action=allow protocol=TCP localport=${info.port} profile=private`;
+
+    return (
+        <Section title="Accès réseau" desc="Utilisez l'application depuis un téléphone ou un autre PC du bureau, dans un navigateur, avec les mêmes données. Ce poste doit rester allumé avec l'application ouverte.">
+            <div className="space-y-4">
+                <label className="flex items-center justify-between gap-3 cursor-pointer">
+                    <span className="text-sm font-medium text-slate-800">Autoriser les autres appareils du réseau</span>
+                    <input type="checkbox" role="switch" checked={info.wanted} onChange={e => toggle(e.target.checked)} className="peer sr-only" />
+                    <span className="relative w-9 h-5 flex-shrink-0 rounded-full bg-slate-200 transition-colors peer-checked:bg-slate-900 after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-4" />
+                </label>
+                {info.wanted !== info.active && (
+                    <p className="text-xs text-amber-700">Redémarrez l'application pour appliquer ce changement.</p>
+                )}
+                {info.active && (
+                    url ? (
+                        <div className="space-y-3">
+                            {[['Application', url], ['Portail client', `${url}/#/portal/login`]].map(([label, link]) => (
+                                <div key={label}>
+                                    <p className="text-xs text-slate-500 mb-1">{label}</p>
+                                    <div className="flex items-center gap-2">
+                                        <code className="flex-1 px-3 py-2 rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-200 text-xs text-slate-700 break-all">{link}</code>
+                                        <button type="button" onClick={() => copy(link)} className="text-xs font-medium text-slate-500 hover:text-slate-900">Copier</button>
+                                    </div>
+                                </div>
+                            ))}
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1">Si la page ne s'ouvre pas sur le téléphone : pare-feu Windows (invite de commandes en administrateur)</p>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 px-3 py-2 rounded-lg bg-slate-50 ring-1 ring-inset ring-slate-200 text-[11px] text-slate-700 break-all">{firewall}</code>
+                                    <button type="button" onClick={() => copy(firewall)} className="text-xs font-medium text-slate-500 hover:text-slate-900">Copier</button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-slate-500">Ce poste n'est connecté à aucun réseau : adresse indisponible.</p>
+                    )
+                )}
+            </div>
+        </Section>
+    );
+}
+
 function DataTab() {
     const [path, setPath] = useState('');
     const [busy, setBusy] = useState<'import' | 'export' | null>(null);
@@ -399,6 +457,7 @@ function DataTab() {
 
     return (
         <div className="space-y-5">
+            {isDesktop && <NetworkSection />}
             <Section title="Sauvegarde" desc="Exportez une copie complète de vos données (clients, paiements, projets…). Gardez-la sur une clé USB ou dans le cloud.">
                 <div className="space-y-3">
                     <p className="text-xs text-slate-500">Emplacement actuel</p>

@@ -20,7 +20,14 @@ const GET_VITE_URL = () => {
     return url;
 };
 
-const DEFAULT_URL = GET_VITE_URL() || 'http://127.0.0.1:8000/api';
+/** True inside the desktop app (Tauri), false in a normal browser. */
+export const isDesktopApp = () => !!(window as any).__TAURI_INTERNALS__;
+
+// Opened in a browser from the main PC's address ("Accès réseau"): the backend
+// that served the page is the API, whatever its IP and port.
+const SERVED_BY_BACKEND = import.meta.env.PROD && !isDesktopApp() && /^https?:$/.test(window.location.protocol);
+
+const DEFAULT_URL = SERVED_BY_BACKEND ? `${window.location.origin}/api` : (GET_VITE_URL() || 'http://127.0.0.1:8000/api');
 
 export let API_BASE = DEFAULT_URL.replace(/\/+$/, '');
 export let STORAGE_BASE = API_BASE + '/sidecar-serve';

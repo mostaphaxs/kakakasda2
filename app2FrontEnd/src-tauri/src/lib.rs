@@ -2,11 +2,14 @@ use tauri::Manager;
 use tauri::path::BaseDirectory;
 use std::process::{Child, Command as StdCommand};
 use std::sync::Mutex;
-use std::net::TcpListener;
+use std::net::{TcpListener, UdpSocket};
 use log::{info, error, warn};
 
 pub struct AppState {
     pub api_url: Mutex<String>,
+    pub port: u16,
+    /// Whether the backend was started reachable from the office network.
+    pub lan_enabled: bool,
     pub child: Mutex<Option<Child>>,
 }
 
@@ -32,9 +35,53 @@ fn open_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
-fn find_available_port(start_port: u16) -> u16 {
+// ── Accès réseau (other devices of the office open the app in a browser) ─────
+// Off by default. When on, the backend listens on every network interface
+// instead of this PC only. The choice is a marker file in the app data folder
+// and takes effect at the next start.
+const LAN_MARKER: &str = "lan_access_enabled";
+
+fn lan_marker_path(app_handle: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    app_handle.path().app_data_dir().ok().map(|d| d.join(LAN_MARKER))
+}
+
+fn lan_access_wanted(app_handle: &tauri::AppHandle) -> bool {
+    lan_marker_path(app_handle).map(|p| p.exists()).unwrap_or(false)
+}
+
+/// This PC's address on the local network (no packet is sent).
+fn local_ip() -> Option<String> {
+    let socket = UdpSocket::bind("0.0.0.0:0").ok()?;
+    socket.connect("192.168.255.255:9").or_else(|_| socket.connect("10.255.255.255:9")).ok()?;
+    let ip = socket.local_addr().ok()?.ip();
+    if ip.is_loopback() || ip.is_unspecified() { None } else { Some(ip.to_string()) }
+}
+
+#[tauri::command]
+async fn get_network_info(app_handle: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    Ok(serde_json::json!({
+        "wanted": lan_access_wanted(&app_handle), // what the setting says (applies after restart)
+        "active": state.lan_enabled,              // how the backend is running right now
+        "ip": local_ip(),
+        "port": state.port,
+    }))
+}
+
+#[tauri::command]
+async fn set_network_access(app_handle: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let marker = lan_marker_path(&app_handle).ok_or("Dossier de données introuvable")?;
+    if enabled {
+        std::fs::write(&marker, "1").map_err(|e| e.to_string())
+    } else if marker.exists() {
+        std::fs::remove_file(&marker).map_err(|e| e.to_string())
+    } else {
+        Ok(())
+    }
+}
+
+fn find_available_port(start_port: u16, host: &str) -> u16 {
     for port in start_port..65535 {
-        if TcpListener::bind(format!("127.0.0.1:{}", port)).is_ok() {
+        if TcpListener::bind(format!("{}:{}", host, port)).is_ok() {
             return port;
         }
     }
@@ -100,8 +147,10 @@ fn to_laravel_path(path: &std::path::Path) -> String {
     s.replace('\\', "/")
 }
 
-fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
-    let port = find_available_port(8000);
+fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>, u16, bool) {
+    let lan_enabled = lan_access_wanted(app_handle);
+    let bind_host = if lan_enabled { "0.0.0.0" } else { "127.0.0.1" };
+    let port = find_available_port(8000, bind_host);
     let api_url = format!("http://127.0.0.1:{}/api", port);
 
     // ── 1. Persistent AppData directory ──────────────────────────────────────
@@ -211,7 +260,7 @@ fn setup_backend(app_handle: &tauri::AppHandle) -> (String, Option<Child>) {
 
     
     // ── 7. Web server (long-running process) ────────────────────────────────
-    info!("🚀 Spawning PHP server on 127.0.0.1:{}", port);
+    info!("🚀 Spawning PHP server on {}:{}", bind_host, port);
     
     // PHP SERVER LOGGING FIX (V5): Redirect output to a file for debugging
     let php_log_path = storage_dir.join("logs/php_server.log");
@@ -234,7 +283,7 @@ require_once $publicPath.DIRECTORY_SEPARATOR.'index.php';";
     }
     
     serve
-        .args(["-S", &format!("127.0.0.1:{}", port), "-t", "public", &router_script])
+        .args(["-S", &format!("{}:{}", bind_host, port), "-t", "public", &router_script])
         .current_dir(&backend_path)
         .env("DB_DATABASE",          &db_str)
         .env("LARAVEL_STORAGE_PATH", &stor_str)
@@ -254,10 +303,10 @@ require_once $publicPath.DIRECTORY_SEPARATOR.'index.php';";
     { use std::os::windows::process::CommandExt; serve.creation_flags(0x08000000); }
 
     match serve.spawn() {
-        Ok(child) => (api_url, Some(child)),
+        Ok(child) => (api_url, Some(child), port, lan_enabled),
         Err(e) => {
             error!("❌ Failed to start PHP server: {}", e);
-            (api_url, None)
+            (api_url, None, port, lan_enabled)
         }
     }
 }
@@ -300,11 +349,11 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let (api_url, child) = setup_backend(app.handle());
-            app.manage(AppState { api_url: Mutex::new(api_url), child: Mutex::new(child) });
+            let (api_url, child, port, lan_enabled) = setup_backend(app.handle());
+            app.manage(AppState { api_url: Mutex::new(api_url), port, lan_enabled, child: Mutex::new(child) });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_url, get_api_config, import_database, export_database, get_database_path])
+        .invoke_handler(tauri::generate_handler![open_url, get_api_config, import_database, export_database, get_database_path, get_network_info, set_network_access])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
         .run(|app_handle, event| {
